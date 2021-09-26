@@ -11,34 +11,36 @@
 
    _mkpm.mk_
 
-   ```mk
+   ```makefile
    MKPM_PACKAGE_DIR := .mkpm
 
    MKPM_PACKAGES := \
 
+   NUMPROC := 1
+
    ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-   MKPM_BOOTSTRAP := https://example.com
+   MKPM_BOOTSTRAP := https://bitspur.gitlab.io/community/mkpm/bootstrap.mk
    NULL := /dev/null
-   MKDIRP := mkdir -p
-   ifeq ($(SHELL),cmd.exe)
+   MKDIR_P := mkdir -p
+   ifeq ($(OS),Windows_NT)
+       MKDIR_P = mkdir
        NULL = nul
-       MKDIRP = mkdir
+       SHELL := cmd.exe
    endif
    -include $(MKPM_PACKAGE_DIR)/bootstrap.mk
    $(MKPM_PACKAGE_DIR)/bootstrap.mk:
-       @$(MKDIRP) $(MKPM_PACKAGE_DIR)
+       @$(MKDIR_P) $(MKPM_PACKAGE_DIR)
        @cd $(MKPM_PACKAGE_DIR) && \
            $(shell curl --version >$(NULL) 2>$(NULL) && \
-               echo curl -Ls -o bootstrap.mk|| \
-               echo wget -q --content-on-error -O bootstrap.mk) \
-           $(MKPM_BOOTSTRAP) >$(NULL)
-   export MKPM := $(shell pwd)/$(MKPM_PACKAGE_DIR)
+               echo curl -Ls -o || \
+               echo wget -q --content-on-error -O) \
+           bootstrap.mk $(MKPM_BOOTSTRAP) >$(NULL)
    ############## MKPM BOOTSTRAP SCRIPT END ##############
    ```
 
 2. Add mkpm packages to the `MKPM_PACKAGES` config. Below is an example.
 
-   ```mk
+   ```makefile
    MKPM_PACKAGES := \
        hello=0.0.1
    ```
@@ -49,7 +51,7 @@
 
    _Makefile_
 
-   ```mk
+   ```makefile
    include mkpm.mk
    include $(MKPM)/hello.mk
    ```
