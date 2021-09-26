@@ -61,8 +61,8 @@ stages:
 
 build:linux64:
   stage: build
-  tags:
-    - virtualbox
+  # tags:
+  #   - virtualbox
   artifacts:
     expire_in: 2 hr
     paths:
@@ -70,16 +70,16 @@ build:linux64:
   script:
     - ./script/build-release.sh
 
-build:windows64:
-  stage: build
-  tags:
-    - windows
-  artifacts:
-    expire_in: 2 hr
-    paths:
-      - target/release/gpm.exe
-  script:
-    - cargo build --release
+# build:windows64:
+#   stage: build
+#   tags:
+#     - windows
+#   artifacts:
+#     expire_in: 2 hr
+#     paths:
+#       - target/release/gpm.exe
+#   script:
+#     - cargo build --release
 
 changelog:
   stage: changelog
