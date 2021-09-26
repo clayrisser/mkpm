@@ -15,6 +15,9 @@
    MKPM_PACKAGE_DIR := .mkpm
 
    MKPM_PACKAGES := \
+       blackmagic=0.0.1
+
+   MKPM_BINARY := mkpm
 
    NUMPROC := 1
 
@@ -42,16 +45,17 @@
 
    ```makefile
    MKPM_PACKAGES := \
-       hello=0.0.1
+       blackmagic=0.0.1
    ```
 
 3. To include packages in a _Makefile_, simply prefix them with the `MKPM`
    variable. They MUST be included after the `mkpm.mk` file. Below is an
-   example.
+   example. Make sure you prefix the include statement with a dash `-include`
+   to prevent the Makefile from crashing before the packages are installed.
 
    _Makefile_
 
    ```makefile
    include mkpm.mk
-   include $(MKPM)/hello.mk
+   -include $(MKPM)/blackmagic
    ```
