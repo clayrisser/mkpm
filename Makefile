@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 18:24:14
+# Last Modified: 26-09-2021 18:25:23
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -21,7 +21,7 @@
 # limitations under the License.
 
 include mkpm.mk
-include $(MKPM)/blackmagic
+-include $(MKPM)/blackmagic
 
 CARGO ?= cargo
 GIT ?= git
