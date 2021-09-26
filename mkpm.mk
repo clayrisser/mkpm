@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 04:27:00
+# Last Modified: 26-09-2021 04:32:08
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -27,7 +27,7 @@ MKPM_PACKAGES := \
 NUMPROC := 1
 
 ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-MKPM_BOOTSTRAP := https://example.com
+MKPM_BOOTSTRAP := https://bitspur.gitlab.io/community/mkpm/bootstrap.mk
 NULL := /dev/null
 MKDIR_P := mkdir -p
 ifeq ($(OS),Windows_NT)
