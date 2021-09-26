@@ -1,16 +1,28 @@
+/**
+ * File: /src/gpm/command/update.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:26:46
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
+use std::fs;
 use std::io;
 use std::io::prelude::*;
-use std::fs;
 
+use clap::ArgMatches;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
-use clap::{ArgMatches};
 
 use crate::gpm;
 use crate::gpm::command::{Command, CommandError, CommandResult};
 
-pub struct UpdatePackageRepositoriesCommand {
-}
+pub struct UpdatePackageRepositoriesCommand {}
 
 impl UpdatePackageRepositoriesCommand {
     fn run_update(&self) -> Result<bool, CommandError> {
@@ -25,7 +37,10 @@ impl UpdatePackageRepositoriesCommand {
         let source_file_path = dot_gpm_dir.to_owned().join("sources.list");
 
         if !source_file_path.exists() || !source_file_path.is_file() {
-            warn!("{} does not exist or is not a file", source_file_path.display());
+            warn!(
+                "{} does not exist or is not a file",
+                source_file_path.display()
+            );
 
             return Ok(false);
         }
@@ -33,7 +48,7 @@ impl UpdatePackageRepositoriesCommand {
         let file = fs::File::open(source_file_path)?;
         let mut num_repos = 0;
         let mut num_updated = 0;
-        let mut repos : Vec<String> = Vec::new();
+        let mut repos: Vec<String> = Vec::new();
 
         for line in io::BufReader::new(file).lines() {
             let line = String::from(line.unwrap().trim());
@@ -57,16 +72,14 @@ impl UpdatePackageRepositoriesCommand {
             pb.set_message(format!("updating {}", &remote));
 
             match gpm::git::get_or_clone_repo(&remote) {
-                Ok((repo, _is_new_repo)) => {
-                    match gpm::git::pull_repo(&repo) {
-                        Ok(()) => {
-                            pb.inc(1);
-                            num_updated += 1;
-                            info!("updated repository {}", remote);
-                        },
-                        Err(e) => {
-                            warn!("could not update repository: {}", e);
-                        }
+                Ok((repo, _is_new_repo)) => match gpm::git::pull_repo(&repo) {
+                    Ok(()) => {
+                        pb.inc(1);
+                        num_updated += 1;
+                        info!("updated repository {}", remote);
+                    }
+                    Err(e) => {
+                        warn!("could not update repository: {}", e);
                     }
                 },
                 Err(e) => {
@@ -94,7 +107,7 @@ impl UpdatePackageRepositoriesCommand {
 }
 
 impl Command for UpdatePackageRepositoriesCommand {
-    fn matched_args<'a, 'b>(&self, args : &'a ArgMatches<'b>) -> Option<&'a ArgMatches<'b>> {
+    fn matched_args<'a, 'b>(&self, args: &'a ArgMatches<'b>) -> Option<&'a ArgMatches<'b>> {
         args.subcommand_matches("update")
     }
 
@@ -108,7 +121,7 @@ impl Command for UpdatePackageRepositoriesCommand {
                     error!("package repositories have not been updated, check the logs for warnings/errors");
                     Ok(false)
                 }
-            },
+            }
             Err(e) => Err(e),
         }
     }

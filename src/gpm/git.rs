@@ -1,6 +1,19 @@
+/**
+ * File: /src/gpm/git.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:25:50
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
 use std::fs;
-use std::path;
 use std::io;
+use std::path;
 
 use std::io::prelude::*;
 
@@ -8,18 +21,20 @@ use git2;
 
 use indicatif::{ProgressBar, ProgressStyle};
 
-use url::{Url};
+use url::Url;
 
-use crypto_hash::{Hasher, Algorithm};
+use crypto_hash::{Algorithm, Hasher};
 
 use crate::gpm;
-use crate::gpm::command::{CommandError};
+use crate::gpm::command::CommandError;
 use crate::gpm::package::Package;
 
 pub fn get_git_credentials_callback(
-) -> impl Fn(&str, Option<&str>, git2::CredentialType) -> Result<git2::Cred, git2::Error>
-{
-    move |remote: &str, username: Option<&str>, cred_type: git2::CredentialType| -> Result<git2::Cred, git2::Error> {
+) -> impl Fn(&str, Option<&str>, git2::CredentialType) -> Result<git2::Cred, git2::Error> {
+    move |remote: &str,
+          username: Option<&str>,
+          cred_type: git2::CredentialType|
+          -> Result<git2::Cred, git2::Error> {
         trace!("entering git credentials callback");
 
         let url: Url = remote.parse().unwrap();
@@ -49,7 +64,7 @@ pub fn get_git_credentials_callback(
                         Some(passphrase.as_str())
                     } else {
                         None
-                    }
+                    },
                 ),
                 None => git2::Cred::default(),
             }
@@ -57,8 +72,11 @@ pub fn get_git_credentials_callback(
     }
 }
 
-pub fn pull_repo(repo : &git2::Repository) -> Result<(), git2::Error> {
-    info!("fetching changes for repository {}", repo.workdir().unwrap().display());
+pub fn pull_repo(repo: &git2::Repository) -> Result<(), git2::Error> {
+    info!(
+        "fetching changes for repository {}",
+        repo.workdir().unwrap().display()
+    );
 
     let mut callbacks = git2::RemoteCallbacks::new();
     let mut origin_remote = repo.find_remote("origin")?;
@@ -77,7 +95,6 @@ pub fn pull_repo(repo : &git2::Repository) -> Result<(), git2::Error> {
     repo.checkout_head(Some(&mut builder))?;
 
     debug!("reset head to master");
-    
     let mut opts = git2::FetchOptions::new();
     opts.remote_callbacks(callbacks);
 
@@ -88,20 +105,25 @@ pub fn pull_repo(repo : &git2::Repository) -> Result<(), git2::Error> {
     Ok(())
 }
 
-pub fn get_or_clone_repo(remote : &String) -> Result<(git2::Repository, bool), CommandError> {
+pub fn get_or_clone_repo(remote: &String) -> Result<(git2::Repository, bool), CommandError> {
     let path = remote_url_to_cache_path(remote)?;
 
     if path.exists() {
-        debug!("use existing repository already in cache {}", path.to_str().unwrap());
+        debug!(
+            "use existing repository already in cache {}",
+            path.to_str().unwrap()
+        );
         return Ok((git2::Repository::open(path)?, false));
     }
 
     match path.parent() {
-        Some(parent) => if !parent.exists() {
-            debug!("create missing parent directory {}", parent.display());
-            fs::create_dir_all(parent).map_err(CommandError::IOError)?;
-        },
-        None => ()
+        Some(parent) => {
+            if !parent.exists() {
+                debug!("create missing parent directory {}", parent.display());
+                fs::create_dir_all(parent).map_err(CommandError::IOError)?;
+            }
+        }
+        None => (),
     };
 
     let mut callbacks = git2::RemoteCallbacks::new();
@@ -116,16 +138,19 @@ pub fn get_or_clone_repo(remote : &String) -> Result<(git2::Repository, bool), C
     builder.fetch_options(opts);
     builder.branch("master");
 
-    debug!("start cloning repository {} in {}", remote, path.to_str().unwrap());
+    debug!(
+        "start cloning repository {} in {}",
+        remote,
+        path.to_str().unwrap()
+    );
 
     // ! FIXME: check .gitattributes for LFS, warn! if relevant
-    
     match builder.clone(remote, &path) {
         Ok(r) => {
             debug!("repository cloned");
 
             Ok((r, true))
-        },
+        }
         Err(e) => {
             error!("{:?}", e);
             dbg!(&e);
@@ -134,16 +159,19 @@ pub fn get_or_clone_repo(remote : &String) -> Result<(git2::Repository, bool), C
     }
 }
 
-pub fn remote_url_to_cache_path(remote : &String) -> Result<path::PathBuf, CommandError> {
+pub fn remote_url_to_cache_path(remote: &String) -> Result<path::PathBuf, CommandError> {
     let cache = gpm::file::get_or_init_cache_dir().map_err(CommandError::IOError)?;
     let hash = {
         let mut hasher = Hasher::new(Algorithm::SHA256);
 
         hasher.write(remote.as_bytes()).unwrap();
 
-        hasher.finish()
+        hasher
+            .finish()
             .into_iter()
-            .fold(String::new(), |s : String, i| { s + format!("{:02x}", i).as_str() })
+            .fold(String::new(), |s: String, i| {
+                s + format!("{:02x}", i).as_str()
+            })
     };
 
     let mut path = path::PathBuf::new();
@@ -153,10 +181,7 @@ pub fn remote_url_to_cache_path(remote : &String) -> Result<path::PathBuf, Comma
     Ok(path)
 }
 
-pub fn find_or_init_repo(
-    package: &Package,
-) -> Result<(git2::Repository, String), CommandError> {
-
+pub fn find_or_init_repo(package: &Package) -> Result<(git2::Repository, String), CommandError> {
     match package.remote() {
         Some(remote) => {
             let (repo, is_new_repo) = gpm::git::get_or_clone_repo(&remote)?;
@@ -178,7 +203,7 @@ pub fn find_or_init_repo(
                         );
 
                         Ok((repo, tag_refspec))
-                    },
+                    }
                     None => {
                         println!(
                             "  Found:\n    {}{}\n  in:\n    {}\n  at refspec:\n    {}",
@@ -189,27 +214,36 @@ pub fn find_or_init_repo(
                         );
 
                         Ok((repo, refspec))
-                    },
+                    }
                 },
-                None => Err(CommandError::NoMatchingVersionError { package: package.clone() })
+                None => Err(CommandError::NoMatchingVersionError {
+                    package: package.clone(),
+                }),
             }
-        },
+        }
         None => {
             debug!("no specific remote provided: searching");
 
             find_repo_by_package_and_revision(&package)
-        },
+        }
     }
 }
 
-fn commit_to_tag_name(repo : &git2::Repository, commit_id : &git2::Oid) -> Result<Option<String>, git2::Error> {
+fn commit_to_tag_name(
+    repo: &git2::Repository,
+    commit_id: &git2::Oid,
+) -> Result<Option<String>, git2::Error> {
     let tag_names = repo.tag_names(None)?;
 
     for tag_name in tag_names.iter() {
         let tag_name = tag_name.unwrap();
         let tag = repo.find_reference(&format!("refs/tags/{}", &tag_name))?;
         match tag.peel(git2::ObjectType::Commit) {
-            Ok(c) => if c.as_commit().unwrap().id() == *commit_id { return Ok(Some(String::from(tag_name))); },
+            Ok(c) => {
+                if c.as_commit().unwrap().id() == *commit_id {
+                    return Ok(Some(String::from(tag_name)));
+                }
+            }
             _ => continue,
         }
     }
@@ -217,35 +251,41 @@ fn commit_to_tag_name(repo : &git2::Repository, commit_id : &git2::Oid) -> Resul
     Ok(None)
 }
 
-fn diff_tree_has_path(path : &path::Path, repo : &git2::Repository, tree : &git2::Tree) -> bool {
+fn diff_tree_has_path(path: &path::Path, repo: &git2::Repository, tree: &git2::Tree) -> bool {
     let mut found = false;
     let mut found_binary = false;
-    let diff = repo.diff_tree_to_workdir_with_index(Some(&tree), None).unwrap();
+    let diff = repo
+        .diff_tree_to_workdir_with_index(Some(&tree), None)
+        .unwrap();
     // iterate over all the changes in the diff
-    diff.foreach(&mut |a, _| {
-        // when using LFS, the changed file is *not* a binary file
-        if a.new_file().path().unwrap() == path {
-            found = true;
-        }
-        true
-    } , Some(&mut |a, _| {
-        // when *not* using LFS, the changed file *is* a binary file
-        if a.new_file().path().unwrap() == path {
-            found_binary = true;
-        }
-        true
-    }), None, None).unwrap();
+    diff.foreach(
+        &mut |a, _| {
+            // when using LFS, the changed file is *not* a binary file
+            if a.new_file().path().unwrap() == path {
+                found = true;
+            }
+            true
+        },
+        Some(&mut |a, _| {
+            // when *not* using LFS, the changed file *is* a binary file
+            if a.new_file().path().unwrap() == path {
+                found_binary = true;
+            }
+            true
+        }),
+        None,
+        None,
+    )
+    .unwrap();
 
     return found || found_binary;
 }
 
 pub fn find_last_commit_id(
-    path : &path::Path,
-    repo : &git2::Repository
+    path: &path::Path,
+    repo: &git2::Repository,
 ) -> Result<git2::Oid, git2::Error> {
-    let mut commit = repo
-        .head()?
-        .peel_to_commit()?;
+    let mut commit = repo.head()?.peel_to_commit()?;
     let mut previous_commit = commit.clone();
 
     loop {
@@ -265,7 +305,7 @@ pub fn find_last_commit_id(
 }
 
 pub fn find_repo_by_package_and_revision(
-    package : &Package,
+    package: &Package,
 ) -> Result<(git2::Repository, String), CommandError> {
     let dot_gpm_dir = gpm::file::get_or_init_dot_gpm_dir().map_err(CommandError::IOError)?;
     let source_file_path = dot_gpm_dir.to_owned().join("sources.list");
@@ -279,8 +319,9 @@ pub fn find_repo_by_package_and_revision(
     }
 
     let pb = ProgressBar::new(remotes.len() as u64);
-    pb.set_style(ProgressStyle::default_spinner()
-        .template("  [{elapsed_precise}] ({pos}/{len}) {msg}"));
+    pb.set_style(
+        ProgressStyle::default_spinner().template("  [{elapsed_precise}] ({pos}/{len}) {msg}"),
+    );
     pb.set_position(0);
     pb.enable_steady_tick(200);
 
@@ -314,9 +355,8 @@ pub fn find_repo_by_package_and_revision(
                             gpm::style::refspec(&refspec),
                             gpm::style::refspec(&tag_name.replace("refs/tags/", "")),
                         );
-                        
                         return Ok((repo, tag_name));
-                    },
+                    }
                     None => {
                         println!(
                             "    Found:\n      {}{}\n    in:\n      {}\n    at refspec:\n      {}",
@@ -327,9 +367,9 @@ pub fn find_repo_by_package_and_revision(
                         );
 
                         return Ok((repo, refspec));
-                    },
+                    }
                 }
-            },
+            }
             None => {
                 debug!("revision not found, skipping to next repository");
                 continue;
@@ -339,7 +379,9 @@ pub fn find_repo_by_package_and_revision(
 
     debug!("all repositories have been searched");
 
-    Err(CommandError::NoMatchingVersionError { package: package.clone() })
+    Err(CommandError::NoMatchingVersionError {
+        package: package.clone(),
+    })
 }
 
 fn find_package_tag(
@@ -355,15 +397,13 @@ fn find_package_tag(
     if package.archive_is_in_repository(&repo) {
         debug!("package archive found in refspec {}", &refspec);
 
-        let package_commit_id = find_last_commit_id(
-            &package.get_archive_path(None),
-            &repo,
-        ).map_err(CommandError::GitError)?;
+        let package_commit_id = find_last_commit_id(&package.get_archive_path(None), &repo)
+            .map_err(CommandError::GitError)?;
 
         match commit_to_tag_name(&repo, &package_commit_id).map_err(CommandError::GitError)? {
             Some(tag_name) => {
                 return Ok(Some(format!("refs/tags/{}", tag_name)));
-            },
+            }
             // every published package version should be tagged, so this match should "never" happen...
             None => (),
         }

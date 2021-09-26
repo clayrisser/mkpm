@@ -1,4 +1,17 @@
-extern crate clap; 
+/**
+ * File: /src/main.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:27:10
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
+extern crate clap;
 use clap::{App, Arg};
 
 #[macro_use]
@@ -31,38 +44,39 @@ fn main() {
         .about("Git-based package manager.")
         .version(env!("VERGEN_BUILD_SEMVER"))
         .setting(clap::AppSettings::ArgRequiredElseHelp)
-        .subcommand(clap::SubCommand::with_name("install")
-            .about("Install a package")
-            .arg(Arg::with_name("package"))
-            .arg(Arg::with_name("prefix")
-                .help("The prefix to the package install path")
-                .default_value("/")
-                .long("--prefix")
-                .required(false)
-            )
-            .arg(Arg::with_name("force")
-                .help("Replace existing files")
-                .long("--force")
-                .takes_value(false)
-                .required(false)
-            )
+        .subcommand(
+            clap::SubCommand::with_name("install")
+                .about("Install a package")
+                .arg(Arg::with_name("package"))
+                .arg(
+                    Arg::with_name("prefix")
+                        .help("The prefix to the package install path")
+                        .default_value("/")
+                        .long("--prefix")
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("force")
+                        .help("Replace existing files")
+                        .long("--force")
+                        .takes_value(false)
+                        .required(false),
+                ),
         )
-        .subcommand(clap::SubCommand::with_name("download")
-            .about("Download a package")
-            .arg(Arg::with_name("package"))
-            .arg(Arg::with_name("force")
-                .help("Replace existing files")
-                .long("--force")
-                .takes_value(false)
-                .required(false)
-            )
+        .subcommand(
+            clap::SubCommand::with_name("download")
+                .about("Download a package")
+                .arg(Arg::with_name("package"))
+                .arg(
+                    Arg::with_name("force")
+                        .help("Replace existing files")
+                        .long("--force")
+                        .takes_value(false)
+                        .required(false),
+                ),
         )
-        .subcommand(clap::SubCommand::with_name("update")
-            .about("Update all package repositories")
-        )
-        .subcommand(clap::SubCommand::with_name("clean")
-            .about("Clean all repositories from cache")
-        )
+        .subcommand(clap::SubCommand::with_name("update").about("Update all package repositories"))
+        .subcommand(clap::SubCommand::with_name("clean").about("Clean all repositories from cache"))
         .get_matches();
 
     for command in gpm::command::commands().iter() {
@@ -71,18 +85,17 @@ fn main() {
                 match (*command).run(command_args) {
                     Ok(_) => {
                         // nothing
-                    },
+                    }
                     Err(e) => {
                         print_error(&e);
                         std::process::exit(1);
                     }
                 };
                 break;
-            },
+            }
             None => continue,
         };
     }
 
     std::process::exit(0);
 }
-

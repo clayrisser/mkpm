@@ -1,11 +1,24 @@
+/**
+ * File: /src/gpm/package.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:25:40
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
 use std::fmt;
 use std::path;
 
-use url::{Url};
-use semver::{Version, VersionReq};
 use console::style;
-use termimad;
 use crossterm;
+use semver::{Version, VersionReq};
+use termimad;
+use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct PackageVersion {
@@ -81,7 +94,7 @@ impl Package {
         let url = s.parse();
 
         if url.is_ok() {
-            let url : Url = url.unwrap();
+            let url: Url = url.unwrap();
             let package_and_version = String::from(url.fragment().unwrap());
             let p = Package::parse(&package_and_version);
             let mut remote = url.clone();
@@ -93,9 +106,8 @@ impl Package {
                 name: p.name,
                 version: p.version,
             };
-
         } else if s.contains("@") {
-            let parts : Vec<&str> = s.split("@").collect();
+            let parts: Vec<&str> = s.split("@").collect();
 
             return Package {
                 remote: None,
@@ -103,11 +115,7 @@ impl Package {
                 version: PackageVersion::new(&parts[1].to_string()),
             };
         } else {
-            let semver_ops = vec![
-                ">=", "<=",
-                "=", ">", "<",
-                "^", "~",
-            ];
+            let semver_ops = vec![">=", "<=", "=", ">", "<", "^", "~"];
 
             match semver_ops.into_iter().filter(|op| s.contains(op)).last() {
                 Some(op) => {
@@ -118,12 +126,12 @@ impl Package {
                         name: String::from(name),
                         version: PackageVersion::new(&String::from(req)),
                     }
-                },
+                }
                 None => Package {
                     remote: None,
                     name: s.to_owned(),
                     version: PackageVersion::latest(),
-                }
+                },
             }
         }
     }
@@ -137,8 +145,13 @@ impl Package {
         } else {
             // Second - and this is the expected normal behavior - we match the version using semver.
             // To do this, we reverse iterate through the repo's tags and find a matching versions.
-            let mut tag_names = repo.tag_names(None).unwrap().into_iter()
-                .filter(|tag_name| -> bool { tag_name.is_some() && tag_name.unwrap().contains("/") })
+            let mut tag_names = repo
+                .tag_names(None)
+                .unwrap()
+                .into_iter()
+                .filter(|tag_name| -> bool {
+                    tag_name.is_some() && tag_name.unwrap().contains("/")
+                })
                 .map(|tag_name| {
                     let parts = tag_name.unwrap().split("/").collect::<Vec<&str>>();
                     let version = match Version::parse(parts[1]) {
@@ -172,7 +185,8 @@ impl Package {
                 tag_names
                     .into_iter()
                     .filter(|tag| -> bool {
-                        self.name == tag.0 && self.version.version_req().as_ref().unwrap().matches(&tag.1)
+                        self.name == tag.0
+                            && self.version.version_req().as_ref().unwrap().matches(&tag.1)
                     })
                     .last()
             };
@@ -186,13 +200,14 @@ impl Package {
 
     pub fn find(&self, repo: &git2::Repository) -> Option<String> {
         match self.find_matching_refspec(repo) {
-            Some(refspec) => if self.archive_is_in_repository(repo) {
-                Some(refspec)
+            Some(refspec) => {
+                if self.archive_is_in_repository(repo) {
+                    Some(refspec)
+                } else {
+                    None
+                }
             }
-            else {
-                None
-            },
-            None => None
+            None => None,
         }
     }
 
@@ -212,8 +227,8 @@ impl Package {
                 path.push(format!("{}/{}", self.name, self.get_archive_filename()));
 
                 path
-            },
-            None => path::PathBuf::from(format!("{}/{}", self.name, self.get_archive_filename()))
+            }
+            None => path::PathBuf::from(format!("{}/{}", self.name, self.get_archive_filename())),
         }
     }
 
@@ -225,16 +240,15 @@ impl Package {
         if let Ok(tag) = repo.find_tag(oid) {
             if let Some(tag_message) = tag.message() {
                 debug!("tag message is set");
-                
                 let tag_message = if tag_message.starts_with("# ") {
                     debug!("tag message is using the Markdown format");
 
                     let mut skin = termimad::MadSkin::default();
                     skin.headers[2].add_attr(crossterm::style::Attribute::Dim);
-                    skin.bullet = termimad::StyledChar::from_fg_char(crossterm::style::Color::White, '•');
+                    skin.bullet =
+                        termimad::StyledChar::from_fg_char(crossterm::style::Color::White, '•');
 
                     let (width, _) = termimad::terminal_size();
-                    
                     skin.text(&tag_message, Some((width - 4) as usize))
                         .to_string()
                         .to_owned()

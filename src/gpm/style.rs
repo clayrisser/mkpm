@@ -1,15 +1,27 @@
-
+/**
+ * File: /src/gpm/style.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:22:37
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
 use console::style;
 
 use url::Url;
 
-pub fn command(c : &String) -> String {
+pub fn command(c: &String) -> String {
     format!("{}", style(c).green())
 }
 
-pub fn remote_url(remote : &String) -> String {
+pub fn remote_url(remote: &String) -> String {
     let mut remote = remote.clone();
-    let url : Url = remote.parse().unwrap();
+    let url: Url = remote.parse().unwrap();
     let path = url.path();
     let l = remote.len();
 
@@ -18,14 +30,14 @@ pub fn remote_url(remote : &String) -> String {
     format!("{}{}", style(remote).dim(), path)
 }
 
-pub fn package_name(name : &String) -> String {
+pub fn package_name(name: &String) -> String {
     format!("{}", style(name).cyan())
 }
 
-pub fn package_extension(ext : &String) -> String {
+pub fn package_extension(ext: &String) -> String {
     format!("{}", style(ext).dim())
 }
 
-pub fn refspec(r : &String) -> String {
+pub fn refspec(r: &String) -> String {
     format!("{}", style(&r).magenta())
 }

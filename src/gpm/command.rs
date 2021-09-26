@@ -1,18 +1,31 @@
+/**
+ * File: /src/gpm/command.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:24:40
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
 use std::io;
 use std::path;
 
-use git2;
-use clap::{ArgMatches};
+use clap::ArgMatches;
 use err_derive::Error;
+use git2;
 use gitlfs::lfs;
 
 use crate::gpm::package::Package;
 use crate::gpm::ssh;
 
-pub mod install;
-pub mod download;
-pub mod update;
 pub mod clean;
+pub mod download;
+pub mod install;
+pub mod update;
 
 #[derive(Debug, Error)]
 pub enum CommandError {
@@ -24,23 +37,35 @@ pub enum CommandError {
     GitLFSError(#[error(source)] lfs::Error),
     #[error(display = "no matching version for package {}", package)]
     NoMatchingVersionError { package: Package },
-    #[error(display = "the path {:?} (passed via --prefix) does not exist, use --force to create it", prefix)]
+    #[error(
+        display = "the path {:?} (passed via --prefix) does not exist, use --force to create it",
+        prefix
+    )]
     PrefixNotFoundError { prefix: path::PathBuf },
-    #[error(display = "the path {:?} (passed via --prefix) is not a directory", prefix)]
+    #[error(
+        display = "the path {:?} (passed via --prefix) is not a directory",
+        prefix
+    )]
     PrefixIsNotDirectoryError { prefix: path::PathBuf },
-    #[error(display = "package {} was not successfully installed, check the logs for warnings/errors", package)]
+    #[error(
+        display = "package {} was not successfully installed, check the logs for warnings/errors",
+        package
+    )]
     PackageNotInstalledError { package: Package },
     #[error(display = "SSH config parser error")]
     SSHConfigParserError(#[error(source)] pest::error::Error<ssh::Rule>),
-    #[error(display = "invalid LFS object signature: expected {}, got {}", expected, got)]
+    #[error(
+        display = "invalid LFS object signature: expected {}, got {}",
+        expected,
+        got
+    )]
     InvalidLFSObjectSignature { expected: String, got: String },
 }
 
 type CommandResult = std::result::Result<bool, CommandError>;
 
 pub trait Command {
-
-    fn matched_args<'a, 'b>(&self, args : &'a ArgMatches<'b>) -> Option<&'a ArgMatches<'b>>;
+    fn matched_args<'a, 'b>(&self, args: &'a ArgMatches<'b>) -> Option<&'a ArgMatches<'b>>;
     fn run(&self, args: &ArgMatches) -> CommandResult;
 }
 

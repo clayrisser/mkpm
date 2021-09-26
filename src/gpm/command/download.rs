@@ -1,11 +1,24 @@
-use std::fs;
+/**
+ * File: /src/gpm/command/download.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:26:54
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
 use std::env;
+use std::fs;
 use std::path;
 
+use clap::ArgMatches;
 use console::style;
-use url::{Url};
 use indicatif::{ProgressBar, ProgressStyle};
-use clap::{ArgMatches};
+use url::Url;
 
 use gitlfs::lfs;
 
@@ -13,15 +26,10 @@ use crate::gpm;
 use crate::gpm::command::{Command, CommandError, CommandResult};
 use crate::gpm::package::Package;
 
-pub struct DownloadPackageCommand {
-}
+pub struct DownloadPackageCommand {}
 
 impl DownloadPackageCommand {
-    fn run_download(
-        &self,
-        package : &Package,
-        force : bool,
-    ) -> Result<bool, CommandError> {
+    fn run_download(&self, package: &Package, force: bool) -> Result<bool, CommandError> {
         info!("running the \"download\" command for package {}", package);
 
         println!(
@@ -30,17 +38,19 @@ impl DownloadPackageCommand {
             package,
         );
 
-        println!(
-            "{} Resolving package",
-            style("[1/2]").bold().dim(),
-        );
+        println!("{} Resolving package", style("[1/2]").bold().dim(),);
 
         let (repo, refspec) = gpm::git::find_or_init_repo(package)?;
         let remote = repo.find_remote("origin")?.url().unwrap().to_owned();
 
-        info!("{} found as refspec {} in repository {}", package, &refspec, remote);
+        info!(
+            "{} found as refspec {} in repository {}",
+            package, &refspec, remote
+        );
 
-        let oid = repo.refname_to_id(&refspec).map_err(CommandError::GitError)?;
+        let oid = repo
+            .refname_to_id(&refspec)
+            .map_err(CommandError::GitError)?;
 
         package.print_message(oid, &repo);
 
@@ -48,14 +58,22 @@ impl DownloadPackageCommand {
         builder.force();
 
         debug!("move repository HEAD to {}", refspec);
-        repo.set_head_detached(oid).map_err(CommandError::GitError)?;
-        repo.checkout_head(Some(&mut builder)).map_err(CommandError::GitError)?;
+        repo.set_head_detached(oid)
+            .map_err(CommandError::GitError)?;
+        repo.checkout_head(Some(&mut builder))
+            .map_err(CommandError::GitError)?;
 
-        let package_path = package.get_archive_path(Some(path::PathBuf::from(repo.workdir().unwrap())));
-        let cwd_package_path = env::current_dir().unwrap().join(&package.get_archive_filename());
+        let package_path =
+            package.get_archive_path(Some(path::PathBuf::from(repo.workdir().unwrap())));
+        let cwd_package_path = env::current_dir()
+            .unwrap()
+            .join(&package.get_archive_filename());
 
         if cwd_package_path.exists() && !force {
-            error!("path {} already exist, use --force to override", cwd_package_path.display());
+            error!(
+                "path {} already exist, use --force to override",
+                cwd_package_path.display()
+            );
             return Ok(false);
         }
 
@@ -64,13 +82,9 @@ impl DownloadPackageCommand {
         if parsed_lfs_link_data.is_ok() {
             let (oid, size) = parsed_lfs_link_data.unwrap().unwrap();
             let size = size.parse::<usize>().unwrap();
-        
             info!("start downloading archive {:?} from LFS", cwd_package_path);
 
-            println!(
-                "{} Downloading package",
-                style("[2/2]").bold().dim(),
-            );
+            println!("{} Downloading package", style("[2/2]").bold().dim(),);
 
             let file = fs::OpenOptions::new()
                 .write(true)
@@ -78,9 +92,13 @@ impl DownloadPackageCommand {
                 .truncate(true)
                 .open(&cwd_package_path)?;
             let pb = ProgressBar::new(size as u64);
-            pb.set_style(ProgressStyle::default_bar()
-                .template("  [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                .progress_chars("#>-"));
+            pb.set_style(
+                ProgressStyle::default_bar()
+                    .template(
+                        "  [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})",
+                    )
+                    .progress_chars("#>-"),
+            );
 
             lfs::resolve_lfs_link(
                 remote.parse().unwrap(),
@@ -88,24 +106,23 @@ impl DownloadPackageCommand {
                 &package_path,
                 &mut pb.wrap_write(file),
                 &|repository: Url| {
-                    let (k, p) = gpm::ssh::get_ssh_key_and_passphrase(
-                        &String::from(repository.host_str().unwrap())
-                    );
+                    let (k, p) = gpm::ssh::get_ssh_key_and_passphrase(&String::from(
+                        repository.host_str().unwrap(),
+                    ));
 
                     (k.unwrap(), p)
                 },
                 Some(format!("gpm/{}", env!("VERGEN_BUILD_SEMVER"))),
-            ).map_err(CommandError::GitLFSError)?;
+            )
+            .map_err(CommandError::GitLFSError)?;
 
-            let mut file = fs::OpenOptions::new()
-                .read(true)
-                .open(&cwd_package_path)?;
+            let mut file = fs::OpenOptions::new().read(true).open(&cwd_package_path)?;
             let archive_oid = lfs::get_oid(&mut file);
             if archive_oid != oid {
                 return Err(CommandError::InvalidLFSObjectSignature {
                     expected: oid,
                     got: archive_oid,
-                })
+                });
             }
 
             pb.finish();
@@ -122,7 +139,7 @@ impl DownloadPackageCommand {
 }
 
 impl Command for DownloadPackageCommand {
-    fn matched_args<'a, 'b>(&self, args : &'a ArgMatches<'b>) -> Option<&'a ArgMatches<'b>> {
+    fn matched_args<'a, 'b>(&self, args: &'a ArgMatches<'b>) -> Option<&'a ArgMatches<'b>> {
         args.subcommand_matches("download")
     }
 
@@ -139,12 +156,15 @@ impl Command for DownloadPackageCommand {
 
                     Ok(true)
                 } else {
-                    error!("package {} has not been downloaded, check the logs for warnings/errors", package);
+                    error!(
+                        "package {} has not been downloaded, check the logs for warnings/errors",
+                        package
+                    );
 
                     Ok(false)
                 }
-            },
-            Err(e) => Err(e)
+            }
+            Err(e) => Err(e),
         }
     }
 }

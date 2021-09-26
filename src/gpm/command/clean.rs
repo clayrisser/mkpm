@@ -1,12 +1,24 @@
+/**
+ * File: /src/gpm/command/clean.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:26:57
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
 use std::fs;
 
-use clap::{ArgMatches};
+use clap::ArgMatches;
 
 use crate::gpm;
 use crate::gpm::command::{Command, CommandError, CommandResult};
 
-pub struct CleanCacheCommand {
-}
+pub struct CleanCacheCommand {}
 
 impl CleanCacheCommand {
     fn run_clean(&self) -> Result<bool, CommandError> {
@@ -29,7 +41,7 @@ impl CleanCacheCommand {
 }
 
 impl Command for CleanCacheCommand {
-    fn matched_args<'a, 'b>(&self, args : &'a ArgMatches<'b>) -> Option<&'a ArgMatches<'b>> {
+    fn matched_args<'a, 'b>(&self, args: &'a ArgMatches<'b>) -> Option<&'a ArgMatches<'b>> {
         args.subcommand_matches("clean")
     }
 
@@ -43,7 +55,7 @@ impl Command for CleanCacheCommand {
                     error!("cache has not been cleaned, check the logs for warnings/errors");
                     Ok(false)
                 }
-            },
+            }
             Err(e) => Err(e),
         }
     }

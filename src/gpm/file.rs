@@ -1,3 +1,16 @@
+/**
+ * File: /src/gpm/file.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:25:58
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
 use std::fs;
 use std::io;
 use std::path;
@@ -14,8 +27,8 @@ pub fn get_or_init_dot_gpm_dir() -> Result<path::PathBuf, io::Error> {
     if !dot_gpm.exists() {
         return match fs::create_dir_all(&dot_gpm) {
             Ok(()) => Ok(dot_gpm),
-            Err(e) => Err(e)
-        }
+            Err(e) => Err(e),
+        };
     }
 
     Ok(dot_gpm)
@@ -28,19 +41,23 @@ pub fn get_or_init_cache_dir() -> Result<path::PathBuf, io::Error> {
     if !cache.exists() {
         return match fs::create_dir_all(&cache) {
             Ok(()) => Ok(cache),
-            Err(e) => Err(e)
-        }
+            Err(e) => Err(e),
+        };
     }
 
     Ok(cache)
 }
 
 pub fn extract_package(
-    path : &path::Path,
-    prefix : &path::Path,
-    force : bool
+    path: &path::Path,
+    prefix: &path::Path,
+    force: bool,
 ) -> Result<(u32, u32), io::Error> {
-    debug!("attempting to extract package archive {} in {}", path.display(), prefix.display());
+    debug!(
+        "attempting to extract package archive {} in {}",
+        path.display(),
+        prefix.display()
+    );
 
     if !prefix.exists() && force {
         debug!("--force is used: creating missing path {:?}", prefix);
@@ -48,8 +65,10 @@ pub fn extract_package(
     }
 
     let pb = ProgressBar::new(0);
-    pb.set_style(ProgressStyle::default_spinner()
-        .template("{spinner:.green} [{elapsed_precise}] {wide_msg}"));
+    pb.set_style(
+        ProgressStyle::default_spinner()
+            .template("{spinner:.green} [{elapsed_precise}] {wide_msg}"),
+    );
     pb.set_message("Decompressing archive...");
     pb.enable_steady_tick(200);
 
@@ -81,8 +100,9 @@ pub fn extract_package(
     let entries = ar.entries().unwrap();
 
     let pb = ProgressBar::new(num_files as u64);
-    pb.set_style(ProgressStyle::default_spinner()
-        .template("  [{elapsed_precise}] {pos} {wide_msg}"));
+    pb.set_style(
+        ProgressStyle::default_spinner().template("  [{elapsed_precise}] {pos} {wide_msg}"),
+    );
     pb.set_message("extracted files");
     pb.enable_steady_tick(200);
 
@@ -101,7 +121,10 @@ pub fn extract_package(
                 continue;
             }
 
-            debug!("{} already exists and --force in use: removing", &path.display());
+            debug!(
+                "{} already exists and --force in use: removing",
+                &path.display()
+            );
             if path.is_dir() {
                 fs::remove_dir_all(&path)?;
             } else {
@@ -122,9 +145,11 @@ pub fn extract_package(
         pb.inc(1);
     }
 
-    pb.set_style(ProgressStyle::default_spinner()
-        .template("  [{elapsed_precise}] {wide_msg}"));
-    pb.finish_with_message(format!("{}/{} extracted file(s)", num_extracted_files, num_files));
+    pb.set_style(ProgressStyle::default_spinner().template("  [{elapsed_precise}] {wide_msg}"));
+    pb.finish_with_message(format!(
+        "{}/{} extracted file(s)",
+        num_extracted_files, num_files
+    ));
 
     // info!("extracted {}/{} file(s)", num_extracted_files, num_files);
 

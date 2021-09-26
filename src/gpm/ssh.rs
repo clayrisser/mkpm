@@ -1,3 +1,16 @@
+/**
+ * File: /src/gpm/ssh.rs
+ * Project: mkpm
+ * File Created: 26-09-2021 00:17:17
+ * Author: Clay Risser
+ * -----
+ * Last Modified: 26-09-2021 00:22:37
+ * Modified By: Clay Risser
+ * -----
+ * Copyright (c) 2018 Aerys
+ *
+ * MIT License
+ */
 use std::env;
 use std::path::{Path, PathBuf};
 use std::io;
