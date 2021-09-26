@@ -1,8 +1,10 @@
 {
   "cSpell.words": [
     "aerys",
+    "autotag",
     "cargoflags",
     "codegen",
+    "concat",
     "crossterm",
     "ctarget",
     "dotenv",
@@ -16,6 +18,8 @@
     "mkdir",
     "mkpm",
     "msvc",
+    "refname",
+    "refspec",
     "reqwest",
     "risser",
     "rpassword",
@@ -27,9 +31,11 @@
     "tempfile",
     "termimad",
     "toolchains",
+    "userpass",
     "userprofile",
     "vergen",
     "virtualbox",
+    "workdir",
     "zeroize",
     "zeroizing"
   ],

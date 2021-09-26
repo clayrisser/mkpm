@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 06:29:40
+# Last Modified: 26-09-2021 16:48:58
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -23,6 +23,8 @@
 MKPM_PACKAGE_DIR := .mkpm
 
 MKPM_PACKAGES := \
+
+MKPM_SOURCES := \
 
 NUMPROC := 1
 
