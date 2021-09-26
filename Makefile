@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 17:43:36
+# Last Modified: 26-09-2021 18:24:14
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -21,6 +21,7 @@
 # limitations under the License.
 
 include mkpm.mk
+include $(MKPM)/blackmagic
 
 CARGO ?= cargo
 GIT ?= git
@@ -55,10 +56,3 @@ clean:
 		-e $(BANG)/target \
 		-e $(BANG)/target/ \
 		-e $(BANG)/target/**/*
-
-.PHONY: install
-install:
-	@$(MAKE) run ARGS="update"
-	@for p in $(MKPM_PACKAGES); do \
-			$(MAKE) run ARGS="install $$p --prefix '$(MKPM)'"; \
-		done
