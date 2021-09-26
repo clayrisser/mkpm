@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 01:32:49
+# Last Modified: 26-09-2021 01:35:20
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -25,7 +25,7 @@ MKPM_PACKAGE_DIR := .mkpm
 MKPM_PACKAGES := \
 
 ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-MKPM_BOOTSTRAP := https://example.com/bootstrap.mk
+MKPM_BOOTSTRAP := https://example.com
 NULL := /dev/null
 MKDIRP := mkdir -p
 ifeq ($(SHELL),cmd.exe)
@@ -37,8 +37,8 @@ $(MKPM_PACKAGE_DIR)/bootstrap.mk:
 	@$(MKDIRP) $(MKPM_PACKAGE_DIR)
 	@cd $(MKPM_PACKAGE_DIR) && \
 		$(shell curl --version >$(NULL) 2>$(NULL) && \
-			echo curl -LOs|| \
-			echo wget -q --content-on-error) \
+			echo curl -Ls -o bootstrap.mk|| \
+			echo wget -q --content-on-error -O bootstrap.mk) \
 		$(MKPM_BOOTSTRAP) >$(NULL)
 export MKPM := $(shell pwd)/$(MKPM_PACKAGE_DIR)
 ############## MKPM BOOTSTRAP SCRIPT END ##############
