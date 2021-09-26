@@ -4,7 +4,7 @@
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 16:46:37
+ * Last Modified: 26-09-2021 18:10:49
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -85,22 +85,29 @@ pub fn pull_repo(repo: &git2::Repository) -> Result<(), git2::Error> {
     trace!("setup git credentials callback");
     callbacks.credentials(mkpm::git::get_git_credentials_callback());
 
-    let oid = repo.refname_to_id("refs/remotes/origin/master")?;
+    let mut branch = "master";
+    let oid = match repo.refname_to_id("refs/remotes/origin/master") {
+        Ok(oid) => oid,
+        Err(_e) => {
+            branch = "main";
+            repo.refname_to_id("refs/remotes/origin/main")?
+        }
+    };
     let object = repo.find_object(oid, None)?;
-    trace!("reset master to HEAD");
+    trace!("reset {} to HEAD", branch);
     repo.reset(&object, git2::ResetType::Hard, None)?;
 
     let mut builder = git2::build::CheckoutBuilder::new();
     builder.force();
-    repo.set_head("refs/heads/master")?;
+    repo.set_head(&["refs/heads/", branch].concat())?;
     trace!("checkout head");
     repo.checkout_head(Some(&mut builder))?;
 
-    debug!("reset head to master");
+    debug!("reset head to {}", branch);
     let mut opts = git2::FetchOptions::new();
     opts.remote_callbacks(callbacks);
 
-    origin_remote.fetch(&["master"], Some(&mut opts), None)?;
+    origin_remote.fetch(&[branch], Some(&mut opts), None)?;
 
     debug!("fetched changes");
 
@@ -138,7 +145,7 @@ pub fn get_or_clone_repo(remote: &String) -> Result<(git2::Repository, bool), Co
 
     let mut builder = git2::build::RepoBuilder::new();
     builder.fetch_options(opts);
-    builder.branch("master");
+    // builder.branch("master");
 
     debug!(
         "start cloning repository {} in {}",
@@ -346,7 +353,17 @@ pub fn find_repo_by_package_and_revision(
 
         let mut builder = git2::build::CheckoutBuilder::new();
         builder.force();
-        repo.set_head("refs/heads/master")?;
+
+        let mut branch = "master";
+        match repo.refname_to_id("refs/remotes/origin/master") {
+            Ok(oid) => oid,
+            Err(_e) => {
+                branch = "main";
+                repo.refname_to_id("refs/remotes/origin/main")?
+            }
+        };
+
+        repo.set_head(&["refs/heads/", branch].concat())?;
         repo.checkout_head(Some(&mut builder))?;
 
         match package.find(&repo) {

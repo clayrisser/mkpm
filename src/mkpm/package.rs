@@ -1,10 +1,10 @@
 /**
- * File: /src/mkpm/command/update.rs
+ * File: /src/mkpm/package.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:40:49
+ * Last Modified: 26-09-2021 18:06:10
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
