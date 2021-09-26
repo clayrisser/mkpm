@@ -1,16 +1,18 @@
 /**
- * File: /src/mkpm/command/update.rs
+ * File: /src/mkpm/git.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:40:49
+ * Last Modified: 26-09-2021 16:46:37
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
  *
  * MIT License
  */
+use regex;
+use std::env;
 use std::fs;
 use std::io;
 use std::path;
@@ -308,7 +310,9 @@ pub fn find_repo_by_package_and_revision(
     package: &Package,
 ) -> Result<(git2::Repository, String), CommandError> {
     let dot_mkpm_dir = mkpm::file::get_or_init_dot_mkpm_dir().map_err(CommandError::IOError)?;
+    let current_dir = env::current_dir()?;
     let source_file_path = dot_mkpm_dir.to_owned().join("sources.list");
+    let mkpm_path = current_dir.join("mkpm.mk");
     let file = fs::File::open(source_file_path)?;
     let mut remotes = Vec::new();
 
@@ -316,6 +320,12 @@ pub fn find_repo_by_package_and_revision(
         let line = String::from(line.unwrap().trim());
 
         remotes.push(line);
+    }
+
+    if mkpm_path.exists() {
+        for source in get_sources_from_mkpm(mkpm_path)? {
+            remotes.push(source);
+        }
     }
 
     let pb = ProgressBar::new(remotes.len() as u64);
@@ -410,4 +420,56 @@ fn find_package_tag(
     }
 
     return Ok(None);
+}
+
+pub fn get_sources_from_mkpm(
+    mkpm_path: std::path::PathBuf,
+) -> Result<std::vec::Vec<String>, CommandError> {
+    let mkpm_file = fs::File::open(mkpm_path)?;
+    let mut sources_str = String::new();
+    let sources_start_re = regex::Regex::new(r"^MKPM_SOURCES\s+:=(\s+|$)").unwrap();
+    let line_wrap_re = regex::Regex::new(r"\\\s*$").unwrap();
+    let mut sources_match = false;
+    for line in io::BufReader::new(mkpm_file).lines() {
+        let line = String::from(line.unwrap().trim());
+        let mut sources_str_chunk = String::from(&line);
+        if line_wrap_re.is_match(&line) {
+            sources_str_chunk = String::from(line_wrap_re.replace(&line, "").trim());
+        }
+        if sources_start_re.is_match(&line) {
+            sources_match = true;
+            sources_str_chunk =
+                String::from(sources_start_re.replace(&sources_str_chunk, "").trim());
+            sources_str = String::from(
+                [sources_str, String::from(" "), sources_str_chunk]
+                    .concat()
+                    .trim(),
+            );
+        } else if sources_match {
+            match line.chars().last() {
+                Some(c) => {
+                    if c == '\\' {
+                        sources_str = String::from(
+                            [sources_str, String::from(" "), sources_str_chunk]
+                                .concat()
+                                .trim(),
+                        );
+                    } else {
+                        sources_str = String::from(
+                            [sources_str, String::from(" "), sources_str_chunk]
+                                .concat()
+                                .trim(),
+                        );
+                        sources_match = false;
+                    }
+                }
+                None => sources_match = false,
+            }
+        }
+    }
+    let mut sources = std::vec::Vec::new();
+    for source in sources_str.clone().split(" ") {
+        sources.push(String::from(source));
+    }
+    Ok(sources)
 }

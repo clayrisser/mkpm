@@ -1,10 +1,10 @@
 /**
- * File: /src/mkpm/command/update.rs
+ * File: /src/mkpm/file.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:40:49
+ * Last Modified: 26-09-2021 15:16:57
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -26,7 +26,12 @@ pub fn get_or_init_dot_mkpm_dir() -> Result<path::PathBuf, io::Error> {
 
     if !dot_mkpm.exists() {
         return match fs::create_dir_all(&dot_mkpm) {
-            Ok(()) => Ok(dot_mkpm),
+            Ok(()) => {
+                return match fs::File::create(dot_mkpm.join("sources.list")) {
+                    Ok(_f) => Ok(dot_mkpm),
+                    Err(e) => Err(e),
+                }
+            }
             Err(e) => Err(e),
         };
     }

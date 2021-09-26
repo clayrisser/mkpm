@@ -4,13 +4,14 @@
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:40:49
+ * Last Modified: 26-09-2021 16:49:55
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
  *
  * MIT License
  */
+use std::env;
 use std::fs;
 use std::io;
 use std::io::prelude::*;
@@ -35,6 +36,8 @@ impl UpdatePackageRepositoriesCommand {
 
         let dot_mkpm_dir = mkpm::file::get_or_init_dot_mkpm_dir().map_err(CommandError::IOError)?;
         let source_file_path = dot_mkpm_dir.to_owned().join("sources.list");
+        let current_dir = env::current_dir()?;
+        let mkpm_path = current_dir.join("mkpm.mk");
 
         if !source_file_path.exists() || !source_file_path.is_file() {
             warn!(
@@ -60,6 +63,13 @@ impl UpdatePackageRepositoriesCommand {
             num_repos += 1;
 
             repos.push(line);
+        }
+
+        if mkpm_path.exists() {
+            for source in mkpm::git::get_sources_from_mkpm(mkpm_path)? {
+                num_repos += 1;
+                repos.push(source);
+            }
         }
 
         let pb = ProgressBar::new(repos.len() as u64);

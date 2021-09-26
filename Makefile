@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 05:54:49
+# Last Modified: 26-09-2021 15:34:24
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -43,7 +43,11 @@ test-bootstrap:
 
 .PHONY: build
 build:
-	@$(CARGO) build
+	@$(CARGO) build $(ARGS)
+
+.PHONY: run
+run:
+	@RUST_BACKTRACE=1 $(CARGO) run -- $(ARGS)
 
 .PHONY: clean
 clean:
