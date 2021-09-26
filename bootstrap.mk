@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 18:44:10
+# Last Modified: 26-09-2021 18:52:34
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -122,6 +122,7 @@ $(MKPM)/.bootstrapping: $(ROOT)/mkpm.mk
 	@$(MKPM_BINARY) update
 	@for p in $(MKPM_PACKAGES); do \
 			export PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
+			rm -rf "$(MKPM)/.pkgs/$$PKG" $(NOFAIL) && \
 			mkdir -p "$(MKPM)/.pkgs/$$PKG" && \
 			$(MKPM_BINARY) install $$p --prefix "$(MKPM)/.pkgs/$$PKG" && \
 			echo 'include $$(MKPM)'"/.pkgs/$$PKG/main.mk" > "$(MKPM)/$$PKG"; \
