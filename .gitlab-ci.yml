@@ -81,82 +81,82 @@ build:linux64:
 #   script:
 #     - cargo build --release
 
-changelog:
-  stage: changelog
-  image: registry.aerys.in/aerys/gitlab-flow-release:latest
-  only:
-    - tags
-  variables:
-    GIT_STRATEGY: none
-  artifacts:
-    expire_in: 2 hr
-    paths:
-      - CHANGELOG.md
-  script:
-    - gitlab-flow-release --private-token "${RELEASE_PRIVATE_TOKEN}" changelog > CHANGELOG.md
+# changelog:
+#   stage: changelog
+#   image: registry.aerys.in/aerys/gitlab-flow-release:latest
+#   only:
+#     - tags
+#   variables:
+#     GIT_STRATEGY: none
+#   artifacts:
+#     expire_in: 2 hr
+#     paths:
+#       - CHANGELOG.md
+#   script:
+#     - gitlab-flow-release --private-token "${RELEASE_PRIVATE_TOKEN}" changelog > CHANGELOG.md
 
-gitlab-source-release:
-  stage: source release
-  image: registry.aerys.in/aerys/gitlab-flow-release:latest
-  only:
-    - tags
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - gitlab-flow-release --private-token "${RELEASE_PRIVATE_TOKEN}" release
+# gitlab-source-release:
+#   stage: source release
+#   image: registry.aerys.in/aerys/gitlab-flow-release:latest
+#   only:
+#     - tags
+#   variables:
+#     GIT_STRATEGY: none
+#   script:
+#     - gitlab-flow-release --private-token "${RELEASE_PRIVATE_TOKEN}" release
 
-github-source-release:
-  <<: *github_release_template
-  stage: source release
-  variables:
-    RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
-    RELEASE_TAG: ${CI_COMMIT_TAG}
-    RELEASE_PROJECT: aerys/gpm
-    RELEASE_NAME: GPM ${CI_COMMIT_TAG}
-    RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md
+# github-source-release:
+#   <<: *github_release_template
+#   stage: source release
+#   variables:
+#     RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
+#     RELEASE_TAG: ${CI_COMMIT_TAG}
+#     RELEASE_PROJECT: aerys/gpm
+#     RELEASE_NAME: GPM ${CI_COMMIT_TAG}
+#     RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md
 
-publish:windows64:
-  <<: *gpm_publish_template
-  dependencies:
-    - changelog
-    - build:windows64
-  variables:
-    PACKAGE_VERSION: ${CI_COMMIT_TAG}
-    PACKAGE_REPOSITORY: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/aerys/gpm-packages.git
-    PACKAGE_NAME: ${CI_PROJECT_NAME}-windows64
-    PACKAGE_ARCHIVE_ROOT: ${CI_PROJECT_DIR}/target/release
-    PACKAGE_CONTENT: gpm.exe
-    PACKAGE_CHANGELOG: ${CI_PROJECT_DIR}/CHANGELOG.md
+# publish:windows64:
+#   <<: *gpm_publish_template
+#   dependencies:
+#     - changelog
+#     - build:windows64
+#   variables:
+#     PACKAGE_VERSION: ${CI_COMMIT_TAG}
+#     PACKAGE_REPOSITORY: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/aerys/gpm-packages.git
+#     PACKAGE_NAME: ${CI_PROJECT_NAME}-windows64
+#     PACKAGE_ARCHIVE_ROOT: ${CI_PROJECT_DIR}/target/release
+#     PACKAGE_CONTENT: gpm.exe
+#     PACKAGE_CHANGELOG: ${CI_PROJECT_DIR}/CHANGELOG.md
 
-publish:linux64:
-  <<: *gpm_publish_template
-  dependencies:
-    - changelog
-    - build:linux64
-  variables:
-    PACKAGE_VERSION: ${CI_COMMIT_TAG}
-    PACKAGE_REPOSITORY: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/aerys/gpm-packages.git
-    PACKAGE_NAME: ${CI_PROJECT_NAME}-linux64
-    PACKAGE_ARCHIVE_ROOT: ${CI_PROJECT_DIR}
-    PACKAGE_CONTENT: gpm
-    PACKAGE_CHANGELOG: ${CI_PROJECT_DIR}/CHANGELOG.md
+# publish:linux64:
+#   <<: *gpm_publish_template
+#   dependencies:
+#     - changelog
+#     - build:linux64
+#   variables:
+#     PACKAGE_VERSION: ${CI_COMMIT_TAG}
+#     PACKAGE_REPOSITORY: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/aerys/gpm-packages.git
+#     PACKAGE_NAME: ${CI_PROJECT_NAME}-linux64
+#     PACKAGE_ARCHIVE_ROOT: ${CI_PROJECT_DIR}
+#     PACKAGE_CONTENT: gpm
+#     PACKAGE_CHANGELOG: ${CI_PROJECT_DIR}/CHANGELOG.md
 
-github-package-release:windows64:
-  <<: *github_release_template
-  stage: package release
-  variables:
-    RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
-    RELEASE_TAG: gpm-windows64/${CI_COMMIT_TAG}
-    RELEASE_PROJECT: aerys/gpm-packages
-    RELEASE_NAME: GPM ${CI_COMMIT_TAG} (Windows 64bit)
-    RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md
+# github-package-release:windows64:
+#   <<: *github_release_template
+#   stage: package release
+#   variables:
+#     RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
+#     RELEASE_TAG: gpm-windows64/${CI_COMMIT_TAG}
+#     RELEASE_PROJECT: aerys/gpm-packages
+#     RELEASE_NAME: GPM ${CI_COMMIT_TAG} (Windows 64bit)
+#     RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md
 
-github-package-release:linux64:
-  <<: *github_release_template
-  stage: package release
-  variables:
-    RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
-    RELEASE_TAG: gpm-linux64/${CI_COMMIT_TAG}
-    RELEASE_PROJECT: aerys/gpm-packages
-    RELEASE_NAME: GPM ${CI_COMMIT_TAG} (Linux 64bit)
-    RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md
+# github-package-release:linux64:
+#   <<: *github_release_template
+#   stage: package release
+#   variables:
+#     RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
+#     RELEASE_TAG: gpm-linux64/${CI_COMMIT_TAG}
+#     RELEASE_PROJECT: aerys/gpm-packages
+#     RELEASE_NAME: GPM ${CI_COMMIT_TAG} (Linux 64bit)
+#     RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md
