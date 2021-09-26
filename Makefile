@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 15:34:24
+# Last Modified: 26-09-2021 17:43:36
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -47,7 +47,7 @@ build:
 
 .PHONY: run
 run:
-	@RUST_BACKTRACE=1 $(CARGO) run -- $(ARGS)
+	@RUST_LOG=debug RUST_BACKTRACE=1 $(CARGO) run -- $(ARGS)
 
 .PHONY: clean
 clean:
@@ -55,3 +55,10 @@ clean:
 		-e $(BANG)/target \
 		-e $(BANG)/target/ \
 		-e $(BANG)/target/**/*
+
+.PHONY: install
+install:
+	@$(MAKE) run ARGS="update"
+	@for p in $(MKPM_PACKAGES); do \
+			$(MAKE) run ARGS="install $$p --prefix '$(MKPM)'"; \
+		done
