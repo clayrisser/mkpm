@@ -1,3 +1,0 @@
-# mkpm
-
-> makefile package manager
