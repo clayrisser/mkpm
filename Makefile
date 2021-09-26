@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 01:32:19
+# Last Modified: 26-09-2021 04:26:00
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -21,3 +21,13 @@
 # limitations under the License.
 
 include mkpm.mk
+
+test-bootstrap:
+	@echo FLAVOR: $(FLAVOR)
+	@echo GREP: $(GREP)
+	@echo NPROC: $(NPROC)
+	@echo NULL: $(NULL)
+	@echo NUMPROC: $(NUMPROC)
+	@echo PLATFORM: $(PLATFORM)
+	@echo SED: $(SED)
+	@echo SHELL: $(SHELL)
