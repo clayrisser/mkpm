@@ -1,7 +1,7 @@
 pages:
   script:
-    - mkdir pages
-    - cp bootstrap.mk pages
+    - mkdir public
+    - cp bootstrap.mk public
   artifacts:
     paths:
       - public
