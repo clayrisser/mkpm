@@ -1,0 +1,10 @@
+image: ruby:2.7
+
+pages:
+  script:
+    - mkdir pages
+    - cp bootstrap.mk pages
+  artifacts:
+    paths:
+      - public
+  when: manual
