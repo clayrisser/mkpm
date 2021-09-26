@@ -1,10 +1,10 @@
 /**
- * File: /src/gpm/git.rs
+ * File: /src/mkpm/command/update.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:25:50
+ * Last Modified: 26-09-2021 00:40:49
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -25,9 +25,9 @@ use url::Url;
 
 use crypto_hash::{Algorithm, Hasher};
 
-use crate::gpm;
-use crate::gpm::command::CommandError;
-use crate::gpm::package::Package;
+use crate::mkpm;
+use crate::mkpm::command::CommandError;
+use crate::mkpm::package::Package;
 
 pub fn get_git_credentials_callback(
 ) -> impl Fn(&str, Option<&str>, git2::CredentialType) -> Result<git2::Cred, git2::Error> {
@@ -49,7 +49,7 @@ pub fn get_git_credentials_callback(
         } else {
             debug!("using SSH key");
             let host = String::from(url.host_str().unwrap());
-            let (key, passphrase) = gpm::ssh::get_ssh_key_and_passphrase(&host);
+            let (key, passphrase) = mkpm::ssh::get_ssh_key_and_passphrase(&host);
             let (has_pass, passphrase) = match passphrase {
                 Some(p) => (true, p),
                 None => (false, String::new()),
@@ -81,7 +81,7 @@ pub fn pull_repo(repo: &git2::Repository) -> Result<(), git2::Error> {
     let mut callbacks = git2::RemoteCallbacks::new();
     let mut origin_remote = repo.find_remote("origin")?;
     trace!("setup git credentials callback");
-    callbacks.credentials(gpm::git::get_git_credentials_callback());
+    callbacks.credentials(mkpm::git::get_git_credentials_callback());
 
     let oid = repo.refname_to_id("refs/remotes/origin/master")?;
     let object = repo.find_object(oid, None)?;
@@ -128,7 +128,7 @@ pub fn get_or_clone_repo(remote: &String) -> Result<(git2::Repository, bool), Co
 
     let mut callbacks = git2::RemoteCallbacks::new();
     trace!("setup git credentials callback");
-    callbacks.credentials(gpm::git::get_git_credentials_callback());
+    callbacks.credentials(mkpm::git::get_git_credentials_callback());
 
     let mut opts = git2::FetchOptions::new();
     opts.remote_callbacks(callbacks);
@@ -160,7 +160,7 @@ pub fn get_or_clone_repo(remote: &String) -> Result<(git2::Repository, bool), Co
 }
 
 pub fn remote_url_to_cache_path(remote: &String) -> Result<path::PathBuf, CommandError> {
-    let cache = gpm::file::get_or_init_cache_dir().map_err(CommandError::IOError)?;
+    let cache = mkpm::file::get_or_init_cache_dir().map_err(CommandError::IOError)?;
     let hash = {
         let mut hasher = Hasher::new(Algorithm::SHA256);
 
@@ -184,10 +184,10 @@ pub fn remote_url_to_cache_path(remote: &String) -> Result<path::PathBuf, Comman
 pub fn find_or_init_repo(package: &Package) -> Result<(git2::Repository, String), CommandError> {
     match package.remote() {
         Some(remote) => {
-            let (repo, is_new_repo) = gpm::git::get_or_clone_repo(&remote)?;
+            let (repo, is_new_repo) = mkpm::git::get_or_clone_repo(&remote)?;
 
             if !is_new_repo {
-                gpm::git::pull_repo(&repo).map_err(CommandError::GitError)?;
+                mkpm::git::pull_repo(&repo).map_err(CommandError::GitError)?;
             }
 
             match package.find(&repo) {
@@ -195,11 +195,11 @@ pub fn find_or_init_repo(package: &Package) -> Result<(git2::Repository, String)
                     Some(tag_refspec) => {
                         println!(
                             "  Found:\n    {}{}\n  in:\n    {}\n  at refspec:\n    {}\n  tagged as:\n    {}",
-                            gpm::style::package_name(package.name()),
-                            gpm::style::package_extension(&String::from(".tar.gz")),
-                            gpm::style::remote_url(&remote),
-                            gpm::style::refspec(&refspec),
-                            gpm::style::refspec(&tag_refspec.replace("refs/tags/", "")),
+                            mkpm::style::package_name(package.name()),
+                            mkpm::style::package_extension(&String::from(".tar.gz")),
+                            mkpm::style::remote_url(&remote),
+                            mkpm::style::refspec(&refspec),
+                            mkpm::style::refspec(&tag_refspec.replace("refs/tags/", "")),
                         );
 
                         Ok((repo, tag_refspec))
@@ -207,10 +207,10 @@ pub fn find_or_init_repo(package: &Package) -> Result<(git2::Repository, String)
                     None => {
                         println!(
                             "  Found:\n    {}{}\n  in:\n    {}\n  at refspec:\n    {}",
-                            gpm::style::package_name(package.name()),
-                            gpm::style::package_extension(&String::from(".tar.gz")),
-                            gpm::style::remote_url(&remote),
-                            gpm::style::refspec(&refspec),
+                            mkpm::style::package_name(package.name()),
+                            mkpm::style::package_extension(&String::from(".tar.gz")),
+                            mkpm::style::remote_url(&remote),
+                            mkpm::style::refspec(&refspec),
                         );
 
                         Ok((repo, refspec))
@@ -307,8 +307,8 @@ pub fn find_last_commit_id(
 pub fn find_repo_by_package_and_revision(
     package: &Package,
 ) -> Result<(git2::Repository, String), CommandError> {
-    let dot_gpm_dir = gpm::file::get_or_init_dot_gpm_dir().map_err(CommandError::IOError)?;
-    let source_file_path = dot_gpm_dir.to_owned().join("sources.list");
+    let dot_mkpm_dir = mkpm::file::get_or_init_dot_mkpm_dir().map_err(CommandError::IOError)?;
+    let source_file_path = dot_mkpm_dir.to_owned().join("sources.list");
     let file = fs::File::open(source_file_path)?;
     let mut remotes = Vec::new();
 
@@ -328,7 +328,7 @@ pub fn find_repo_by_package_and_revision(
     for remote in remotes {
         debug!("searching in repository {}", remote);
 
-        let path = gpm::git::remote_url_to_cache_path(&remote)?;
+        let path = mkpm::git::remote_url_to_cache_path(&remote)?;
         let repo = git2::Repository::open(path).map_err(CommandError::GitError)?;
 
         pb.inc(1);
@@ -349,21 +349,21 @@ pub fn find_repo_by_package_and_revision(
                     Some(tag_name) => {
                         println!(
                             "    Found:\n      {}{}\n    in:\n      {}\n    at refspec:\n      {}\n    tagged as:\n      {}",
-                            gpm::style::package_name(package.name()),
-                            gpm::style::package_extension(&String::from(".tar.gz")),
-                            gpm::style::remote_url(&remote),
-                            gpm::style::refspec(&refspec),
-                            gpm::style::refspec(&tag_name.replace("refs/tags/", "")),
+                            mkpm::style::package_name(package.name()),
+                            mkpm::style::package_extension(&String::from(".tar.gz")),
+                            mkpm::style::remote_url(&remote),
+                            mkpm::style::refspec(&refspec),
+                            mkpm::style::refspec(&tag_name.replace("refs/tags/", "")),
                         );
                         return Ok((repo, tag_name));
                     }
                     None => {
                         println!(
                             "    Found:\n      {}{}\n    in:\n      {}\n    at refspec:\n      {}",
-                            gpm::style::package_name(package.name()),
-                            gpm::style::package_extension(&String::from(".tar.gz")),
-                            gpm::style::remote_url(&remote),
-                            gpm::style::refspec(&refspec),
+                            mkpm::style::package_name(package.name()),
+                            mkpm::style::package_extension(&String::from(".tar.gz")),
+                            mkpm::style::remote_url(&remote),
+                            mkpm::style::refspec(&refspec),
                         );
 
                         return Ok((repo, refspec));

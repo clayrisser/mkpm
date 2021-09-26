@@ -5,7 +5,7 @@ stages:
   - publish
   - package release
 
-.gpm_publish_template: &gpm_publish_template
+.mkpm_publish_template: &mkpm_publish_template
   stage: publish
   image:
     name: alpine/git:v2.24.1
@@ -66,7 +66,7 @@ build:linux64:
   artifacts:
     expire_in: 2 hr
     paths:
-      - gpm
+      - mkpm
   script:
     - ./script/build-release.sh
 
@@ -77,7 +77,7 @@ build:linux64:
 #   artifacts:
 #     expire_in: 2 hr
 #     paths:
-#       - target/release/gpm.exe
+#       - target/release/mkpm.exe
 #   script:
 #     - cargo build --release
 
@@ -111,34 +111,34 @@ build:linux64:
 #   variables:
 #     RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
 #     RELEASE_TAG: ${CI_COMMIT_TAG}
-#     RELEASE_PROJECT: aerys/gpm
-#     RELEASE_NAME: GPM ${CI_COMMIT_TAG}
+#     RELEASE_PROJECT: aerys/mkpm
+#     RELEASE_NAME: mkpm ${CI_COMMIT_TAG}
 #     RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md
 
 # publish:windows64:
-#   <<: *gpm_publish_template
+#   <<: *mkpm_publish_template
 #   dependencies:
 #     - changelog
 #     - build:windows64
 #   variables:
 #     PACKAGE_VERSION: ${CI_COMMIT_TAG}
-#     PACKAGE_REPOSITORY: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/aerys/gpm-packages.git
+#     PACKAGE_REPOSITORY: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/aerys/mkpm-packages.git
 #     PACKAGE_NAME: ${CI_PROJECT_NAME}-windows64
 #     PACKAGE_ARCHIVE_ROOT: ${CI_PROJECT_DIR}/target/release
-#     PACKAGE_CONTENT: gpm.exe
+#     PACKAGE_CONTENT: mkpm.exe
 #     PACKAGE_CHANGELOG: ${CI_PROJECT_DIR}/CHANGELOG.md
 
 # publish:linux64:
-#   <<: *gpm_publish_template
+#   <<: *mkpm_publish_template
 #   dependencies:
 #     - changelog
 #     - build:linux64
 #   variables:
 #     PACKAGE_VERSION: ${CI_COMMIT_TAG}
-#     PACKAGE_REPOSITORY: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/aerys/gpm-packages.git
+#     PACKAGE_REPOSITORY: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/aerys/mkpm-packages.git
 #     PACKAGE_NAME: ${CI_PROJECT_NAME}-linux64
 #     PACKAGE_ARCHIVE_ROOT: ${CI_PROJECT_DIR}
-#     PACKAGE_CONTENT: gpm
+#     PACKAGE_CONTENT: mkpm
 #     PACKAGE_CHANGELOG: ${CI_PROJECT_DIR}/CHANGELOG.md
 
 # github-package-release:windows64:
@@ -146,9 +146,9 @@ build:linux64:
 #   stage: package release
 #   variables:
 #     RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
-#     RELEASE_TAG: gpm-windows64/${CI_COMMIT_TAG}
-#     RELEASE_PROJECT: aerys/gpm-packages
-#     RELEASE_NAME: GPM ${CI_COMMIT_TAG} (Windows 64bit)
+#     RELEASE_TAG: mkpm-windows64/${CI_COMMIT_TAG}
+#     RELEASE_PROJECT: aerys/mkpm-packages
+#     RELEASE_NAME: mkpm ${CI_COMMIT_TAG} (Windows 64bit)
 #     RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md
 
 # github-package-release:linux64:
@@ -156,7 +156,7 @@ build:linux64:
 #   stage: package release
 #   variables:
 #     RELEASE_AUTH_TOKEN: ${GITHUB_TOKEN}
-#     RELEASE_TAG: gpm-linux64/${CI_COMMIT_TAG}
-#     RELEASE_PROJECT: aerys/gpm-packages
-#     RELEASE_NAME: GPM ${CI_COMMIT_TAG} (Linux 64bit)
+#     RELEASE_TAG: mkpm-linux64/${CI_COMMIT_TAG}
+#     RELEASE_PROJECT: aerys/mkpm-packages
+#     RELEASE_NAME: mkpm ${CI_COMMIT_TAG} (Linux 64bit)
 #     RELEASE_NOTES: ${CI_PROJECT_DIR}/CHANGELOG.md

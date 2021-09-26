@@ -1,10 +1,10 @@
 /**
- * File: /src/gpm/command.rs
+ * File: /src/mkpm/command.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:24:40
+ * Last Modified: 26-09-2021 00:39:44
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -19,8 +19,8 @@ use err_derive::Error;
 use git2;
 use gitlfs::lfs;
 
-use crate::gpm::package::Package;
-use crate::gpm::ssh;
+use crate::mkpm::package::Package;
+use crate::mkpm::ssh;
 
 pub mod clean;
 pub mod download;

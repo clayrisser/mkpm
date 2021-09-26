@@ -94,4 +94,4 @@ build_script:
   - cargo build --release --verbose %cargoflags%
 
 test_script:
-  - .\target\release\gpm.exe -V
+  - .\target\release\mkpm.exe -V

@@ -1,10 +1,10 @@
 /**
- * File: /src/gpm/file.rs
+ * File: /src/mkpm/command/update.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:25:58
+ * Last Modified: 26-09-2021 00:40:49
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -21,22 +21,22 @@ use tar::Archive;
 
 use indicatif::{ProgressBar, ProgressStyle};
 
-pub fn get_or_init_dot_gpm_dir() -> Result<path::PathBuf, io::Error> {
-    let dot_gpm = dirs::home_dir().unwrap().join(".gpm");
+pub fn get_or_init_dot_mkpm_dir() -> Result<path::PathBuf, io::Error> {
+    let dot_mkpm = dirs::home_dir().unwrap().join(".mkpm");
 
-    if !dot_gpm.exists() {
-        return match fs::create_dir_all(&dot_gpm) {
-            Ok(()) => Ok(dot_gpm),
+    if !dot_mkpm.exists() {
+        return match fs::create_dir_all(&dot_mkpm) {
+            Ok(()) => Ok(dot_mkpm),
             Err(e) => Err(e),
         };
     }
 
-    Ok(dot_gpm)
+    Ok(dot_mkpm)
 }
 
 pub fn get_or_init_cache_dir() -> Result<path::PathBuf, io::Error> {
-    let dot_gpm = get_or_init_dot_gpm_dir()?;
-    let cache = dot_gpm.join("cache");
+    let dot_mkpm = get_or_init_dot_mkpm_dir()?;
+    let cache = dot_mkpm.join("cache");
 
     if !cache.exists() {
         return match fs::create_dir_all(&cache) {

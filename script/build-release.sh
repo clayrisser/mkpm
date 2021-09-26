@@ -19,13 +19,13 @@ set -euo pipefail
 case `uname -s` in
     Linux)
         echo "Building static binaries using ekidd/rust-musl-builder"
-        docker build -t build-gpm-image .
-        docker run --name build-gpm build-gpm-image
-        docker cp build-gpm:/home/rust/src/target/x86_64-unknown-linux-musl/release/gpm gpm
-        docker rm build-gpm
-        docker rmi build-gpm-image
-        strip gpm
-        docker run --rm -w $PWD -v $PWD:$PWD aerysinnovation/upx:latest --best --lzma gpm
+        docker build -t build-mkpm-image .
+        docker run --name build-mkpm build-mkpm-image
+        docker cp build-mkpm:/home/rust/src/target/x86_64-unknown-linux-musl/release/mkpm mkpm
+        docker rm build-mkpm
+        docker rmi build-mkpm-image
+        strip mkpm
+        docker run --rm -w $PWD -v $PWD:$PWD aerysinnovation/upx:latest --best --lzma mkpm
         ;;
     *)
         echo "Building standard release binaries"

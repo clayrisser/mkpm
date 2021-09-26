@@ -1,10 +1,10 @@
 /**
- * File: /src/gpm/command/clean.rs
+ * File: /src/mkpm/command/update.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:26:57
+ * Last Modified: 26-09-2021 00:40:49
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -15,8 +15,8 @@ use std::fs;
 
 use clap::ArgMatches;
 
-use crate::gpm;
-use crate::gpm::command::{Command, CommandError, CommandResult};
+use crate::mkpm;
+use crate::mkpm::command::{Command, CommandError, CommandResult};
 
 pub struct CleanCacheCommand {}
 
@@ -24,7 +24,7 @@ impl CleanCacheCommand {
     fn run_clean(&self) -> Result<bool, CommandError> {
         info!("running the \"clean\" command");
 
-        let cache = gpm::file::get_or_init_cache_dir().map_err(CommandError::IOError)?;
+        let cache = mkpm::file::get_or_init_cache_dir().map_err(CommandError::IOError)?;
 
         if !cache.exists() || !cache.is_dir() {
             warn!("{} does not exist or is not a directory", cache.display());

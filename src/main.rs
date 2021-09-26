@@ -4,7 +4,7 @@
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:27:10
+ * Last Modified: 26-09-2021 00:39:30
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -24,10 +24,10 @@ use dotenv::dotenv;
 
 use std::error::Error;
 
-mod gpm;
+mod mkpm;
 
 fn print_error(e: &dyn Error) {
-    error!("GPM command error: {}", e);
+    error!("MKPM command error: {}", e);
     let mut cause = e.source();
     while let Some(e) = cause {
         error!("caused by: {}", e);
@@ -38,9 +38,9 @@ fn print_error(e: &dyn Error) {
 fn main() {
     dotenv().ok();
 
-    pretty_env_logger::init_custom_env("GPM_LOG");
+    pretty_env_logger::init_custom_env("MKPM_LOG");
 
-    let matches = App::new("gpm")
+    let matches = App::new("mkpm")
         .about("Git-based package manager.")
         .version(env!("VERGEN_BUILD_SEMVER"))
         .setting(clap::AppSettings::ArgRequiredElseHelp)
@@ -79,7 +79,7 @@ fn main() {
         .subcommand(clap::SubCommand::with_name("clean").about("Clean all repositories from cache"))
         .get_matches();
 
-    for command in gpm::command::commands().iter() {
+    for command in mkpm::command::commands().iter() {
         match command.matched_args(&matches) {
             Some(command_args) => {
                 match (*command).run(command_args) {

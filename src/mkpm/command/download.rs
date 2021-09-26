@@ -1,10 +1,10 @@
 /**
- * File: /src/gpm/command/download.rs
+ * File: /src/mkpm/command/update.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:26:54
+ * Last Modified: 26-09-2021 00:40:49
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -22,9 +22,9 @@ use url::Url;
 
 use gitlfs::lfs;
 
-use crate::gpm;
-use crate::gpm::command::{Command, CommandError, CommandResult};
-use crate::gpm::package::Package;
+use crate::mkpm;
+use crate::mkpm::command::{Command, CommandError, CommandResult};
+use crate::mkpm::package::Package;
 
 pub struct DownloadPackageCommand {}
 
@@ -34,13 +34,13 @@ impl DownloadPackageCommand {
 
         println!(
             "{} package {}",
-            gpm::style::command(&String::from("Downloading")),
+            mkpm::style::command(&String::from("Downloading")),
             package,
         );
 
         println!("{} Resolving package", style("[1/2]").bold().dim(),);
 
-        let (repo, refspec) = gpm::git::find_or_init_repo(package)?;
+        let (repo, refspec) = mkpm::git::find_or_init_repo(package)?;
         let remote = repo.find_remote("origin")?.url().unwrap().to_owned();
 
         info!(
@@ -106,13 +106,13 @@ impl DownloadPackageCommand {
                 &package_path,
                 &mut pb.wrap_write(file),
                 &|repository: Url| {
-                    let (k, p) = gpm::ssh::get_ssh_key_and_passphrase(&String::from(
+                    let (k, p) = mkpm::ssh::get_ssh_key_and_passphrase(&String::from(
                         repository.host_str().unwrap(),
                     ));
 
                     (k.unwrap(), p)
                 },
-                Some(format!("gpm/{}", env!("VERGEN_BUILD_SEMVER"))),
+                Some(format!("mkpm/{}", env!("VERGEN_BUILD_SEMVER"))),
             )
             .map_err(CommandError::GitLFSError)?;
 

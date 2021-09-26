@@ -1,7 +1,10 @@
 [package]
-name = "gpm"
-version = "0.17.0"
-authors = ["Jean-Marc Le Roux <jeanmarc.leroux@aerys.in>"]
+name = "mkpm"
+version = "0.0.1"
+authors = [
+    "Clay Risser <clay@clayrisser.com>",
+    "Jean-Marc Le Roux <jeanmarc.leroux@aerys.in>"
+]
 edition = "2018"
 
 [profile.release]

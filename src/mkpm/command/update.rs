@@ -1,10 +1,10 @@
 /**
- * File: /src/gpm/command/update.rs
+ * File: /src/mkpm/command/update.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:26:46
+ * Last Modified: 26-09-2021 00:40:49
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -19,8 +19,8 @@ use clap::ArgMatches;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::gpm;
-use crate::gpm::command::{Command, CommandError, CommandResult};
+use crate::mkpm;
+use crate::mkpm::command::{Command, CommandError, CommandResult};
 
 pub struct UpdatePackageRepositoriesCommand {}
 
@@ -30,11 +30,11 @@ impl UpdatePackageRepositoriesCommand {
 
         println!(
             "{} all repositories",
-            gpm::style::command(&String::from("Updating")),
+            mkpm::style::command(&String::from("Updating")),
         );
 
-        let dot_gpm_dir = gpm::file::get_or_init_dot_gpm_dir().map_err(CommandError::IOError)?;
-        let source_file_path = dot_gpm_dir.to_owned().join("sources.list");
+        let dot_mkpm_dir = mkpm::file::get_or_init_dot_mkpm_dir().map_err(CommandError::IOError)?;
+        let source_file_path = dot_mkpm_dir.to_owned().join("sources.list");
 
         if !source_file_path.exists() || !source_file_path.is_file() {
             warn!(
@@ -71,8 +71,8 @@ impl UpdatePackageRepositoriesCommand {
 
             pb.set_message(format!("updating {}", &remote));
 
-            match gpm::git::get_or_clone_repo(&remote) {
-                Ok((repo, _is_new_repo)) => match gpm::git::pull_repo(&repo) {
+            match mkpm::git::get_or_clone_repo(&remote) {
+                Ok((repo, _is_new_repo)) => match mkpm::git::pull_repo(&repo) {
                     Ok(()) => {
                         pb.inc(1);
                         num_updated += 1;

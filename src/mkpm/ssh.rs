@@ -1,10 +1,10 @@
 /**
- * File: /src/gpm/ssh.rs
+ * File: /src/mkpm/command/update.rs
  * Project: mkpm
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 00:22:37
+ * Last Modified: 26-09-2021 00:40:49
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -12,27 +12,27 @@
  * MIT License
  */
 use std::env;
-use std::path::{Path, PathBuf};
-use std::io;
 use std::fs;
-use std::ops::Deref;
+use std::io;
 use std::io::prelude::*;
 use std::io::{Cursor, Read};
+use std::ops::Deref;
+use std::path::{Path, PathBuf};
 
 use pest::Parser;
 
 extern crate base64;
 
-use base64::{decode};
+use base64::decode;
 
 use zeroize::{Zeroize, Zeroizing};
 
-use crate::gpm::command::{CommandError};
+use crate::mkpm::command::CommandError;
 
 const KEY_MAGIC: &[u8] = b"openssh-key-v1\0";
 
 #[derive(Parser)]
-#[grammar = "gpm/ssh_config.pest"]
+#[grammar = "mkpm/ssh_config.pest"]
 pub struct SSHConfigParser;
 
 fn expand_tilde<P: AsRef<Path>>(path_user_input: P) -> Option<PathBuf> {
@@ -55,9 +55,7 @@ fn expand_tilde<P: AsRef<Path>>(path_user_input: P) -> Option<PathBuf> {
     })
 }
 
-pub fn find_ssh_key_in_ssh_config(
-    host : &String
-) -> Result<Option<PathBuf>, CommandError> {
+pub fn find_ssh_key_in_ssh_config(host: &String) -> Result<Option<PathBuf>, CommandError> {
     match dirs::home_dir() {
         Some(home_path) => {
             let mut ssh_config_path = PathBuf::from(home_path);
@@ -84,12 +82,11 @@ pub fn find_ssh_key_in_ssh_config(
                             // convert the globbing pattern to a regexp
                             let pattern_str = pattern_str.replace(".", "\\.");
                             let pattern_str = pattern_str.replace("*", ".*");
-                            let regexp = regex::Regex::new(pattern_str.as_str())
-                                .unwrap();
+                            let regexp = regex::Regex::new(pattern_str.as_str()).unwrap();
 
                             p.as_rule() == Rule::pattern && regexp.is_match(host)
-                        },
-                        false => p.as_rule() == Rule::pattern && p.as_str() == host
+                        }
+                        false => p.as_rule() == Rule::pattern && p.as_str() == host,
                     }
                 });
 
@@ -97,12 +94,17 @@ pub fn find_ssh_key_in_ssh_config(
                     Some(pattern) => {
                         trace!("found matching host with pattern {:?}", pattern.as_str());
 
-                        let options = inner_pairs.filter(|p| -> bool { p.as_rule() == Rule::option });
+                        let options =
+                            inner_pairs.filter(|p| -> bool { p.as_rule() == Rule::option });
 
                         for option in options {
                             let mut key_and_value = option.into_inner().flatten();
-                            let key = key_and_value.find(|p| -> bool { p.as_rule() == Rule::key }).unwrap();
-                            let value = key_and_value.find(|p| -> bool { p.as_rule() == Rule::value }).unwrap();
+                            let key = key_and_value
+                                .find(|p| -> bool { p.as_rule() == Rule::key })
+                                .unwrap();
+                            let value = key_and_value
+                                .find(|p| -> bool { p.as_rule() == Rule::value })
+                                .unwrap();
 
                             if key.as_str() == "IdentityFile" {
                                 let path = PathBuf::from(value.as_str());
@@ -112,13 +114,13 @@ pub fn find_ssh_key_in_ssh_config(
                                 return Ok(path);
                             }
                         }
-                    },
+                    }
                     None => continue,
                 };
             }
 
             Ok(None)
-        },
+        }
         None => Ok(None),
     }
 }
@@ -136,12 +138,12 @@ pub fn find_default_ssh_key() -> Option<PathBuf> {
             } else {
                 None
             }
-        },
-        None => None
+        }
+        None => None,
     }
 }
 
-pub fn find_ssh_key_for_host(host : &String) -> Option<PathBuf> {
+pub fn find_ssh_key_for_host(host: &String) -> Option<PathBuf> {
     match find_ssh_key_in_ssh_config(host) {
         Ok(path) => match path {
             Some(_) => path,
@@ -151,11 +153,11 @@ pub fn find_ssh_key_for_host(host : &String) -> Option<PathBuf> {
             warn!("Unable to get SSH key from ~/.ssh/config: {}", e);
 
             find_default_ssh_key()
-        },
+        }
     }
 }
 
-fn read_utf8(c: &mut Cursor::<&[u8]>) -> io::Result<String> {
+fn read_utf8(c: &mut Cursor<&[u8]>) -> io::Result<String> {
     let mut buf = read_string(c)?;
     // Make data be zeroed even if an error occurred
     // So we cannot directly use `String::from_utf8()`
@@ -175,7 +177,7 @@ fn read_utf8(c: &mut Cursor::<&[u8]>) -> io::Result<String> {
     }
 }
 
-fn read_string(c: &mut Cursor::<&[u8]>) -> io::Result<Vec<u8>> {
+fn read_string(c: &mut Cursor<&[u8]>) -> io::Result<Vec<u8>> {
     let len = read_uint32(c)? as usize;
     let mut buf = vec![0u8; len];
     match c.read_exact(buf.as_mut_slice()) {
@@ -187,19 +189,17 @@ fn read_string(c: &mut Cursor::<&[u8]>) -> io::Result<Vec<u8>> {
     }
 }
 
-fn read_uint32(c: &mut Cursor::<&[u8]>) -> io::Result<u32> {
+fn read_uint32(c: &mut Cursor<&[u8]>) -> io::Result<u32> {
     let mut buf = Zeroizing::new([0u8; 4]);
     c.read_exact(&mut *buf)?;
     Ok(u32::from_be_bytes(*buf))
 }
 
-pub fn ssh_key_requires_passphrase(
-    buf: &mut dyn io::BufRead
-) -> io::Result<bool> {
+pub fn ssh_key_requires_passphrase(buf: &mut dyn io::BufRead) -> io::Result<bool> {
     debug!("attempting to detect SSH private key encryption (OpenSSH <= 6.4)");
-    let metadata_regex = regex::Regex::new(r"(.*): (.*)")
-        .unwrap();
-    let (metadata, content) : (Vec<String>, Vec<String>) = buf.lines()
+    let metadata_regex = regex::Regex::new(r"(.*): (.*)").unwrap();
+    let (metadata, content): (Vec<String>, Vec<String>) = buf
+        .lines()
         // Remove comments
         .filter(|line| !line.as_ref().unwrap().starts_with('-'))
         .collect::<io::Result<Vec<String>>>()?
@@ -227,7 +227,6 @@ pub fn ssh_key_requires_passphrase(
         if keydata.len() >= 16 && &keydata[0..15] == KEY_MAGIC {
             let mut reader = Cursor::new(keydata.deref());
             reader.set_position(15);
-    
             let ciphername = read_utf8(&mut reader)?;
 
             debug!("found cipher {}", ciphername);
@@ -239,9 +238,8 @@ pub fn ssh_key_requires_passphrase(
     return Ok(false);
 }
 
-pub fn get_ssh_key_and_passphrase(host : &String) -> (Option<PathBuf>, Option<String>) {
-
-    let key = match env::var("GPM_SSH_KEY") {
+pub fn get_ssh_key_and_passphrase(host: &String) -> (Option<PathBuf>, Option<String>) {
+    let key = match env::var("mkpm_SSH_KEY") {
         Ok(k) => {
             let path = PathBuf::from(k);
 
@@ -249,15 +247,18 @@ pub fn get_ssh_key_and_passphrase(host : &String) -> (Option<PathBuf>, Option<St
                 Some(path)
             } else {
                 warn!(
-                    "Ignoring the GPM_SSH_KEY environment variable: {:?} does not exist or is not a file.",
+                    "Ignoring the mkpm_SSH_KEY environment variable: {:?} does not exist or is not a file.",
                     path
                 );
 
                 find_ssh_key_for_host(host)
             }
-        },
+        }
         Err(e) => {
-            warn!("could not read the GPM_SSH_KEY environment variable: {}", e);
+            warn!(
+                "could not read the mkpm_SSH_KEY environment variable: {}",
+                e
+            );
 
             find_ssh_key_for_host(host)
         }
@@ -270,16 +271,17 @@ pub fn get_ssh_key_and_passphrase(host : &String) -> (Option<PathBuf>, Option<St
             let mut f = fs::File::open(key_path.to_owned()).unwrap();
             let mut key = String::new();
 
-            f.read_to_string(&mut key).expect("unable to read SSH key from file");
+            f.read_to_string(&mut key)
+                .expect("unable to read SSH key from file");
             f.seek(io::SeekFrom::Start(0)).unwrap();
 
             let mut f = io::BufReader::new(f);
 
             (
                 Some(key_path.to_owned()),
-                get_ssh_passphrase(&mut f, format!("Enter passphrase for key {:?}: ", key_path))
+                get_ssh_passphrase(&mut f, format!("Enter passphrase for key {:?}: ", key_path)),
             )
-        },
+        }
         None => {
             warn!("unable to get private key for host {}", &host);
 
@@ -288,14 +290,14 @@ pub fn get_ssh_key_and_passphrase(host : &String) -> (Option<PathBuf>, Option<St
     }
 }
 
-pub fn get_ssh_passphrase(buf : &mut dyn io::BufRead, passphrase_prompt : String) -> Option<String> {
+pub fn get_ssh_passphrase(buf: &mut dyn io::BufRead, passphrase_prompt: String) -> Option<String> {
     match ssh_key_requires_passphrase(buf) {
-        Ok(true) => match env::var("GPM_SSH_PASS") {
+        Ok(true) => match env::var("mkpm_SSH_PASS") {
             Ok(p) => Some(p),
             Err(_) => {
                 trace!("prompt for passphrase");
-                let pass_string = rpassword::prompt_password_stderr(passphrase_prompt.as_str())
-                    .unwrap();
+                let pass_string =
+                    rpassword::prompt_password_stderr(passphrase_prompt.as_str()).unwrap();
 
                 trace!("passphrase fetched from command line");
 
@@ -307,6 +309,6 @@ pub fn get_ssh_passphrase(buf : &mut dyn io::BufRead, passphrase_prompt : String
             error!("Unable to read SSH private key: {}", e);
 
             None
-        },
+        }
     }
 }
