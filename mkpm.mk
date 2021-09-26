@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 05:55:34
+# Last Modified: 26-09-2021 06:29:40
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -35,7 +35,7 @@ ifeq ($(OS),Windows_NT)
 	NULL = nul
 	SHELL := cmd.exe
 endif
--include $(MKPM_PACKAGE_DIR)/bootstrap.mk
+include $(MKPM_PACKAGE_DIR)/bootstrap.mk
 $(MKPM_PACKAGE_DIR)/bootstrap.mk:
 	@$(MKDIR_P) $(MKPM_PACKAGE_DIR)
 	@cd $(MKPM_PACKAGE_DIR) && \

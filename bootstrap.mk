@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 05:57:58
+# Last Modified: 26-09-2021 06:29:08
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -114,3 +114,8 @@ ifeq ($(PLATFORM),darwin)
 endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
+
+include $(MKPM)/bootstrapping
+$(MKPM)/bootstrapping: $(ROOT)/mkpm.mk
+	@echo ⌛ bootstrapping . . .
+	@touch -m $@
