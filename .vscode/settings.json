@@ -2,6 +2,7 @@
   "cSpell.words": [
     "aerys",
     "autotag",
+    "blackmagic",
     "cargoflags",
     "codegen",
     "concat",
@@ -18,6 +19,7 @@
     "mkdir",
     "mkpm",
     "msvc",
+    "numproc",
     "refname",
     "refspec",
     "reqwest",
