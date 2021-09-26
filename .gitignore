@@ -1,5 +1,6 @@
 **/*.rs.bk
 .env
+/.mkpm
 /target
 gitlfs/target
 tmp
