@@ -1,0 +1,8 @@
+pages:
+  script:
+    - mkdir public
+    - cp bootstrap.mk public
+  artifacts:
+    paths:
+      - public
+  when: manual
