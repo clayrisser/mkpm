@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 04:24:56
+# Last Modified: 26-09-2021 05:19:41
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -75,16 +75,24 @@ else
 	endif
 endif
 
-export NIX_ENV := $(shell which sed | grep -qE "^/nix/store" && echo true || echo false)
 export GREP ?= grep
 export SED ?= sed
+export WHICH := command -v
 
 ifeq ($(SHELL),cmd.exe)
 	BANG = !
 	NULL = nul
+	WHICH = where
 endif
 export NOOUT := >$(NULL) 2>$(NULL)
 export NOFAIL := 2>$(NULL) || true
+
+define ternary
+	$(shell echo $1 $(NOOUT) && echo $2 || echo $3)
+endef
+
+export DOWNLOAD	?= $(call ternary,curl --version,curl -Ls -o,wget -q --content-on-error -O)
+export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
 ifneq ($(NIX_ENV),true)
 	ifeq ($(PLATFORM),darwin)

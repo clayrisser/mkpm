@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 04:26:00
+# Last Modified: 26-09-2021 05:23:44
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -22,12 +22,30 @@
 
 include mkpm.mk
 
+CARGO ?= cargo
+GIT ?= git
+
+.PHONY: test-bootstrap
 test-bootstrap:
+	@echo DOWNLOAD: $(DOWNLOAD)
 	@echo FLAVOR: $(FLAVOR)
 	@echo GREP: $(GREP)
+	@echo NIX_ENV: $(NIX_ENV)
 	@echo NPROC: $(NPROC)
 	@echo NULL: $(NULL)
 	@echo NUMPROC: $(NUMPROC)
 	@echo PLATFORM: $(PLATFORM)
 	@echo SED: $(SED)
 	@echo SHELL: $(SHELL)
+	@echo WHICH: $(WHICH)
+
+.PHONY: build
+build:
+	@$(CARGO) build
+
+.PHONY: clean
+clean:
+	@$(GIT) clean -fXd \
+		-e $(BANG)/target \
+		-e $(BANG)/target/ \
+		-e $(BANG)/target/**/*
