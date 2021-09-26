@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 05:19:41
+# Last Modified: 26-09-2021 05:54:38
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -20,8 +20,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export FLAVOR := unknown
+export MKPM := $(abspath $(shell pwd)/$(MKPM_PACKAGE_DIR))
+export ROOT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 export PLATFORM := unknown
+export FLAVOR := unknown
 export BANG := \!
 export NULL := /dev/null
 

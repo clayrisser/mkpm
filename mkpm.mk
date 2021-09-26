@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 04:40:00
+# Last Modified: 26-09-2021 05:55:34
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -43,5 +43,4 @@ $(MKPM_PACKAGE_DIR)/bootstrap.mk:
 			echo curl -Ls -o || \
 			echo wget -q --content-on-error -O) \
 		bootstrap.mk $(MKPM_BOOTSTRAP) >$(NULL)
-export MKPM := $(shell pwd)/$(MKPM_PACKAGE_DIR)
 ############## MKPM BOOTSTRAP SCRIPT END ##############

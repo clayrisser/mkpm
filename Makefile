@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 05:23:44
+# Last Modified: 26-09-2021 05:54:49
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -30,11 +30,13 @@ test-bootstrap:
 	@echo DOWNLOAD: $(DOWNLOAD)
 	@echo FLAVOR: $(FLAVOR)
 	@echo GREP: $(GREP)
+	@echo MKPM: $(MKPM)
 	@echo NIX_ENV: $(NIX_ENV)
 	@echo NPROC: $(NPROC)
 	@echo NULL: $(NULL)
 	@echo NUMPROC: $(NUMPROC)
 	@echo PLATFORM: $(PLATFORM)
+	@echo ROOT: $(ROOT)
 	@echo SED: $(SED)
 	@echo SHELL: $(SHELL)
 	@echo WHICH: $(WHICH)
