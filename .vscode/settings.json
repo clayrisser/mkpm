@@ -11,6 +11,7 @@
     "flate",
     "gitlfs",
     "hasher",
+    "ifeq",
     "indicatif",
     "mkdir",
     "mkpm",
