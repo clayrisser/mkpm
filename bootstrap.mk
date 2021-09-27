@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 02:41:18
+# Last Modified: 27-09-2021 02:44:08
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -34,7 +34,7 @@ export NULL := /dev/null
 
 ifneq (,$(findstring :,$(PATH))) # POSIX
 	PLATFORM = $(shell uname | awk '{print tolower($$0)}')
-	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo $(ARCH)) | awk '{print tolower($$0)}')
+	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | awk '{print tolower($$0)}')
 	ifeq ($(ARCH),i386)
 		ARCH = 386
 	endif
