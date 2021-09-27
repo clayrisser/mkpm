@@ -72,6 +72,7 @@ release:
 pages:
   stage: publish
   image: alpine:3.13.6
+  needs: []
   script:
     - mkdir public
     - cp bootstrap.mk public
