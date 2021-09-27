@@ -12,13 +12,13 @@
    _mkpm.mk_
 
    ```makefile
-   MKPM_PACKAGE_DIR := .mkpm
-
    MKPM_PACKAGES := \
        blackmagic=0.0.1
 
    MKPM_SOURCES := \
        https://gitlab.com/bitspur/community/blackmagic.git
+
+   MKPM_PACKAGE_DIR := .mkpm
 
    NUMPROC := 1
 
