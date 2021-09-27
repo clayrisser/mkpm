@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 20:19:04
+# Last Modified: 26-09-2021 21:19:38
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -26,7 +26,6 @@ export PLATFORM := unknown
 export FLAVOR := unknown
 export BANG := \!
 export NULL := /dev/null
-export MKPM_BINARY ?= mkpm
 
 ifneq (,$(findstring :,$(PATH))) # POSIX
 	PLATFORM = $(shell uname | awk '{print tolower($$0)}')
@@ -116,9 +115,28 @@ endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
 
+ifeq (,$(MKPM_BINARY))
+	ifeq ($(call ternary,mkpm -V,true,false),true)
+		export MKPM_BINARY := mkpm
+	else
+		ifeq ($(PLATFORM),linux)
+			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/bitspur/community/mkpm/-/jobs/1623965666/artifacts/raw/public/mkpm-0.0.1-musl-amd64
+		endif
+		ifeq (,$(MKPM_BINARY_DOWNLOAD))
+			export MKPM_BINARY := mkpm
+		else
+			export MKPM_BINARY = $(MKPM)/.mkpm
+		endif
+	endif
+endif
+
 include $(MKPM)/.bootstrapping
 $(MKPM)/.bootstrapping: $(ROOT)/mkpm.mk
 	@echo ⌛ bootstrapping . . .
+	@$(MKPM_BINARY) -V $(NOOUT) && true || ( \
+		$(DOWNLOAD) $(MKPM)/.mkpm $(MKPM_BINARY_DOWNLOAD) && \
+		chmod +x $(MKPM)/.mkpm \
+	)
 	@$(MKPM_BINARY) update
 	@for p in $(MKPM_PACKAGES); do \
 			export PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
