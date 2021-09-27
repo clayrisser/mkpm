@@ -1,19 +1,14 @@
 stages:
-  # - build
-  - publish
+  - build
 
-# build:
-#   stage: build
-#   image: rust:latest
-#   script:
-#     - cargo build --verbose
-#     - cargo test --verbose
-
-pages:
-  stage: publish
+build:
+  stage: build
+  image: joseluisq/rust-linux-darwin-builder:1.55.0
   script:
+    - make build-musl
     - mkdir public
     - cp bootstrap.mk public
+    - mv target/x86_64-unknown-linux-musl/release/mkpm public/mkpm-0.0.1-musl-amd64
   artifacts:
     paths:
       - public
