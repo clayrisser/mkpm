@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 21:24:50
+# Last Modified: 26-09-2021 21:26:37
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -19,6 +19,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+export MKPM_PACKAGES ?=
+export MKPM_PACKAGE_DIR ?= .mkpm
+export MKPM_SOURCES ?=
 
 export MKPM := $(abspath $(shell pwd)/$(MKPM_PACKAGE_DIR))
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
