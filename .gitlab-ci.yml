@@ -1,11 +1,75 @@
-build:
+stages:
+  - build
+  - upload
+  - publish
+
+variables:
+  DARWIN_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64'
+  LINUX_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64'
+  PACKAGE_REGISTRY_URL: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mkpm/${PACKAGE_VERSION}'
+
+build:linux:
+  stage: build
   image: joseluisq/rust-linux-darwin-builder:1.55.0
+  rules:
+    - if: $CI_COMMIT_TAG
   script:
     - cargo build --release --target x86_64-unknown-linux-musl
     - du -sh target/x86_64-unknown-linux-musl/release/mkpm
+    - mkdir bin
+    - mv target/x86_64-unknown-linux-musl/release/mkpm bin/${LINUX_AMD64_BINARY}
+  artifacts:
+    paths:
+      - bin
+
+build:darwin:
+  stage: build
+  image: alpine:latest
+  tags:
+    - shared-macos-amd64
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - mkdir bin
+  artifacts:
+    paths:
+      - bin
+
+upload:
+  stage: upload
+  image: curlimages/curl:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - build:linux
+    - build:darwin
+  script:
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${DARWIN_AMD64_BINARY} \
+        ${PACKAGE_REGISTRY_URL}/${DARWIN_AMD64_BINARY}
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${LINUX_AMD64_BINARY} \
+        ${PACKAGE_REGISTRY_URL}/${LINUX_AMD64_BINARY}
+
+release:
+  stage: publish
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - upload
+  script:
+    - |
+      release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
+        --assets-link "{\"name\":\"${DARWIN_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DARWIN_AMD64_BINARY}\"}" \
+        --assets-link "{\"name\":\"${LINUX_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${LINUX_AMD64_BINARY}\"}"
+
+pages:
+  stage: publish
+  image: alpine:3.13.6
+  script:
     - mkdir public
     - cp bootstrap.mk public
-    - mv target/x86_64-unknown-linux-musl/release/mkpm public/mkpm-0.0.1-musl-amd64
   artifacts:
     paths:
       - public
