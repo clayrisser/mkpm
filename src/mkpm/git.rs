@@ -4,7 +4,7 @@
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 18:10:49
+ * Last Modified: 27-09-2021 16:36:27
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -318,7 +318,7 @@ pub fn find_repo_by_package_and_revision(
 ) -> Result<(git2::Repository, String), CommandError> {
     let dot_mkpm_dir = mkpm::file::get_or_init_dot_mkpm_dir().map_err(CommandError::IOError)?;
     let current_dir = env::current_dir()?;
-    let source_file_path = dot_mkpm_dir.to_owned().join("sources.list");
+    let source_file_path = dot_mkpm_dir.to_owned().join("repos.list");
     let mkpm_path = current_dir.join("mkpm.mk");
     let file = fs::File::open(source_file_path)?;
     let mut remotes = Vec::new();
@@ -444,7 +444,7 @@ pub fn get_sources_from_mkpm(
 ) -> Result<std::vec::Vec<String>, CommandError> {
     let mkpm_file = fs::File::open(mkpm_path)?;
     let mut sources_str = String::new();
-    let sources_start_re = regex::Regex::new(r"^MKPM_SOURCES\s+:=(\s+|$)").unwrap();
+    let sources_start_re = regex::Regex::new(r"^MKPM_REPOS\s+:=(\s+|$)").unwrap();
     let line_wrap_re = regex::Regex::new(r"\\\s*$").unwrap();
     let mut sources_match = false;
     for line in io::BufReader::new(mkpm_file).lines() {

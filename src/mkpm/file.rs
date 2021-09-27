@@ -4,7 +4,7 @@
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 15:16:57
+ * Last Modified: 27-09-2021 16:35:42
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -27,7 +27,7 @@ pub fn get_or_init_dot_mkpm_dir() -> Result<path::PathBuf, io::Error> {
     if !dot_mkpm.exists() {
         return match fs::create_dir_all(&dot_mkpm) {
             Ok(()) => {
-                return match fs::File::create(dot_mkpm.join("sources.list")) {
+                return match fs::File::create(dot_mkpm.join("repos.list")) {
                     Ok(_f) => Ok(dot_mkpm),
                     Err(e) => Err(e),
                 }

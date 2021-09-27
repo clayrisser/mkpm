@@ -4,7 +4,7 @@
  * File Created: 26-09-2021 00:17:17
  * Author: Clay Risser
  * -----
- * Last Modified: 26-09-2021 16:49:55
+ * Last Modified: 27-09-2021 16:35:55
  * Modified By: Clay Risser
  * -----
  * Copyright (c) 2018 Aerys
@@ -35,7 +35,7 @@ impl UpdatePackageRepositoriesCommand {
         );
 
         let dot_mkpm_dir = mkpm::file::get_or_init_dot_mkpm_dir().map_err(CommandError::IOError)?;
-        let source_file_path = dot_mkpm_dir.to_owned().join("sources.list");
+        let source_file_path = dot_mkpm_dir.to_owned().join("repos.list");
         let current_dir = env::current_dir()?;
         let mkpm_path = current_dir.join("mkpm.mk");
 
