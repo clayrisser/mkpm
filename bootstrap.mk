@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 03:03:20
+# Last Modified: 27-09-2021 03:05:12
 # Modified By: Jam Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -120,8 +120,8 @@ export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false
 
 ifneq ($(NIX_ENV),true)
 	ifeq ($(PLATFORM),darwin)
-		export GREP ?= ggrep
-		export SED ?= gsed
+		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
+		export SED ?= $(call ternary,gsed --version,gsed,sed)
 	endif
 endif
 export GREP ?= grep
