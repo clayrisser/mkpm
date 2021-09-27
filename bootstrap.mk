@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 03:25:25
+# Last Modified: 27-09-2021 16:38:03
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -23,7 +23,7 @@
 export MKPM_BINARY_VERSION ?= 0.0.1
 export MKPM_PACKAGES ?=
 export MKPM_PACKAGE_DIR ?= .mkpm
-export MKPM_SOURCES ?=
+export MKPM_REPOS ?=
 
 export MKPM := $(abspath $(shell pwd)/$(MKPM_PACKAGE_DIR))
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
@@ -164,7 +164,10 @@ ifneq (,$(MKPM_BINARY_DOWNLOAD))
 		chmod +x $(MKPM)/.mkpm \
 	)
 endif
+ifneq (,$(MKPM_REPOS))
 	@$(MKPM_BINARY) update
+endif
+ifneq (,$(MKPM_PACKAGES))
 	@for p in $(MKPM_PACKAGES); do \
 			export PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
 			rm -rf "$(MKPM)/.pkgs/$$PKG" $(NOFAIL) && \
@@ -172,4 +175,5 @@ endif
 			$(MKPM_BINARY) install $$p --prefix "$(MKPM)/.pkgs/$$PKG" && \
 			echo 'include $$(MKPM)'"/.pkgs/$$PKG/main.mk" > "$(MKPM)/$$PKG"; \
 		done
+endif
 	@touch -m $@

@@ -3,8 +3,8 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 02:59:03
-# Modified By: Jam Risser
+# Last Modified: 27-09-2021 16:35:29
+# Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
 #
@@ -21,10 +21,8 @@
 # limitations under the License.
 
 MKPM_PACKAGES := \
-	blackmagic=0.0.1
 
-MKPM_SOURCES := \
-	https://gitlab.com/bitspur/community/blackmagic.git
+MKPM_REPOS := \
 
 MKPM_PACKAGE_DIR := .mkpm
 
