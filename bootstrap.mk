@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 18:52:34
+# Last Modified: 26-09-2021 20:19:04
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -91,7 +91,7 @@ export NOOUT := >$(NULL) 2>$(NULL)
 export NOFAIL := 2>$(NULL) || true
 
 define ternary
-	$(shell echo $1 $(NOOUT) && echo $2 || echo $3)
+$(shell $1 $(NOOUT) && echo $2 || echo $3)
 endef
 
 export DOWNLOAD	?= $(call ternary,curl --version,curl -Ls -o,wget -q --content-on-error -O)

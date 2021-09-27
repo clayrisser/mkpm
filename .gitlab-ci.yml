@@ -1,4 +1,16 @@
+stages:
+  # - build
+  - publish
+
+# build:
+#   stage: build
+#   image: rust:latest
+#   script:
+#     - cargo build --verbose
+#     - cargo test --verbose
+
 pages:
+  stage: publish
   script:
     - mkdir public
     - cp bootstrap.mk public
