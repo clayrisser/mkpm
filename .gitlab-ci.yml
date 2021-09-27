@@ -21,19 +21,24 @@ build:linux:
   artifacts:
     paths:
       - bin
+    expire_in: 1 hour
 
 build:darwin:
   stage: build
   image: alpine:latest
   tags:
-    - shared-macos-amd64
+    - macos-amd64
   rules:
     - if: $CI_COMMIT_TAG
   script:
+    - cargo build --release
+    - du -sh target/release/mkpm
     - mkdir bin
+    - mv target/release/mkpm bin/${LINUX_AMD64_BINARY}
   artifacts:
     paths:
       - bin
+    expire_in: 1 hour
 
 upload:
   stage: upload

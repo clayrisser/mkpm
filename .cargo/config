@@ -1,6 +1,5 @@
 [build]
-# Target musl-libc by default when running Cargo.
-target = "x86_64-unknown-linux-musl"
+# target = "x86_64-unknown-linux-musl"
 
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-Ctarget-feature=+crt-static"]
@@ -9,5 +8,5 @@ rustflags = ["-Ctarget-feature=+crt-static"]
 linker = "arm-linux-gnueabihf-gcc"
 
 [target.x86_64-apple-darwin]
-linker = "x86_64-apple-darwin20.4-clang"
-ar = "x86_64-apple-darwin20.4-ar"
+# linker = "x86_64-apple-darwin20.4-clang"
+# ar = "x86_64-apple-darwin20.4-ar"
