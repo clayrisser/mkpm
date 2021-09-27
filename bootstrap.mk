@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 21:19:38
+# Last Modified: 26-09-2021 21:24:50
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -120,7 +120,7 @@ ifeq (,$(MKPM_BINARY))
 		export MKPM_BINARY := mkpm
 	else
 		ifeq ($(PLATFORM),linux)
-			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/bitspur/community/mkpm/-/jobs/1623965666/artifacts/raw/public/mkpm-0.0.1-musl-amd64
+			MKPM_BINARY_DOWNLOAD ?= https://bitspur.gitlab.io/community/mkpm/mkpm-0.0.1-musl-amd64
 		endif
 		ifeq (,$(MKPM_BINARY_DOWNLOAD))
 			export MKPM_BINARY := mkpm
