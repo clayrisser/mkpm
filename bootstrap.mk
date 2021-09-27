@@ -3,8 +3,8 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 02:44:08
-# Modified By: Clay Risser
+# Last Modified: 27-09-2021 02:54:36
+# Modified By: Jam Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
 #
@@ -20,6 +20,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+export MKPM_BINARY_VERSION ?= 0.0.1
 export MKPM_PACKAGES ?=
 export MKPM_PACKAGE_DIR ?= .mkpm
 export MKPM_SOURCES ?=
@@ -143,7 +144,10 @@ ifeq (,$(MKPM_BINARY))
 		export MKPM_BINARY := mkpm
 	else
 		ifeq ($(PLATFORM),linux)
-			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.0.1/mkpm-0.0.1-$(PLATFORM)-$(ARCH)
+			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
+		endif
+		ifeq ($(PLATFORM),darwin)
+			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
 		endif
 		ifeq (,$(MKPM_BINARY_DOWNLOAD))
 			export MKPM_BINARY := mkpm
@@ -153,13 +157,15 @@ ifeq (,$(MKPM_BINARY))
 	endif
 endif
 
-include $(MKPM)/.bootstrapping
+-include $(MKPM)/.bootstrapping
 $(MKPM)/.bootstrapping: $(ROOT)/mkpm.mk
 	@echo ⌛ bootstrapping . . .
+ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) && true || ( \
 		$(DOWNLOAD) $(MKPM)/.mkpm $(MKPM_BINARY_DOWNLOAD) && \
 		chmod +x $(MKPM)/.mkpm \
 	)
+endif
 	@$(MKPM_BINARY) update
 	@for p in $(MKPM_PACKAGES); do \
 			export PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
