@@ -17,7 +17,8 @@
    MKPM_PACKAGES := \
        blackmagic=0.0.1
 
-   MKPM_BINARY := mkpm
+   MKPM_SOURCES := \
+       https://gitlab.com/bitspur/community/blackmagic.git
 
    NUMPROC := 1
 
