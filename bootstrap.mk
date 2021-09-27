@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 21:26:37
+# Last Modified: 27-09-2021 02:41:18
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -28,11 +28,22 @@ export MKPM := $(abspath $(shell pwd)/$(MKPM_PACKAGE_DIR))
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 export PLATFORM := unknown
 export FLAVOR := unknown
+export ARCH := unknown
 export BANG := \!
 export NULL := /dev/null
 
 ifneq (,$(findstring :,$(PATH))) # POSIX
 	PLATFORM = $(shell uname | awk '{print tolower($$0)}')
+	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo $(ARCH)) | awk '{print tolower($$0)}')
+	ifeq ($(ARCH),i386)
+		ARCH = 386
+	endif
+	ifeq ($(ARCH),i686)
+		ARCH = 386
+	endif
+	ifeq ($(ARCH),x86_64)
+		ARCH = amd64
+	endif
 	ifeq ($(PLATFORM),linux) # LINUX
 		ifneq (,$(wildcard /system/bin/adb))
 			ifneq (,$(shell getprop --help >$(NULL) 2>$(NULL))) # ANDROID
@@ -73,7 +84,15 @@ else
 		PLATFORM = win32
 		FLAVOR := win64
 		SHELL := cmd.exe
+		ARCH = $(PROCESSOR_ARCHITECTURE)
+		ifeq ($(ARCH),AMD64)
+			ARCH = amd64
+		endif
+		ifeq ($(ARCH),ARM64)
+			ARCH = arm64
+		endif
 		ifeq ($(PROCESSOR_ARCHITECTURE),X86)
+			ARCH = x86
 			ifeq (,$(PROCESSOR_ARCHITEW6432))
 				FLAVOR := win32
 			endif
@@ -124,7 +143,7 @@ ifeq (,$(MKPM_BINARY))
 		export MKPM_BINARY := mkpm
 	else
 		ifeq ($(PLATFORM),linux)
-			MKPM_BINARY_DOWNLOAD ?= https://bitspur.gitlab.io/community/mkpm/mkpm-0.0.1-musl-amd64
+			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.0.1/mkpm-0.0.1-$(PLATFORM)-$(ARCH)
 		endif
 		ifeq (,$(MKPM_BINARY_DOWNLOAD))
 			export MKPM_BINARY := mkpm
