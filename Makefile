@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 20:27:46
+# Last Modified: 26-09-2021 20:32:25
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -50,7 +50,7 @@ else
 build:
 	@$(DOCKER) run --rm -it \
 		-v $(PWD):/root/src \
-		registry.gitlab.com/silicon-hills/community/ci-images/docker-rust:0.0.1 \
+		joseluisq/rust-linux-darwin-builder:1.55.0 \
 		make build
 endif
 
