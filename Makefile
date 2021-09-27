@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 20:43:36
+# Last Modified: 27-09-2021 02:41:57
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -31,6 +31,7 @@ GIT ?= git
 
 .PHONY: test-bootstrap
 test-bootstrap:
+	@echo ARCH: $(ARCH)
 	@echo DOWNLOAD: $(DOWNLOAD)
 	@echo FLAVOR: $(FLAVOR)
 	@echo GREP: $(GREP)
