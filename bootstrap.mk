@@ -3,8 +3,8 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 03:05:12
-# Modified By: Jam Risser
+# Last Modified: 27-09-2021 03:25:25
+# Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
 #
@@ -93,8 +93,8 @@ else
 			ARCH = arm64
 		endif
 		ifeq ($(PROCESSOR_ARCHITECTURE),X86)
-			ARCH = x86
 			ifeq (,$(PROCESSOR_ARCHITEW6432))
+				ARCH = x86
 				FLAVOR := win32
 			endif
 		endif
@@ -159,7 +159,7 @@ endif
 $(MKPM)/.bootstrapping: $(ROOT)/mkpm.mk
 	@echo ⌛ bootstrapping . . .
 ifneq (,$(MKPM_BINARY_DOWNLOAD))
-	@$(MKPM_BINARY) -V $(NOOUT) && true || ( \
+	@$(MKPM_BINARY) -V $(NOOUT) || ( \
 		$(DOWNLOAD) $(MKPM)/.mkpm $(MKPM_BINARY_DOWNLOAD) && \
 		chmod +x $(MKPM)/.mkpm \
 	)
