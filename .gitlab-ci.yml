@@ -5,7 +5,8 @@ build:
   stage: build
   image: joseluisq/rust-linux-darwin-builder:1.55.0
   script:
-    - make build-musl
+    - cargo build --release --target x86_64-unknown-linux-musl
+    - du -sh target/x86_64-unknown-linux-musl/release/mkpm
     - mkdir public
     - cp bootstrap.mk public
     - mv target/x86_64-unknown-linux-musl/release/mkpm public/mkpm-0.0.1-musl-amd64
