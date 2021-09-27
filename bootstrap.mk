@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 02:54:36
+# Last Modified: 27-09-2021 03:03:20
 # Modified By: Jam Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -101,8 +101,6 @@ else
 	endif
 endif
 
-export GREP ?= grep
-export SED ?= sed
 export WHICH := command -v
 
 ifeq ($(SHELL),cmd.exe)
