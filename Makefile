@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 20:32:25
+# Last Modified: 26-09-2021 20:43:36
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -22,6 +22,8 @@
 
 include mkpm.mk
 -include $(MKPM)/blackmagic
+
+VERSION := 0.0.1
 
 CARGO ?= cargo
 DOCKER ?= docker
@@ -83,3 +85,9 @@ clean:
 .PHONY: purge
 purge: clean
 	@$(GIT) clean -fXd
+
+.PHONY: publish
+publish:
+	@curl --request POST --header "Private-Token: $(GITLAB_TOKEN)" \
+		--form "file=@" \
+		https://gitlab.com/api/v4/projects/29276259/uploads
