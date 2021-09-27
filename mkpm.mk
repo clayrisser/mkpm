@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 18:52:05
+# Last Modified: 26-09-2021 20:25:11
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -27,8 +27,6 @@ MKPM_PACKAGES := \
 
 MKPM_SOURCES := \
 	https://gitlab.com/bitspur/community/blackmagic.git
-
-MKPM_BINARY := $(shell pwd)/target/debug/mkpm
 
 NUMPROC := 1
 

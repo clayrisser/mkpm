@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-09-2021 20:19:28
+# Last Modified: 26-09-2021 20:27:46
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -24,6 +24,7 @@ include mkpm.mk
 -include $(MKPM)/blackmagic
 
 CARGO ?= cargo
+DOCKER ?= docker
 GIT ?= git
 
 .PHONY: test-bootstrap
@@ -42,14 +43,12 @@ test-bootstrap:
 	@echo SHELL: $(SHELL)
 	@echo WHICH: $(WHICH)
 
-
-
 .PHONY: build
-ifneq ($(call ternary,docker --version,true,false),true)
+ifneq ($(call ternary,$(DOCKER) --version,true,false),true)
 build: build-musl build-darwin
 else
 build:
-	@docker run --rm -it \
+	@$(DOCKER) run --rm -it \
 		-v $(PWD):/root/src \
 		registry.gitlab.com/silicon-hills/community/ci-images/docker-rust:0.0.1 \
 		make build
@@ -80,3 +79,7 @@ clean:
 		-e $(BANG)/target \
 		-e $(BANG)/target/ \
 		-e $(BANG)/target/**/*
+
+.PHONY: purge
+purge: clean
+	@$(GIT) clean -fXd
