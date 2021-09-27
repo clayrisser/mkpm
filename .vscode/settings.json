@@ -9,6 +9,7 @@
     "concat",
     "crossterm",
     "ctarget",
+    "curlimages",
     "dotenv",
     "dquote",
     "entrypoint",
