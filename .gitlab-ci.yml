@@ -34,7 +34,7 @@ build:darwin:
     - cargo build --release
     - du -sh target/release/mkpm
     - mkdir bin
-    - mv target/release/mkpm bin/${LINUX_AMD64_BINARY}
+    - mv target/release/mkpm bin/${DARWIN_AMD64_BINARY}
   artifacts:
     paths:
       - bin
