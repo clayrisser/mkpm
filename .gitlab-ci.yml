@@ -1,8 +1,4 @@
-stages:
-  - build
-
 build:
-  stage: build
   image: joseluisq/rust-linux-darwin-builder:1.55.0
   script:
     - cargo build --release --target x86_64-unknown-linux-musl
