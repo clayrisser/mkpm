@@ -21,6 +21,7 @@
     "gnueabihf",
     "hasher",
     "ifeq",
+    "ifneq",
     "indicatif",
     "joseluisq",
     "libc",
