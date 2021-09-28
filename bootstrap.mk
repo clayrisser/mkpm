@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 16:38:03
+# Last Modified: 27-09-2021 19:04:34
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -27,6 +27,7 @@ export MKPM_REPOS ?=
 
 export MKPM := $(abspath $(shell pwd)/$(MKPM_PACKAGE_DIR))
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
+export MKPM_TMP := $(MKPM)/.tmp
 export PLATFORM := unknown
 export FLAVOR := unknown
 export ARCH := unknown
@@ -120,10 +121,12 @@ export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false
 
 ifneq ($(NIX_ENV),true)
 	ifeq ($(PLATFORM),darwin)
+		export FIND ?= $(call ternary,gfind --version,gfind,find)
 		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
 		export SED ?= $(call ternary,gsed --version,gsed,sed)
 	endif
 endif
+export FIND ?= find
 export GREP ?= grep
 export SED ?= sed
 
