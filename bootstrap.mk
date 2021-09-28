@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 28-09-2021 00:26:40
+# Last Modified: 28-09-2021 03:24:48
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -99,25 +99,59 @@ else
 	endif
 endif
 
-ifeq ($(SHELL),cmd.exe)
+ifeq ($(SHELL),cmd.exe) # CMD POLYFILL
 	export BANG := !
+	export CAT := type
+	export EXPORT := set
+	export FALSE := cmd /c "exit /b 1"
 	export NULL := nul
-	export MKDIR_P ?= mkdir
-	export WHICH ?= where
+	export RM_RF := rmdir /s /q
+	export STATUS := %errorlevel%
+	export TRUE := type nul
+	export WHICH := where
+define mkdir_p
+set P=$1 && set P=%P:/=\% && mkdir %P% >nul
+endef
+define touch
+if exist $1 ( type nul ) else ( type nul > $1 )
+endef
+define touch_m
+if exist $1 ( \
+	$(call mkdir_p,%TEMP%\__mkpm) && \
+	type $1 > %TEMP%\__mkpm\touch_m && \
+	type %TEMP%\__mkpm\touch_m > $1 && \
+	$(RM_RF) %TEMP%\__mkpm\touch_m \
+) else ( type nul > $1 )
+endef
 else
 	export BANG := \!
+	export CAT := cat
+	export EXPORT := export
+	export FALSE := false
 	export NULL := /dev/null
+	export RM_RF := rm -rf
+	export STATUS := $$?
+	export TRUE := true
+	export WHICH := command -v
+define mkdir_p
+mkdir -p $1
+endef
+define touch_m
+touch -m $1
+endef
+define touch
+touch $1
+endef
 endif
-export MKDIR_P ?= mkdir -p
-export WHICH ?= command -v
-
 export NOFAIL := 2>$(NULL) || true
 export NOOUT := >$(NULL) 2>$(NULL)
 
+# TODO: add cmd support for ternary
 define ternary
 $(shell $1 $(NOOUT) && echo $2 || echo $3)
 endef
 
+# TODO: add cmd support for join_path
 define join_path
 $(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || (echo $1 | $(SED) 's|\/$$||g'))$(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || echo "/")$(shell [ "$2" = "" ] && true || echo "$2")
 endef
@@ -140,6 +174,7 @@ export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-er
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
+# TODO: add cmd support for PROJECT_ROOT
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
 		root=$$1 && \
@@ -223,10 +258,23 @@ ifneq (,$(MKPM_REPOS))
 	@$(MKPM_BINARY) update
 endif
 ifneq (,$(MKPM_PACKAGES))
+ifeq ($(SHELL),cmd.exe)
+# TODO: test on cmd and find alternative for $(SED)
+	@for %p in ($(MKPM_PACKAGES)) do ( \
+		$(EXPORT) PKG=$$(echo $$p | $(SED) 's|=.*$$||g') && \
+		$(RM_RF) $(MKPM)/.pkgs/$$PKG $(NOFAIL) && \
+		$(call mkdir_p,$(MKPM)/.pkgs/$$PKG) && \
+		$(MKPM_BINARY) install $$p --prefix $(MKPM)/.pkgs/$$PKG && \
+		echo include $$(MKPM)/.pkgs/$$PKG/main.mk > $(MKPM)/$$PKG && \
+		echo .PHONY: hello-% > $(MKPM)/-$$PKG && \
+		echo hello-%: >> $(MKPM)/-$$PKG && \
+		echo 	@$$(MAKE) -s -f $$(MKPM)/.pkgs/hello/main.mk $$$$(echo $$@ | $$(SED) '"'s|^hello-||g')" >> $(MKPM)/-$$PKG \
+	)
+else
 	@for p in $(MKPM_PACKAGES); do \
-			export PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
-			rm -rf "$(MKPM)/.pkgs/$$PKG" $(NOFAIL) && \
-			mkdir -p "$(MKPM)/.pkgs/$$PKG" && \
+			$(EXPORT) PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
+			$(RM_RF) "$(MKPM)/.pkgs/$$PKG" $(NOFAIL) && \
+			$(call mkdir_p,"$(MKPM)/.pkgs/$$PKG") && \
 			$(MKPM_BINARY) install $$p --prefix "$(MKPM)/.pkgs/$$PKG" && \
 			echo 'include $$(MKPM)'"/.pkgs/$$PKG/main.mk" > "$(MKPM)/$$PKG" && \
 			echo '.PHONY: hello-%' > "$(MKPM)/-$$PKG" && \
@@ -234,4 +282,5 @@ ifneq (,$(MKPM_PACKAGES))
 			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/hello/main.mk $$$$(echo $$@ | $$(SED) '"'s|^hello-||g')" >> "$(MKPM)/-$$PKG"; \
 		done
 endif
-	@touch -m $@
+endif
+	@$(call touch_m,$@)

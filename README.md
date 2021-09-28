@@ -29,20 +29,24 @@ https://gitlab.com/bitspur/community/mkpm-example
    ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
    MKPM_BOOTSTRAP := https://bitspur.gitlab.io/community/mkpm/bootstrap.mk
    NULL := /dev/null
-   MKDIR_P := mkdir -p
+   define mkdir_p
+   mkdir -p $1
+   endef
    ifeq ($(OS),Windows_NT)
-       MKDIR_P = mkdir
-       NULL = nul
-       SHELL := cmd.exe
+   	NULL = nul
+   	SHELL := cmd.exe
+   define mkdir_p
+   set P=$1 & set P=%P:/=\% & mkdir %P%
+   endef
    endif
    -include $(MKPM_PACKAGE_DIR)/.bootstrap.mk
    $(MKPM_PACKAGE_DIR)/.bootstrap.mk:
-       @$(MKDIR_P) $(MKPM_PACKAGE_DIR)
-       @cd $(MKPM_PACKAGE_DIR) && \
-           $(shell curl --version >$(NULL) 2>$(NULL) && \
-               echo curl -L -o || \
-               echo wget --content-on-error -O) \
-           .bootstrap.mk $(MKPM_BOOTSTRAP) >$(NULL)
+   	@$(call mkdir_p,$(MKPM_PACKAGE_DIR))
+   	@cd $(MKPM_PACKAGE_DIR) && \
+   		$(shell curl --version >$(NULL) 2>$(NULL) && \
+   			echo curl -L -o || \
+   			echo wget --content-on-error -O) \
+   		.bootstrap.mk $(MKPM_BOOTSTRAP) >$(NULL)
    ############## MKPM BOOTSTRAP SCRIPT END ##############
    ```
 
