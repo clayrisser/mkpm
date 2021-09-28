@@ -2,6 +2,10 @@
 
 > makefile package manager
 
+You can find an example project using mkpm at the link below
+
+https://gitlab.com/bitspur/community/mkpm-example
+
 ## Usage
 
 1. Create a file called `mkpm.mk` in the root of your project
@@ -59,18 +63,12 @@
    _Makefile_
 
    ```makefile
-   include mkpm.mk
-   ifneq (,$(MKPM))
-   -include $(MKPM)/hello
+   include mkpm.mk # load mkpm
+   ifneq (,$(MKPM)) # prevent code from executing before mkpm is loaded
+   -include $(MKPM)/hello # import an mkpm package
 
    # makefile logic here . . .
    .DEFAULT_GOAL := hello # this is an example
 
    endif
-   ```
-
-   You can test this example by running the `make` command.
-
-   ```sh
-   make
    ```
