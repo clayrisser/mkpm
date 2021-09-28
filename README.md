@@ -68,7 +68,7 @@ https://gitlab.com/bitspur/community/mkpm-example
    -include $(MKPM)/hello # import an mkpm package
 
    # makefile logic here . . .
-   .DEFAULT_GOAL := hello # this is an example
+   .DEFAULT_GOAL := hello # calls a target from the hello package
 
    endif
    ```
