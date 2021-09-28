@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 21:02:20
+# Last Modified: 27-09-2021 22:29:15
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -116,17 +116,26 @@ $(shell $1 $(NOOUT) && echo $2 || echo $3)
 endef
 
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
-export GIT ?= $(call ternary,(git --version $(NOOUT) && [ -d .git ]),git,true)
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
-export PROJECT_ROOT ?= $(shell $(GIT) rev-parse --show-superproject-working-tree)
-ifeq (,$(PROJECT_ROOT))
-	PROJECT_ROOT := $(shell $(GIT) rev-parse --show-toplevel)
-endif
-ifeq (,$(PROJECT_ROOT))
-	PROJECT_ROOT := $(ROOT)
-endif
+export PROJECT_ROOT ?= $(shell \
+	project_root() { \
+		root=$$1 && \
+		if [ -f "$$root/hi" ]; then \
+			echo $$root && \
+			return 0; \
+		fi && \
+		parent=$$(echo $$root | $(SED) 's|\/[^\/]\+$$||g') && \
+		if ([ "$$parent" = "" ] || [ "$$parent" = "/" ]); then \
+			echo "/" && \
+			return 0; \
+		fi && \
+		echo $$(project_root $$parent) && \
+		return 0; \
+	} && \
+	echo $$(project_root $(ROOT)) \
+)
 
 ifneq ($(NIX_ENV),true)
 	ifeq ($(PLATFORM),darwin)
