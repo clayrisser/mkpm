@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 19:17:20
+# Last Modified: 27-09-2021 19:26:43
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -24,7 +24,7 @@ include mkpm.mk
 ifneq (,$(MKPM))
 -include $(MKPM)/hello
 
-VERSION := 0.0.1
+.DEFAULT_GOAL := hello # this is an example
 
 CARGO ?= cargo
 DOCKER ?= docker

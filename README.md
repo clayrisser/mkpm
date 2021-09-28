@@ -61,9 +61,16 @@
    ```makefile
    include mkpm.mk
    ifneq (,$(MKPM))
-   -include $(MKPM)/blackmagic
+   -include $(MKPM)/hello
 
    # makefile logic here . . .
+   .DEFAULT_GOAL := hello # this is an example
 
    endif
+   ```
+
+   You can test this example by running the `make` command.
+
+   ```sh
+   make
    ```
