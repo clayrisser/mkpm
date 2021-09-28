@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 20:12:05
+# Last Modified: 27-09-2021 20:31:11
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -160,7 +160,20 @@ endif
 
 -include $(MKPM)/.bootstrap
 $(MKPM)/.bootstrap: $(ROOT)/mkpm.mk
-	@echo ⌛ bootstrapping . . .
+	@echo
+	@echo '                    88'
+	@echo '                    88'
+	@echo '                    88'
+	@echo '88,dPYba,,adPYba,   88   ,d8   8b,dPPYba,   88,dPYba,,adPYba,'
+	@echo "88P'   "'"88"    "8a  88 ,a8"    88P'"'    "'"8a  88P'"'   "'"88"    "8a'
+	@echo '88      88      88  8888[      88       d8  88      88      88'
+	@echo '88      88      88  88`"Yba,   88b,   ,a8"  88      88      88'
+	@echo '88      88      88  88   `Y8a  88`YbbdP"'"'   88      88      88'"
+	@echo '                               88'
+	@echo '                               88'
+	@echo
+	@echo 'BitSpur Inc (c) Copyright 2021'
+	@echo
 ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \
 		$(DOWNLOAD) $(MKPM)/.mkpm $(MKPM_BINARY_DOWNLOAD) && \
