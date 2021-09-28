@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 18:49:51
+# Last Modified: 27-09-2021 19:17:20
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -21,6 +21,7 @@
 # limitations under the License.
 
 include mkpm.mk
+ifneq (,$(MKPM))
 -include $(MKPM)/hello
 
 VERSION := 0.0.1
@@ -92,3 +93,5 @@ publish:
 	@curl --request POST --header "Private-Token: $(GITLAB_TOKEN)" \
 		--form "file=@" \
 		https://gitlab.com/api/v4/projects/29276259/uploads
+
+endif
