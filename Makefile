@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 28-09-2021 00:12:40
+# Last Modified: 28-09-2021 00:14:25
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -79,7 +79,7 @@ run:
 
 .PHONY: clean
 clean:
-	@echo $(GIT) clean -fXd \
+	@$(GIT) clean -fXd \
 		$(MKPM_GIT_CLEAN_FLAGS) \
 		-e $(BANG)/target \
 		-e $(BANG)/target/ \
