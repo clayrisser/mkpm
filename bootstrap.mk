@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 20:31:11
+# Last Modified: 27-09-2021 21:02:20
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -26,7 +26,6 @@ export MKPM_PACKAGE_DIR ?= .mkpm
 export MKPM_REPOS ?=
 
 export MKPM := $(abspath $(shell pwd)/$(MKPM_PACKAGE_DIR))
-export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 export MKPM_TMP := $(MKPM)/.tmp
 export PLATFORM := unknown
 export FLAVOR := unknown
@@ -117,7 +116,17 @@ $(shell $1 $(NOOUT) && echo $2 || echo $3)
 endef
 
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
+export GIT ?= $(call ternary,(git --version $(NOOUT) && [ -d .git ]),git,true)
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
+
+export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
+export PROJECT_ROOT ?= $(shell $(GIT) rev-parse --show-superproject-working-tree)
+ifeq (,$(PROJECT_ROOT))
+	PROJECT_ROOT := $(shell $(GIT) rev-parse --show-toplevel)
+endif
+ifeq (,$(PROJECT_ROOT))
+	PROJECT_ROOT := $(ROOT)
+endif
 
 ifneq ($(NIX_ENV),true)
 	ifeq ($(PLATFORM),darwin)
@@ -159,7 +168,7 @@ ifeq (,$(MKPM_BINARY))
 endif
 
 -include $(MKPM)/.bootstrap
-$(MKPM)/.bootstrap: $(ROOT)/mkpm.mk
+$(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk
 	@echo
 	@echo '                    88'
 	@echo '                    88'
