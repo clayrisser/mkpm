@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 22:29:15
+# Last Modified: 27-09-2021 23:13:59
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -115,6 +115,10 @@ define ternary
 $(shell $1 $(NOOUT) && echo $2 || echo $3)
 endef
 
+define join_path
+$(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || (echo $1 | $(SED) 's|\/$$||g'))$(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || echo "/")$(shell [ "$2" = "" ] && true || echo "$2")
+endef
+
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
@@ -122,7 +126,7 @@ export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
 		root=$$1 && \
-		if [ -f "$$root/hi" ]; then \
+		if [ -f "$$root/mkpm.mk" ]; then \
 			echo $$root && \
 			return 0; \
 		fi && \
@@ -177,7 +181,7 @@ ifeq (,$(MKPM_BINARY))
 endif
 
 -include $(MKPM)/.bootstrap
-$(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk
+$(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 	@echo
 	@echo '                    88'
 	@echo '                    88'
