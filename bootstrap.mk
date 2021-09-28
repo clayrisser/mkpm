@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 23:27:36
+# Last Modified: 28-09-2021 00:11:50
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -118,6 +118,20 @@ endef
 define join_path
 $(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || (echo $1 | $(SED) 's|\/$$||g'))$(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || echo "/")$(shell [ "$2" = "" ] && true || echo "$2")
 endef
+
+define git_clean_flags
+-e $(BANG)$1 \
+-e $(BANG)$1/ \
+-e $(BANG)$1/**/* \
+-e $(BANG)/$1 \
+-e $(BANG)/$1/ \
+-e $(BANG)/$1/**/* \
+-e $(BANG)/**/$1 \
+-e $(BANG)/**/$1/ \
+-e $(BANG)/**/$1/**/*
+endef
+
+export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_PACKAGE_DIR))
 
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
