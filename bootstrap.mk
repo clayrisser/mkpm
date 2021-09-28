@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 19:39:29
+# Last Modified: 27-09-2021 20:12:05
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -158,8 +158,8 @@ ifeq (,$(MKPM_BINARY))
 	endif
 endif
 
--include $(MKPM)/.bootstrapping
-$(MKPM)/.bootstrapping: $(ROOT)/mkpm.mk
+-include $(MKPM)/.bootstrap
+$(MKPM)/.bootstrap: $(ROOT)/mkpm.mk
 	@echo ⌛ bootstrapping . . .
 ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \
@@ -176,7 +176,10 @@ ifneq (,$(MKPM_PACKAGES))
 			rm -rf "$(MKPM)/.pkgs/$$PKG" $(NOFAIL) && \
 			mkdir -p "$(MKPM)/.pkgs/$$PKG" && \
 			$(MKPM_BINARY) install $$p --prefix "$(MKPM)/.pkgs/$$PKG" && \
-			echo 'include $$(MKPM)'"/.pkgs/$$PKG/main.mk" > "$(MKPM)/$$PKG"; \
+			echo 'include $$(MKPM)'"/.pkgs/$$PKG/main.mk" > "$(MKPM)/$$PKG" && \
+			echo '.PHONY: hello-%' > "$(MKPM)/-$$PKG" && \
+			echo 'hello-%:' >> "$(MKPM)/-$$PKG" && \
+			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/hello/main.mk $$$$(echo $$@ | $$(SED) '"'s|^hello-||g')" >> "$(MKPM)/-$$PKG"; \
 		done
 endif
 	@touch -m $@
