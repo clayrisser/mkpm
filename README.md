@@ -13,10 +13,10 @@
 
    ```makefile
    MKPM_PACKAGES := \
-       blackmagic=0.0.1
+       hello=0.0.1
 
    MKPM_REPOS := \
-       https://gitlab.com/bitspur/community/blackmagic.git
+       https://gitlab.com/bitspur/community/mkpm-stable.git
 
    MKPM_PACKAGE_DIR := .mkpm
 
@@ -53,10 +53,17 @@
    variable. They MUST be included after the `mkpm.mk` file. Below is an
    example. Make sure you prefix the include statement with a dash `-include`
    to prevent the Makefile from crashing before the packages are installed.
+   Also make sure you wrap the file with `ifneq (,$(MKPM))` and `endif` to
+   prevent code from executing before mkpm is loaded.
 
    _Makefile_
 
    ```makefile
    include mkpm.mk
+   ifneq (,$(MKPM))
    -include $(MKPM)/blackmagic
+
+   # makefile logic here . . .
+
+   endif
    ```
