@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 19:04:34
+# Last Modified: 27-09-2021 19:39:29
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -116,7 +116,7 @@ define ternary
 $(shell $1 $(NOOUT) && echo $2 || echo $3)
 endef
 
-export DOWNLOAD	?= $(call ternary,curl --version,curl -Ls -o,wget -q --content-on-error -O)
+export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
 ifneq ($(NIX_ENV),true)
