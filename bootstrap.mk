@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 28-09-2021 00:11:50
+# Last Modified: 28-09-2021 00:26:40
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -30,8 +30,6 @@ export MKPM_TMP := $(MKPM)/.tmp
 export PLATFORM := unknown
 export FLAVOR := unknown
 export ARCH := unknown
-export BANG := \!
-export NULL := /dev/null
 
 ifneq (,$(findstring :,$(PATH))) # POSIX
 	PLATFORM = $(shell uname | awk '{print tolower($$0)}')
@@ -101,15 +99,20 @@ else
 	endif
 endif
 
-export WHICH := command -v
-
 ifeq ($(SHELL),cmd.exe)
-	BANG = !
-	NULL = nul
-	WHICH = where
+	export BANG := !
+	export NULL := nul
+	export MKDIR_P ?= mkdir
+	export WHICH ?= where
+else
+	export BANG := \!
+	export NULL := /dev/null
 endif
-export NOOUT := >$(NULL) 2>$(NULL)
+export MKDIR_P ?= mkdir -p
+export WHICH ?= command -v
+
 export NOFAIL := 2>$(NULL) || true
+export NOOUT := >$(NULL) 2>$(NULL)
 
 define ternary
 $(shell $1 $(NOOUT) && echo $2 || echo $3)
