@@ -36,8 +36,8 @@
        @$(MKDIR_P) $(MKPM_PACKAGE_DIR)
        @cd $(MKPM_PACKAGE_DIR) && \
            $(shell curl --version >$(NULL) 2>$(NULL) && \
-               echo curl -Ls -o || \
-               echo wget -q --content-on-error -O) \
+               echo curl -L -o || \
+               echo wget --content-on-error -O) \
            .bootstrap.mk $(MKPM_BOOTSTRAP) >$(NULL)
    ############## MKPM BOOTSTRAP SCRIPT END ##############
    ```
