@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-09-2021 23:13:59
+# Last Modified: 27-09-2021 23:27:36
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -190,7 +190,7 @@ $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 	@echo "88P'   "'"88"    "8a  88 ,a8"    88P'"'    "'"8a  88P'"'   "'"88"    "8a'
 	@echo '88      88      88  8888[      88       d8  88      88      88'
 	@echo '88      88      88  88`"Yba,   88b,   ,a8"  88      88      88'
-	@echo '88      88      88  88   `Y8a  88`YbbdP"'"'   88      88      88'"
+	@echo '88      88      88  88   `Y8a  88`YbbdP"'"'   88      88      88"
 	@echo '                               88'
 	@echo '                               88'
 	@echo
