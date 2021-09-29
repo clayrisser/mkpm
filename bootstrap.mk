@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 28-09-2021 03:24:48
+# Last Modified: 29-09-2021 05:47:27
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -25,16 +25,51 @@ export MKPM_PACKAGES ?=
 export MKPM_PACKAGE_DIR ?= .mkpm
 export MKPM_REPOS ?=
 
+export BANG := \!
+export CAT := cat
+export EXPORT := export
 export FALSE := false
 export NULL := /dev/null
+export RM_RF := rm -rf
+export STATUS := $$?
 export TRUE := true
-ifeq ($(SHELL),cmd.exe)
+export WHICH := command -v
+ifeq ($(SHELL),cmd.exe) # CMD SHIM
+	BANG = !
+	CAT = type
+	EXPORT = set
 	FALSE = cmd /c "exit /b 1"
 	NULL = nul
+	RM_RF = rmdir /s /q
+	STATUS = %errorlevel%
 	TRUE = type nul
+	WHICH = where
 	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_PACKAGE_DIR))
+define mkdir_p
+cmd.exe /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
+endef
+define touch
+if exist $1 ( type nul ) else ( type nul > $1 )
+endef
+define touch_m
+if exist $1 ( \
+	$(call mkdir_p,%TEMP%\__mkpm) && \
+	type $1 > %TEMP%\__mkpm\touch_m && \
+	type %TEMP%\__mkpm\touch_m > $1 && \
+	$(RM_RF) %TEMP%\__mkpm\touch_m \
+) else ( type nul > $1 )
+endef
 else
 	export MKPM := $(abspath $(shell pwd 2>$(NULL))/$(MKPM_PACKAGE_DIR))
+define mkdir_p
+mkdir -p $1
+endef
+define touch_m
+touch -m $1
+endef
+define touch
+touch $1
+endef
 endif
 export NOFAIL := 2>$(NULL) || $(TRUE)
 export NOOUT := >$(NULL) 2>$(NULL)
@@ -44,9 +79,9 @@ export PLATFORM := unknown
 export FLAVOR := unknown
 export ARCH := unknown
 ifeq ($(OS),Windows_NT)
+	export HOME := $(shell echo %%CD:~0,2%%)/Users/$(USERNAME)
 	PLATFORM = win32
 	FLAVOR := win64
-	SHELL := cmd.exe
 	ARCH = $(PROCESSOR_ARCHITECTURE)
 	ifeq ($(ARCH),AMD64)
 		ARCH = amd64
@@ -54,7 +89,8 @@ ifeq ($(OS),Windows_NT)
 	ifeq ($(ARCH),ARM64)
 		ARCH = arm64
 	endif
-	ifeq ($(PROCESSOR_ARCHITECTURE),X86)
+	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+		ARCH = amd64
 		ifeq (,$(PROCESSOR_ARCHITEW6432))
 			ARCH = x86
 			FLAVOR := win32
@@ -109,45 +145,6 @@ else
 	endif
 endif
 
-ifeq ($(SHELL),cmd.exe) # CMD POLYFILL
-	export BANG := !
-	export CAT := type
-	export EXPORT := set
-	export RM_RF := rmdir /s /q
-	export STATUS := %errorlevel%
-	export WHICH := where
-define mkdir_p
-set P=$1 && set P=%P:/=\% && mkdir %P% >nul
-endef
-define touch
-if exist $1 ( type nul ) else ( type nul > $1 )
-endef
-define touch_m
-if exist $1 ( \
-	$(call mkdir_p,%TEMP%\__mkpm) && \
-	type $1 > %TEMP%\__mkpm\touch_m && \
-	type %TEMP%\__mkpm\touch_m > $1 && \
-	$(RM_RF) %TEMP%\__mkpm\touch_m \
-) else ( type nul > $1 )
-endef
-else
-	export BANG := \!
-	export CAT := cat
-	export EXPORT := export
-	export RM_RF := rm -rf
-	export STATUS := $$?
-	export WHICH := command -v
-define mkdir_p
-mkdir -p $1
-endef
-define touch_m
-touch -m $1
-endef
-define touch
-touch $1
-endef
-endif
-
 ifeq ($(SHELL),cmd.exe)
 define for
 for %%$1 in ($2) do (
@@ -196,8 +193,9 @@ export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-er
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
-# TODO: add cmd support for PROJECT_ROOT
-ifneq ($(SHELL),cmd.exe)
+ifeq ($(SHELL),cmd.exe) # TODO: add cmd support for PROJECT_ROOT
+export PROJECT_ROOT ?= $(ROOT)
+else
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
 		root=$$1 && \
@@ -224,6 +222,14 @@ ifneq ($(NIX_ENV),true)
 		export SED ?= $(call ternary,gsed --version,gsed,sed)
 	endif
 endif
+ifeq ($(PLATFORM),win32)
+SED_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/sed/4.8/tools/install/sed-windows-master/sed-4.8-x64.exe
+SED_BINARY := $(HOME)/.mkpm/bin/sed
+export SED ?= $(SED_BINARY)
+GREP_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/grep.exe
+GREP_BINARY := $(HOME)/.mkpm/bin/grep
+export GREP ?= $(GREP_BINARY)
+endif
 export FIND ?= find
 export GREP ?= grep
 export SED ?= sed
@@ -248,13 +254,17 @@ ifeq (,$(MKPM_BINARY))
 		ifeq ($(PLATFORM),darwin)
 			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
 		endif
+		ifneq (,$(MKPM_BINARY_DOWNLOAD))
+			HOME_MKPM_BINARY := $(HOME)/.mkpm/bin/mkpm
+			export MKPM_BINARY := $(HOME_MKPM_BINARY)
+		endif
 		ifeq ($(PLATFORM),win32)
-			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
+			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH).exe
+			HOME_MKPM_BINARY := $(HOME)/.mkpm/bin/mkpm.exe
+			export MKPM_BINARY := $(HOME_MKPM_BINARY)
 		endif
 		ifeq (,$(MKPM_BINARY_DOWNLOAD))
 			export MKPM_BINARY := mkpm
-		else
-			export MKPM_BINARY = $(MKPM)/.mkpm
 		endif
 	endif
 endif
@@ -292,10 +302,25 @@ else
 	@echo 'BitSpur Inc (c) Copyright 2021'
 	@echo
 endif
-ifneq (,$(MKPM_BINARY_DOWNLOAD))
+	@$(call mkdir_p,$(HOME)/.mkpm/bin)
+	@$(call touch,$(HOME)/.mkpm/repos.list)
+# TODO: fix grep
+# ifneq (,$(GREP_BINARY))
+# 	@$(GREP) --version $(NOOUT) || ( \
+# 		$(DOWNLOAD) $(GREP_BINARY) $(GREP_DOWNLOAD) && \
+# 		chmod +x $(GREP_BINARY) $(NOFAIL) \
+# 	)
+# endif
+ifneq (,$(SED_BINARY))
+	@$(SED) --version $(NOOUT) || ( \
+		$(DOWNLOAD) $(SED_BINARY) $(SED_DOWNLOAD) && \
+		chmod +x $(SED_BINARY) $(NOFAIL) \
+	)
+endif
+ifneq (,$(HOME_MKPM_BINARY))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \
-		$(DOWNLOAD) $(MKPM)/.mkpm $(MKPM_BINARY_DOWNLOAD) && \
-		chmod +x $(MKPM)/.mkpm $(NOFAIL) \
+		$(DOWNLOAD) $(HOME_MKPM_BINARY) $(MKPM_BINARY_DOWNLOAD) && \
+		chmod +x $(HOME_MKPM_BINARY) $(NOFAIL) \
 	)
 endif
 ifneq (,$(MKPM_REPOS))
@@ -315,7 +340,7 @@ else
 			echo 'include $$(MKPM)'"/.pkgs/$$PKG/main.mk" > "$(MKPM)/$$PKG" && \
 			echo '.PHONY: hello-%' > "$(MKPM)/-$$PKG" && \
 			echo 'hello-%:' >> "$(MKPM)/-$$PKG" && \
-			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/hello/main.mk $$$$(echo $$@ | $$(SED) '"'s|^hello-||g')" >> "$(MKPM)/-$$PKG"; \
+			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/hello/main.mk $$$$(echo $$@ | $$(SED) '"'s|^hello-||g')" >> "$(MKPM)/-$$PKG" \
 		$(call rof)
 endif
 endif
