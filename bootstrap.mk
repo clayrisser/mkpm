@@ -244,6 +244,12 @@ ifeq (,$(GREP))
 		endif
 	endif
 endif
+ifeq (,$(FIND))
+	ifneq ($(call ternary,find --version,true,false),true)
+		FIND_DOWNLOAD ?= https://sourceforge.net/projects/ezwinports/files/findutils-4.2.30-5-w32-bin.zip/download
+		export FIND := $(HOME)/.mkpm/find/bin/find.exe
+	endif
+endif
 export FIND ?= find
 export GREP ?= grep
 export SED ?= sed
@@ -326,6 +332,22 @@ else
 	@$(GREP) --version $(NOOUT) || ( \
 		$(DOWNLOAD) $(GREP) $(GREP_DOWNLOAD) && \
 		chmod +x $(GREP) $(NOFAIL) \
+	)
+endif
+endif
+ifneq (,$(FIND_DOWNLOAD))
+ifeq ($(SHELL),cmd.exe)
+	@$(call mkdir_p,$(HOME)/.mkpm/find)
+	@$(FIND) --version $(NOOUT) || ( \
+		$(DOWNLOAD) $(HOME)/.mkpm/find/find.zip $(FIND_DOWNLOAD) && \
+		cd $(HOME)/.mkpm/find && \
+		tar -xzf $(HOME)/.mkpm/find/find.zip && \
+		$(RM_RF) $(HOME)/.mkpm/find/find.zip \
+	)
+else
+	@$(FIND) --version $(NOOUT) || ( \
+		$(DOWNLOAD) $(FIND) $(FIND_DOWNLOAD) && \
+		chmod +x $(FIND) $(NOFAIL) \
 	)
 endif
 endif
