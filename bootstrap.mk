@@ -222,13 +222,27 @@ ifneq ($(NIX_ENV),true)
 		export SED ?= $(call ternary,gsed --version,gsed,sed)
 	endif
 endif
-ifeq ($(PLATFORM),win32)
-SED_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/sed/4.8/tools/install/sed-windows-master/sed-4.8-x64.exe
-SED_BINARY := $(HOME)/.mkpm/bin/sed
-export SED ?= $(SED_BINARY)
-GREP_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/grep.exe
-GREP_BINARY := $(HOME)/.mkpm/bin/grep
-export GREP ?= $(GREP_BINARY)
+ifeq (,$(SED))
+	ifneq ($(call ternary,sed --version,true,false),true)
+		ifeq ($(PLATFORM),win32)
+			SED_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/sed/4.8/tools/install/sed-windows-master/sed-4.8-x64.exe
+			export SED := $(HOME)/.mkpm/bin/sed.exe
+		endif
+	endif
+endif
+ifeq (,$(GREP))
+	ifneq ($(call ternary,grep --version,true,false),true)
+		ifeq ($(PLATFORM),win32)
+			GREP_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/grep.exe
+			export GREP := $(HOME)/.mkpm/bin/grep.exe
+			LIBICONV_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libiconv-2.dll
+			LIBICONV_DLL := $(HOME)/.mkpm/bin/libiconv-2.dll
+			LIBINTL_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libintl-8.dll
+			LIBINTL_DLL := $(HOME)/.mkpm/bin/libintl-8.dll
+			LIBPCRE_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libpcre-0.dll
+			LIBPCRE_DLL := $(HOME)/.mkpm/bin/libpcre-0.dll
+		endif
+	endif
 endif
 export FIND ?= find
 export GREP ?= grep
@@ -245,9 +259,7 @@ export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
 
 ifeq (,$(MKPM_BINARY))
-	ifeq ($(call ternary,mkpm -V,true,false),true)
-		export MKPM_BINARY := mkpm
-	else
+	ifneq ($(call ternary,mkpm -V,true,false),true)
 		ifeq ($(PLATFORM),linux)
 			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
 		endif
@@ -263,11 +275,9 @@ ifeq (,$(MKPM_BINARY))
 			HOME_MKPM_BINARY := $(HOME)/.mkpm/bin/mkpm.exe
 			export MKPM_BINARY := $(HOME_MKPM_BINARY)
 		endif
-		ifeq (,$(MKPM_BINARY_DOWNLOAD))
-			export MKPM_BINARY := mkpm
-		endif
 	endif
 endif
+export MKPM_BINARY ?= mkpm
 
 include $(MKPM)/.bootstrap
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
@@ -304,23 +314,31 @@ else
 endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
 	@$(call touch,$(HOME)/.mkpm/repos.list)
-# TODO: fix grep
-# ifneq (,$(GREP_BINARY))
-# 	@$(GREP) --version $(NOOUT) || ( \
-# 		$(DOWNLOAD) $(GREP_BINARY) $(GREP_DOWNLOAD) && \
-# 		chmod +x $(GREP_BINARY) $(NOFAIL) \
-# 	)
-# endif
-ifneq (,$(SED_BINARY))
-	@$(SED) --version $(NOOUT) || ( \
-		$(DOWNLOAD) $(SED_BINARY) $(SED_DOWNLOAD) && \
-		chmod +x $(SED_BINARY) $(NOFAIL) \
+ifneq (,$(GREP_DOWNLOAD))
+ifeq ($(SHELL),cmd.exe)
+	@$(GREP) --version $(NOOUT) || ( \
+		$(DOWNLOAD) $(GREP) $(GREP_DOWNLOAD) && \
+		$(DOWNLOAD) $(LIBICONV_DLL) $(LIBICONV_DLL_DOWNLOAD) && \
+		$(DOWNLOAD) $(LIBINTL_DLL) $(LIBINTL_DLL_DOWNLOAD) && \
+		$(DOWNLOAD) $(LIBPCRE_DLL) $(LIBPCRE_DLL_DOWNLOAD) \
+	)
+else
+	@$(GREP) --version $(NOOUT) || ( \
+		$(DOWNLOAD) $(GREP) $(GREP_DOWNLOAD) && \
+		chmod +x $(GREP) $(NOFAIL) \
 	)
 endif
-ifneq (,$(HOME_MKPM_BINARY))
+endif
+ifneq (,$(SED_DOWNLOAD))
+	@$(SED) --version $(NOOUT) || ( \
+		$(DOWNLOAD) $(SED) $(SED_DOWNLOAD) && \
+		chmod +x $(SED) $(NOFAIL) \
+	)
+endif
+ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \
-		$(DOWNLOAD) $(HOME_MKPM_BINARY) $(MKPM_BINARY_DOWNLOAD) && \
-		chmod +x $(HOME_MKPM_BINARY) $(NOFAIL) \
+		$(DOWNLOAD) $(MKPM_BINARY) $(MKPM_BINARY_DOWNLOAD) && \
+		chmod +x $(MKPM_BINARY) $(NOFAIL) \
 	)
 endif
 ifneq (,$(MKPM_REPOS))
