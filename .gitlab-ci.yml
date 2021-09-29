@@ -50,7 +50,7 @@ build:win32:
     - cargo build --release
     - dir target/release/mkpm.exe
     - mkdir bin
-    - mv target/release/mkpm bin/${DARWIN_AMD64_BINARY}
+    - mv target/release/mkpm.exe bin/${DARWIN_AMD64_BINARY}
   artifacts:
     paths:
       - bin
