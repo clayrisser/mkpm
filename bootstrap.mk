@@ -25,15 +25,44 @@ export MKPM_PACKAGES ?=
 export MKPM_PACKAGE_DIR ?= .mkpm
 export MKPM_REPOS ?=
 
-export MKPM := $(abspath $(shell pwd)/$(MKPM_PACKAGE_DIR))
+export FALSE := false
+export NULL := /dev/null
+export TRUE := true
+ifeq ($(SHELL),cmd.exe)
+	FALSE = cmd /c "exit /b 1"
+	NULL = nul
+	TRUE = type nul
+	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_PACKAGE_DIR))
+else
+	export MKPM := $(abspath $(shell pwd 2>$(NULL))/$(MKPM_PACKAGE_DIR))
+endif
+export NOFAIL := 2>$(NULL) || $(TRUE)
+export NOOUT := >$(NULL) 2>$(NULL)
 export MKPM_TMP := $(MKPM)/.tmp
+
 export PLATFORM := unknown
 export FLAVOR := unknown
 export ARCH := unknown
-
-ifneq (,$(findstring :,$(PATH))) # POSIX
-	PLATFORM = $(shell uname | awk '{print tolower($$0)}')
-	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | awk '{print tolower($$0)}')
+ifeq ($(OS),Windows_NT)
+	PLATFORM = win32
+	FLAVOR := win64
+	SHELL := cmd.exe
+	ARCH = $(PROCESSOR_ARCHITECTURE)
+	ifeq ($(ARCH),AMD64)
+		ARCH = amd64
+	endif
+	ifeq ($(ARCH),ARM64)
+		ARCH = arm64
+	endif
+	ifeq ($(PROCESSOR_ARCHITECTURE),X86)
+		ifeq (,$(PROCESSOR_ARCHITEW6432))
+			ARCH = x86
+			FLAVOR := win32
+		endif
+	endif
+else
+	PLATFORM = $(shell uname 2>$(NULL) | awk '{print tolower($$0)}' 2>$(NULL))
+	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | awk '{print tolower($$0)}' 2>$(NULL))
 	ifeq ($(ARCH),i386)
 		ARCH = 386
 	endif
@@ -45,12 +74,12 @@ ifneq (,$(findstring :,$(PATH))) # POSIX
 	endif
 	ifeq ($(PLATFORM),linux) # LINUX
 		ifneq (,$(wildcard /system/bin/adb))
-			ifneq (,$(shell getprop --help >$(NULL) 2>$(NULL))) # ANDROID
+			ifneq (,$(shell getprop --help >$(NULL) 2>$(NULL))) # TODO: finish this ANDROID
 				PLATFORM = android
 			endif
 		endif
 		ifeq ($(PLATFORM),linux)
-			FLAVOR = $(shell lsb_release -si 2>$(NULL) | awk '{print tolower($$0)}')
+			FLAVOR = $(shell lsb_release -si 2>$(NULL) | awk '{print tolower($$0)}' 2>$(NULL))
 			ifeq (,$(FLAVOR))
 				FLAVOR = unknown
 				ifneq (,$(wildcard /etc/redhat-release))
@@ -78,36 +107,14 @@ ifneq (,$(findstring :,$(PATH))) # POSIX
 			FLAVOR = msys
 		endif
 	endif
-else
-	ifeq ($(OS),Windows_NT) # WINDOWS
-		PLATFORM = win32
-		FLAVOR := win64
-		SHELL := cmd.exe
-		ARCH = $(PROCESSOR_ARCHITECTURE)
-		ifeq ($(ARCH),AMD64)
-			ARCH = amd64
-		endif
-		ifeq ($(ARCH),ARM64)
-			ARCH = arm64
-		endif
-		ifeq ($(PROCESSOR_ARCHITECTURE),X86)
-			ifeq (,$(PROCESSOR_ARCHITEW6432))
-				ARCH = x86
-				FLAVOR := win32
-			endif
-		endif
-	endif
 endif
 
 ifeq ($(SHELL),cmd.exe) # CMD POLYFILL
 	export BANG := !
 	export CAT := type
 	export EXPORT := set
-	export FALSE := cmd /c "exit /b 1"
-	export NULL := nul
 	export RM_RF := rmdir /s /q
 	export STATUS := %errorlevel%
-	export TRUE := type nul
 	export WHICH := where
 define mkdir_p
 set P=$1 && set P=%P:/=\% && mkdir %P% >nul
@@ -127,11 +134,8 @@ else
 	export BANG := \!
 	export CAT := cat
 	export EXPORT := export
-	export FALSE := false
-	export NULL := /dev/null
 	export RM_RF := rm -rf
 	export STATUS := $$?
-	export TRUE := true
 	export WHICH := command -v
 define mkdir_p
 mkdir -p $1
@@ -143,18 +147,36 @@ define touch
 touch $1
 endef
 endif
-export NOFAIL := 2>$(NULL) || true
-export NOOUT := >$(NULL) 2>$(NULL)
 
-# TODO: add cmd support for ternary
+ifeq ($(SHELL),cmd.exe)
+define for
+for %%$1 in ($2) do (
+endef
+define rof
+)
+endef
+else
+define for
+for $1 in $2; do 
+endef
+define rof
+; done
+endef
+endif
+
 define ternary
 $(shell $1 $(NOOUT) && echo $2 || echo $3)
 endef
 
-# TODO: add cmd support for join_path
+ifeq ($(SHELL),cmd.exe)
+define join_path # TODO: improve cmd support for join_path
+$(shell echo $2)
+endef
+else
 define join_path
 $(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || (echo $1 | $(SED) 's|\/$$||g'))$(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || echo "/")$(shell [ "$2" = "" ] && true || echo "$2")
 endef
+endif
 
 define git_clean_flags
 -e $(BANG)$1 \
@@ -175,6 +197,7 @@ export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false
 
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 # TODO: add cmd support for PROJECT_ROOT
+ifneq ($(SHELL),cmd.exe)
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
 		root=$$1 && \
@@ -192,6 +215,7 @@ export PROJECT_ROOT ?= $(shell \
 	} && \
 	echo $$(project_root $(ROOT)) \
 )
+endif
 
 ifneq ($(NIX_ENV),true)
 	ifeq ($(PLATFORM),darwin)
@@ -209,7 +233,7 @@ ifeq ($(PLATFORM),linux)
 	NPROC = $(shell nproc $(NOOUT) && nproc || $(GREP) -c -E "^processor" /proc/cpuinfo 2>$(NULL) || echo 1)
 endif
 ifeq ($(PLATFORM),darwin)
-	NPROC = $(shell sysctl hw.ncpu | awk '{print $$2}' || echo 1)
+	NPROC = $(shell sysctl hw.ncpu | awk '{print $$2}' 2>$(NULL) || echo 1)
 endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
@@ -224,6 +248,9 @@ ifeq (,$(MKPM_BINARY))
 		ifeq ($(PLATFORM),darwin)
 			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
 		endif
+		ifeq ($(PLATFORM),win32)
+			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
+		endif
 		ifeq (,$(MKPM_BINARY_DOWNLOAD))
 			export MKPM_BINARY := mkpm
 		else
@@ -232,8 +259,24 @@ ifeq (,$(MKPM_BINARY))
 	endif
 endif
 
--include $(MKPM)/.bootstrap
+include $(MKPM)/.bootstrap
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
+ifeq ($(SHELL),cmd.exe)
+	@echo.
+	@echo                     88
+	@echo                     88
+	@echo                     88
+	@echo 88,dPYba,,adPYba,   88   ,d8   8b,dPPYba,   88,dPYba,,adPYba,
+	@echo 88P'   "88"    "8a  88 ,a8"    88P'    "8a  88P'   "88"    "8a
+	@echo 88      88      88  8888[      88       d8  88      88      88
+	@echo 88      88      88  88`"Yba,   88b,   ,a8"  88      88      88
+	@echo 88      88      88  88   `Y8a  88`YbbdP"'   88      88      88
+	@echo                                88
+	@echo                                88
+	@echo.
+	@echo BitSpur Inc (c) Copyright 2021
+	@echo.
+else
 	@echo
 	@echo '                    88'
 	@echo '                    88'
@@ -248,10 +291,11 @@ $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 	@echo
 	@echo 'BitSpur Inc (c) Copyright 2021'
 	@echo
+endif
 ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \
 		$(DOWNLOAD) $(MKPM)/.mkpm $(MKPM_BINARY_DOWNLOAD) && \
-		chmod +x $(MKPM)/.mkpm \
+		chmod +x $(MKPM)/.mkpm $(NOFAIL) \
 	)
 endif
 ifneq (,$(MKPM_REPOS))
@@ -259,19 +303,11 @@ ifneq (,$(MKPM_REPOS))
 endif
 ifneq (,$(MKPM_PACKAGES))
 ifeq ($(SHELL),cmd.exe)
-# TODO: test on cmd and find alternative for $(SED)
-	@for %p in ($(MKPM_PACKAGES)) do ( \
-		$(EXPORT) PKG=$$(echo $$p | $(SED) 's|=.*$$||g') && \
-		$(RM_RF) $(MKPM)/.pkgs/$$PKG $(NOFAIL) && \
-		$(call mkdir_p,$(MKPM)/.pkgs/$$PKG) && \
-		$(MKPM_BINARY) install $$p --prefix $(MKPM)/.pkgs/$$PKG && \
-		echo include $$(MKPM)/.pkgs/$$PKG/main.mk > $(MKPM)/$$PKG && \
-		echo .PHONY: hello-% > $(MKPM)/-$$PKG && \
-		echo hello-%: >> $(MKPM)/-$$PKG && \
-		echo 	@$$(MAKE) -s -f $$(MKPM)/.pkgs/hello/main.mk $$$$(echo $$@ | $$(SED) '"'s|^hello-||g')" >> $(MKPM)/-$$PKG \
-	)
+	@$(call for,p,$(MKPM_PACKAGES)) \
+			echo %%p \
+		$(call rof)
 else
-	@for p in $(MKPM_PACKAGES); do \
+	@$(call for,p,$(MKPM_PACKAGES)) \
 			$(EXPORT) PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
 			$(RM_RF) "$(MKPM)/.pkgs/$$PKG" $(NOFAIL) && \
 			$(call mkdir_p,"$(MKPM)/.pkgs/$$PKG") && \
@@ -280,7 +316,7 @@ else
 			echo '.PHONY: hello-%' > "$(MKPM)/-$$PKG" && \
 			echo 'hello-%:' >> "$(MKPM)/-$$PKG" && \
 			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/hello/main.mk $$$$(echo $$@ | $$(SED) '"'s|^hello-||g')" >> "$(MKPM)/-$$PKG"; \
-		done
+		$(call rof)
 endif
 endif
 	@$(call touch_m,$@)
