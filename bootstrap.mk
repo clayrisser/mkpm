@@ -384,7 +384,17 @@ endif
 ifneq (,$(MKPM_PACKAGES))
 ifeq ($(SHELL),cmd.exe)
 	@$(call for,p,$(subst =,:,$(MKPM_PACKAGES))) \
-			echo $(call for_i,p) \
+		cmd.exe /q /v /c " \
+			set pkg=$(call for_i,p) && \
+			set pkg=!pkg::==! && \
+			set pkgname=!pkg::= ! && \
+			for /f "usebackq tokens=1" %%a in (`echo !pkgname!`) do ( \
+				set "pkgname=%%a" && \
+				set "pkgpath="$(MKPM)/.pkgs/!pkgname!"" && \
+				(rmdir /s /q !pkgpath! 2>nul || echo 1>nul) && \
+				mkdir !pkgpath:/=\! 2>nul && \
+				$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! \
+			)" \
 		$(call rof)
 else
 	@$(call for,p,$(MKPM_PACKAGES)) \
