@@ -119,7 +119,7 @@ else
 	endif
 	ifeq ($(PLATFORM),linux) # LINUX
 		ifneq (,$(wildcard /system/bin/adb))
-			ifneq (,$(shell getprop --help >$(NULL) 2>$(NULL))) # TODO: finish this ANDROID
+			ifneq ($(shell getprop --help >$(NULL) 2>$(NULL) && echo true || echo false),true)
 				PLATFORM = android
 			endif
 		endif
