@@ -156,13 +156,13 @@ endif
 
 ifeq ($(SHELL),cmd.exe)
 define for
-for %%$1 in ($2) do (
+(for %%$1 in ($2) do (
 endef
 define for_i
 %%$1
 endef
 define for_end
-)
+))
 endef
 else
 define for
@@ -208,8 +208,36 @@ export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-er
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
 export ROOT := $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
-ifeq ($(SHELL),cmd.exe) # TODO: add cmd support for PROJECT_ROOT
-export PROJECT_ROOT ?= $(ROOT)
+ifeq ($(SHELL),cmd.exe)
+export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
+	set "paths=$(shell cmd.exe /q /v /c " \
+		set "root=$(ROOT)" && \
+		set "root=!root:/= !" && \
+		set "p= " && \
+		set "paths= " && \
+		(for %%i in (!root!) do ( \
+			(if "!p!"==" " ( \
+				set "p=%%i" \
+			) else ( \
+				set "p=!p!/%%i" \
+			)) && \
+			(if "!paths!"==" " ( \
+				set "paths=!p!" \
+			) else ( \
+				set "paths=!p! !paths!" \
+			)) \
+		)) && \
+		echo !paths! \
+	")" && \
+	set "root=/" && \
+	(for %%j in (!paths!) do set "root=%%j") && \
+	(for %%i in (!paths!) do ( \
+		(if exist %%i/mkpm.mk ( \
+			set "root=%%i" \
+		)) \
+	)) && \
+	echo !root! \
+")
 else
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
@@ -383,13 +411,13 @@ ifneq (,$(MKPM_REPOS))
 endif
 ifneq (,$(MKPM_PACKAGES))
 ifeq ($(SHELL),cmd.exe)
-	@$(call for,p,$(subst =,:,$(MKPM_PACKAGES))) \
+	@$(call for,i,$(subst =,:,$(MKPM_PACKAGES))) \
 			cmd.exe /q /v /c " \
-				set pkg=$(call for_i,p) && \
+				set pkg=$(call for_i,i) && \
 				set pkgname=!pkg::= ! && \
 				set pkg=!pkg::==! && \
-				for /f "usebackq tokens=1" %%a in (`echo !pkgname!`) do ( \
-					set "pkgname=%%a" && \
+				for /f "usebackq tokens=1" %%j in (`echo !pkgname!`) do ( \
+					set "pkgname=%%j" && \
 					echo !pkgname! && \
 					set "pkgpath="$(MKPM)/.pkgs/!pkgname!"" && \
 					(rmdir /s /q !pkgpath! 2>nul || echo 1>nul) && \
@@ -398,7 +426,7 @@ ifeq ($(SHELL),cmd.exe)
 					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk > "$(MKPM)/!pkgname!" && \
 					echo .PHONY: !pkgname!-%% > "$(MKPM)/-!pkgname!" && \
 					echo !pkgname!-%%: >> "$(MKPM)/-!pkgname!" && \
-					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$@ >> "$(MKPM)/-!pkgname!" \
+					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" \
 				) \
 			" \
 		$(call for_end)
@@ -413,7 +441,7 @@ else
 			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" > "$(MKPM)/$$PKGNAME" && \
 			echo '.PHONY: $$PKGNAME-%' > "$(MKPM)/-$$PKGNAME" && \
 			echo '$$PKGNAME-%:' >> "$(MKPM)/-$$PKGNAME" && \
-			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/$$PKGNAME/main.mk $$$$(echo $$@ | $$(SED) '"'s|^$$PKGNAME-||g')" >> "$(MKPM)/-$$PKGNAME" \
+			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/$$PKGNAME/main.mk $$(subst $$PKGNAME-,,$$@)" >> "$(MKPM)/-$$PKGNAME" \
 		$(call for_end)
 endif
 endif
