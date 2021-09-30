@@ -161,7 +161,7 @@ endef
 define for_i
 %%$1
 endef
-define rof
+define for_end
 )
 endef
 else
@@ -171,7 +171,7 @@ endef
 define for_i
 $$$1
 endef
-define rof
+define for_end
 ; done
 endef
 endif
@@ -384,29 +384,37 @@ endif
 ifneq (,$(MKPM_PACKAGES))
 ifeq ($(SHELL),cmd.exe)
 	@$(call for,p,$(subst =,:,$(MKPM_PACKAGES))) \
-		cmd.exe /q /v /c " \
-			set pkg=$(call for_i,p) && \
-			set pkg=!pkg::==! && \
-			set pkgname=!pkg::= ! && \
-			for /f "usebackq tokens=1" %%a in (`echo !pkgname!`) do ( \
-				set "pkgname=%%a" && \
-				set "pkgpath="$(MKPM)/.pkgs/!pkgname!"" && \
-				(rmdir /s /q !pkgpath! 2>nul || echo 1>nul) && \
-				mkdir !pkgpath:/=\! 2>nul && \
-				$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! \
-			)" \
-		$(call rof)
+			cmd.exe /q /v /c " \
+				set pkg=$(call for_i,p) && \
+				set pkgname=!pkg::= ! && \
+				set pkg=!pkg::==! && \
+				for /f "usebackq tokens=1" %%a in (`echo !pkgname!`) do ( \
+					set "pkgname=%%a" && \
+					echo !pkgname! && \
+					set "pkgpath="$(MKPM)/.pkgs/!pkgname!"" && \
+					(rmdir /s /q !pkgpath! 2>nul || echo 1>nul) && \
+					mkdir !pkgpath:/=\! 2>nul && \
+					$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! && \
+					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk > "$(MKPM)/!pkgname!" && \
+					echo .PHONY: !pkgname!-%% > "$(MKPM)/-!pkgname!" && \
+					echo !pkgname!-%%: >> "$(MKPM)/-!pkgname!" && \
+					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$@ >> "$(MKPM)/-!pkgname!" \
+				) \
+			" \
+		$(call for_end)
 else
 	@$(call for,p,$(MKPM_PACKAGES)) \
-			$(EXPORT) PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
-			$(call rm_rf,"$(MKPM)/.pkgs/$$PKG") $(NOFAIL) && \
-			$(call mkdir_p,"$(MKPM)/.pkgs/$$PKG") && \
-			$(MKPM_BINARY) install $$p --prefix "$(MKPM)/.pkgs/$$PKG" && \
-			echo 'include $$(MKPM)'"/.pkgs/$$PKG/main.mk" > "$(MKPM)/$$PKG" && \
-			echo '.PHONY: hello-%' > "$(MKPM)/-$$PKG" && \
-			echo 'hello-%:' >> "$(MKPM)/-$$PKG" && \
-			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/hello/main.mk $$$$(echo $$@ | $$(SED) '"'s|^hello-||g')" >> "$(MKPM)/-$$PKG" \
-		$(call rof)
+			$(EXPORT) PKG=$$p && \
+			$(EXPORT) PKGNAME="$$(echo $$PKG | $(SED) 's|=.*$$||g')" && \
+			$(EXPORT) PKGPATH="$(MKPM)/.pkgs/$$PKGNAME" && \
+			$(call rm_rf,$$PKGPATH) $(NOFAIL) && \
+			$(call mkdir_p,$$PKGPATH) && \
+			$(MKPM_BINARY) install $$PKG --prefix $$PKGPATH && \
+			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" > "$(MKPM)/$$PKGNAME" && \
+			echo '.PHONY: $$PKGNAME-%' > "$(MKPM)/-$$PKGNAME" && \
+			echo '$$PKGNAME-%:' >> "$(MKPM)/-$$PKGNAME" && \
+			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/$$PKGNAME/main.mk $$$$(echo $$@ | $$(SED) '"'s|^$$PKGNAME-||g')" >> "$(MKPM)/-$$PKGNAME" \
+		$(call for_end)
 endif
 endif
 	@$(call touch_m,"$@")
