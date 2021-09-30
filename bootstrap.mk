@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 29-09-2021 05:47:27
+# Last Modified: 30-09-2021 04:32:16
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -432,9 +432,9 @@ ifneq (,$(MKPM_PACKAGES))
 ifeq ($(SHELL),cmd.exe)
 	@$(call for,i,$(subst =,:,$(MKPM_PACKAGES))) \
 			cmd.exe /q /v /c " \
-				set pkg=$(call for_i,i) && \
-				set pkgname=!pkg::= ! && \
-				set pkg=!pkg::==! && \
+				set "pkg=$(call for_i,i)" && \
+				set "pkgname=!pkg::= !" && \
+				set "pkg=!pkg::==!" && \
 				(for /f "usebackq tokens=1" %%j in (`echo !pkgname!`) do ( \
 					set "pkgname=%%j" && \
 					echo !pkgname! && \
@@ -450,17 +450,17 @@ ifeq ($(SHELL),cmd.exe)
 			" \
 		$(call for_end)
 else
-	@$(call for,p,$(MKPM_PACKAGES)) \
-			$(EXPORT) PKG=$$p && \
-			$(EXPORT) PKGNAME="$$(echo $$PKG | $(SED) 's|=.*$$||g')" && \
-			$(EXPORT) PKGPATH="$(MKPM)/.pkgs/$$PKGNAME" && \
+	@$(call for,i,$(MKPM_PACKAGES)) \
+			export PKG=$(call for_i,i) && \
+			export PKGNAME="$$(echo $$PKG | $(SED) 's|=.*$$||g')" && \
+			export PKGPATH="$(MKPM)/.pkgs/$$PKGNAME" && \
 			$(call rm_rf,$$PKGPATH) $(NOFAIL) && \
 			$(call mkdir_p,$$PKGPATH) && \
 			$(MKPM_BINARY) install $$PKG --prefix $$PKGPATH && \
 			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" > "$(MKPM)/$$PKGNAME" && \
-			echo '.PHONY: $$PKGNAME-%' > "$(MKPM)/-$$PKGNAME" && \
-			echo '$$PKGNAME-%:' >> "$(MKPM)/-$$PKGNAME" && \
-			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/$$PKGNAME/main.mk $$(subst $$PKGNAME-,,$$@)" >> "$(MKPM)/-$$PKGNAME" \
+			echo ".PHONY: $$PKGNAME-%" > "$(MKPM)/-$$PKGNAME" && \
+			echo "$$PKGNAME-%:" >> "$(MKPM)/-$$PKGNAME" && \
+			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/'"$$PKGNAME/main.mk "'$$(subst '"$$PKGNAME-,,$$@"')' >> "$(MKPM)/-$$PKGNAME" \
 		$(call for_end)
 endif
 endif
