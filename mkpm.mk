@@ -39,9 +39,9 @@ endef
 ifeq ($(OS),Windows_NT)
 	NULL = nul
 	SHELL = cmd.exe
-	.SHELLFLAGS = /v /c
+	.SHELLFLAGS = /q /v /c
 define mkdir_p
-cmd.exe /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
+cmd.exe /q /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
 endef
 endif
 -include $(MKPM_PACKAGE_DIR)/.bootstrap.mk

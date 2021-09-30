@@ -26,7 +26,6 @@ export MKPM_PACKAGE_DIR ?= .mkpm
 export MKPM_REPOS ?=
 
 export BANG := \!
-export CAT := cat
 export EXPORT := export
 export FALSE := false
 export NULL := /dev/null
@@ -36,31 +35,50 @@ export TRUE := true
 export WHICH := command -v
 ifeq ($(SHELL),cmd.exe) # CMD SHIM
 	BANG = !
-	CAT = type
 	EXPORT = set
 	FALSE = cmd /c "exit /b 1"
 	NULL = nul
-	RM_RF = rmdir /s /q
 	STATUS = %errorlevel%
 	TRUE = type nul
 	WHICH = where
 	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_PACKAGE_DIR))
+define exec # TODO: this is expirmental
+cmd.exe /q /v /c "for /f "usebackq tokens=*" %%a in (`$1`) do ( echo %%a )"
+endef
+define path_win2posix # TODO: this is expirmental
+cmd.exe /q /v /c "set p=$1 & echo !p:\=/! 2>nul || echo >nul"
+endef
+define path_posix2win # TODO: this is expirmental
+cmd.exe /q /v /c "set p=$1 & echo !p:/=\! 2>nul || echo >nul"
+endef
+define cat
+cmd.exe /q /v /c "set p=$1 & type !p:/=\!"
+endef
+define rm_rf
+cmd.exe /q /v /c "rmdir /s /q $1 2>nul || set p=$1 & del !p:/=\! 2>nul || echo >nul"
+endef
 define mkdir_p
-cmd.exe /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
+cmd.exe /q /v /c "set p=$1 & echo mkdir !p:/=\! 2>nul & mkdir !p:/=\! 2>nul || echo >nul"
 endef
 define touch
 if exist $1 ( type nul ) else ( type nul > $1 )
 endef
 define touch_m
 if exist $1 ( \
-	$(call mkdir_p,%TEMP%\__mkpm) && \
-	type $1 > %TEMP%\__mkpm\touch_m && \
-	type %TEMP%\__mkpm\touch_m > $1 && \
-	$(RM_RF) %TEMP%\__mkpm\touch_m \
+	$(call mkdir_p,"%TEMP%\__mkpm") && \
+	$(call cat,$1) > "%TEMP%\__mkpm\touch_m" && \
+	$(call cat,"%TEMP%\__mkpm\touch_m") > $1 && \
+	$(call rm_rf,%TEMP%\__mkpm\touch_m) \
 ) else ( type nul > $1 )
 endef
 else
 	export MKPM := $(abspath $(shell pwd 2>$(NULL))/$(MKPM_PACKAGE_DIR))
+define cat
+cat $1
+endef
+define rm_rf
+rm -rf $1
+endef
 define mkdir_p
 mkdir -p $1
 endef
@@ -339,10 +357,10 @@ ifneq (,$(FIND_DOWNLOAD))
 ifeq ($(SHELL),cmd.exe)
 	@$(call mkdir_p,$(HOME)/.mkpm/find)
 	@$(FIND) --version $(NOOUT) || ( \
-		$(DOWNLOAD) $(HOME)/.mkpm/find/find.zip $(FIND_DOWNLOAD) && \
-		cd $(HOME)/.mkpm/find && \
-		tar -xzf $(HOME)/.mkpm/find/find.zip && \
-		$(RM_RF) $(HOME)/.mkpm/find/find.zip \
+		$(DOWNLOAD) "$(HOME)/.mkpm/find/find.zip" $(FIND_DOWNLOAD) && \
+		cd "$(HOME)/.mkpm/find" && \
+		tar -xzf "$(HOME)/.mkpm/find/find.zip" && \
+		$(call rm_rf,"$(HOME)/.mkpm/find/find.zip") \
 	)
 else
 	@$(FIND) --version $(NOOUT) || ( \
@@ -384,4 +402,4 @@ else
 		$(call rof)
 endif
 endif
-	@$(call touch_m,$@)
+	@$(call touch_m,"$@")
