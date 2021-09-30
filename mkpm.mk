@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 28-09-2021 03:22:53
+# Last Modified: 30-09-2021 04:47:36
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -21,7 +21,7 @@
 # limitations under the License.
 
 MKPM_PACKAGES := \
-	hello=0.0.2
+	hello=0.0.4
 
 MKPM_REPOS := \
 	https://gitlab.com/bitspur/community/mkpm-stable.git
