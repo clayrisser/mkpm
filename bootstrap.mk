@@ -3,8 +3,8 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 30-09-2021 04:32:16
-# Modified By: Clay Risser
+# Last Modified: 30-09-2021 05:06:29
+# Modified By: Jam Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
 #
@@ -206,7 +206,10 @@ $(shell cmd.exe /q /v /c " \
 endef
 else
 define join_path
-$(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || (echo $1 | $(SED) 's|\/$$||g'))$(shell [ "$$(expr substr "$2" 1 1)" = "/" ] && true || echo "/")$(shell [ "$2" = "" ] && true || echo "$2")
+$(shell [ "$$(echo "$2" | cut -c 1-1)" = "/" ] && true || \
+	(echo $1 | $(SED) 's|\/$$||g'))$(shell \
+	[ "$$(echo "$2" | cut -c 1-1)" = "/" ] && true || echo "/")$(shell \
+	[ "$2" = "" ] && true || echo "$2")
 endef
 endif
 
@@ -347,7 +350,7 @@ ifeq (,$(MKPM_BINARY))
 endif
 export MKPM_BINARY ?= mkpm
 
-include $(MKPM)/.bootstrap
+-include $(MKPM)/.bootstrap
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(SHELL),cmd.exe)
 	@echo.
