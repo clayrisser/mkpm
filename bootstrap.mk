@@ -181,8 +181,28 @@ $(shell $1 $(NOOUT) && echo $2 || echo $3)
 endef
 
 ifeq ($(SHELL),cmd.exe)
-define join_path # TODO: improve cmd support for join_path
-$(shell echo $2)
+define join_path
+$(shell cmd.exe /q /v /c " \
+	set "one=$1" && \
+	set "two=$2" && \
+	set "one=!one:\=/!" && \
+	set "two=!two:\=/!" && \
+	(if "!one:~-1!"=="/" ( \
+		set "one=!one:~0,-1!" \
+	)) && \
+	(if "!one:~0,1!"=="/" ( \
+		set "one=C:!one!" \
+	)) && \
+	(if "!two:~0,1!"=="/" ( \
+		echo C:!two! \
+	) else ( \
+		(if "!two:~1,2!"==":/" ( \
+			echo !two! \
+		) else ( \
+			echo !one!/!two! \
+		)) \
+	)) \
+")
 endef
 else
 define join_path
@@ -236,8 +256,7 @@ export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
 			set "root=%%i" \
 		)) \
 	)) && \
-	echo !root! \
-")
+	echo !root!")
 else
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
@@ -416,7 +435,7 @@ ifeq ($(SHELL),cmd.exe)
 				set pkg=$(call for_i,i) && \
 				set pkgname=!pkg::= ! && \
 				set pkg=!pkg::==! && \
-				for /f "usebackq tokens=1" %%j in (`echo !pkgname!`) do ( \
+				(for /f "usebackq tokens=1" %%j in (`echo !pkgname!`) do ( \
 					set "pkgname=%%j" && \
 					echo !pkgname! && \
 					set "pkgpath="$(MKPM)/.pkgs/!pkgname!"" && \
@@ -427,7 +446,7 @@ ifeq ($(SHELL),cmd.exe)
 					echo .PHONY: !pkgname!-%% > "$(MKPM)/-!pkgname!" && \
 					echo !pkgname!-%%: >> "$(MKPM)/-!pkgname!" && \
 					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" \
-				) \
+				)) \
 			" \
 		$(call for_end)
 else
