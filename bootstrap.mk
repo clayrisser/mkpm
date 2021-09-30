@@ -42,15 +42,6 @@ ifeq ($(SHELL),cmd.exe) # CMD SHIM
 	TRUE = type nul
 	WHICH = where
 	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_PACKAGE_DIR))
-define exec # TODO: this is expirmental
-cmd.exe /q /v /c "for /f "usebackq tokens=*" %%a in (`$1`) do ( echo %%a )"
-endef
-define path_win2posix # TODO: this is expirmental
-cmd.exe /q /v /c "set p=$1 & echo !p:\=/! 2>nul || echo >nul"
-endef
-define path_posix2win # TODO: this is expirmental
-cmd.exe /q /v /c "set p=$1 & echo !p:/=\! 2>nul || echo >nul"
-endef
 define cat
 cmd.exe /q /v /c "set p=$1 & type !p:/=\!"
 endef
@@ -58,7 +49,7 @@ define rm_rf
 cmd.exe /q /v /c "rmdir /s /q $1 2>nul || set p=$1 & del !p:/=\! 2>nul || echo >nul"
 endef
 define mkdir_p
-cmd.exe /q /v /c "set p=$1 & echo mkdir !p:/=\! 2>nul & mkdir !p:/=\! 2>nul || echo >nul"
+cmd.exe /q /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
 endef
 define touch
 if exist $1 ( type nul ) else ( type nul > $1 )
@@ -167,12 +158,18 @@ ifeq ($(SHELL),cmd.exe)
 define for
 for %%$1 in ($2) do (
 endef
+define for_i
+%%$1
+endef
 define rof
 )
 endef
 else
 define for
 for $1 in $2; do 
+endef
+define for_i
+$$$1
 endef
 define rof
 ; done
@@ -244,7 +241,7 @@ ifeq (,$(SED))
 	ifneq ($(call ternary,sed --version,true,false),true)
 		ifeq ($(PLATFORM),win32)
 			SED_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/sed/4.8/tools/install/sed-windows-master/sed-4.8-x64.exe
-			export SED := $(HOME)/.mkpm/bin/sed.exe
+			export SED := $(HOMEPATH)\.mkpm\bin\sed.exe
 		endif
 	endif
 endif
@@ -252,20 +249,20 @@ ifeq (,$(GREP))
 	ifneq ($(call ternary,grep --version,true,false),true)
 		ifeq ($(PLATFORM),win32)
 			GREP_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/grep.exe
-			export GREP := $(HOME)/.mkpm/bin/grep.exe
+			export GREP := $(HOMEPATH)\.mkpm\bin\grep.exe
 			LIBICONV_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libiconv-2.dll
-			LIBICONV_DLL := $(HOME)/.mkpm/bin/libiconv-2.dll
+			LIBICONV_DLL := $(HOMEPATH)\.mkpm\bin\libiconv-2.dll
 			LIBINTL_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libintl-8.dll
-			LIBINTL_DLL := $(HOME)/.mkpm/bin/libintl-8.dll
+			LIBINTL_DLL := $(HOMEPATH)\.mkpm\bin\libintl-8.dll
 			LIBPCRE_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libpcre-0.dll
-			LIBPCRE_DLL := $(HOME)/.mkpm/bin/libpcre-0.dll
+			LIBPCRE_DLL := $(HOMEPATH)\.mkpm\bin\libpcre-0.dll
 		endif
 	endif
 endif
 ifeq (,$(FIND))
 	ifneq ($(call ternary,find --version,true,false),true)
 		FIND_DOWNLOAD ?= https://sourceforge.net/projects/ezwinports/files/findutils-4.2.30-5-w32-bin.zip/download
-		export FIND := $(HOME)/.mkpm/find/bin/find.exe
+		export FIND := $(HOMEPATH)\.mkpm\find\bin\find.exe
 	endif
 endif
 export FIND ?= find
@@ -296,7 +293,7 @@ ifeq (,$(MKPM_BINARY))
 		endif
 		ifeq ($(PLATFORM),win32)
 			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH).exe
-			HOME_MKPM_BINARY := $(HOME)/.mkpm/bin/mkpm.exe
+			HOME_MKPM_BINARY := $(HOMEPATH)\.mkpm\bin\mkpm.exe
 			export MKPM_BINARY := $(HOME_MKPM_BINARY)
 		endif
 	endif
@@ -386,13 +383,13 @@ ifneq (,$(MKPM_REPOS))
 endif
 ifneq (,$(MKPM_PACKAGES))
 ifeq ($(SHELL),cmd.exe)
-	@$(call for,p,$(MKPM_PACKAGES)) \
-			echo %%p \
+	@$(call for,p,$(subst =,:,$(MKPM_PACKAGES))) \
+			echo $(call for_i,p) \
 		$(call rof)
 else
 	@$(call for,p,$(MKPM_PACKAGES)) \
 			$(EXPORT) PKG="$$(echo $$p | $(SED) 's|=.*$$||g')" && \
-			$(RM_RF) "$(MKPM)/.pkgs/$$PKG" $(NOFAIL) && \
+			$(call rm_rf,"$(MKPM)/.pkgs/$$PKG") $(NOFAIL) && \
 			$(call mkdir_p,"$(MKPM)/.pkgs/$$PKG") && \
 			$(MKPM_BINARY) install $$p --prefix "$(MKPM)/.pkgs/$$PKG" && \
 			echo 'include $$(MKPM)'"/.pkgs/$$PKG/main.mk" > "$(MKPM)/$$PKG" && \
