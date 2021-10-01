@@ -3,8 +3,8 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 30-09-2021 05:06:29
-# Modified By: Jam Risser
+# Last Modified: 30-09-2021 19:04:55
+# Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
 #
@@ -106,8 +106,8 @@ ifeq ($(OS),Windows_NT)
 		endif
 	endif
 else
-	PLATFORM = $(shell uname 2>$(NULL) | awk '{print tolower($$0)}' 2>$(NULL))
-	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | awk '{print tolower($$0)}' 2>$(NULL))
+	PLATFORM = $(shell uname 2>$(NULL) | tr '[:lower:]' '[:upper:]' 2>$(NULL))
+	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | tr '[:lower:]' '[:upper:]' 2>$(NULL))
 	ifeq ($(ARCH),i386)
 		ARCH = 386
 	endif
@@ -124,7 +124,7 @@ else
 			endif
 		endif
 		ifeq ($(PLATFORM),linux)
-			FLAVOR = $(shell lsb_release -si 2>$(NULL) | awk '{print tolower($$0)}' 2>$(NULL))
+			FLAVOR = $(shell lsb_release -si 2>$(NULL) | tr '[:lower:]' '[:upper:]' 2>$(NULL))
 			ifeq (,$(FLAVOR))
 				FLAVOR = unknown
 				ifneq (,$(wildcard /etc/redhat-release))
@@ -324,7 +324,7 @@ ifeq ($(PLATFORM),linux)
 	NPROC = $(shell nproc $(NOOUT) && nproc || $(GREP) -c -E "^processor" /proc/cpuinfo 2>$(NULL) || echo 1)
 endif
 ifeq ($(PLATFORM),darwin)
-	NPROC = $(shell sysctl hw.ncpu | awk '{print $$2}' 2>$(NULL) || echo 1)
+	NPROC = $(shell sysctl hw.ncpu | cut -d " " -f 2 2>$(NULL) || echo 1)
 endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
