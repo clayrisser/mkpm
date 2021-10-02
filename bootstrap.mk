@@ -1,9 +1,9 @@
 # File: /bootstrap.mk
 # Project: mkpm
-# File Created: 26-09-2021 01:25:12
+# File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 02-10-2021 09:17:10
+# Last Modified: 02-10-2021 09:51:24
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -169,7 +169,7 @@ define for_end
 endef
 else
 define for
-for $1 in $2; do 
+for $1 in $2; do
 endef
 define for_i
 $$$1
@@ -213,6 +213,17 @@ $(shell [ "$$(echo "$2" | cut -c 1-1)" = "/" ] && true || \
 	(echo $1 | $(SED) 's|\/$$||g'))$(shell \
 	[ "$$(echo "$2" | cut -c 1-1)" = "/" ] && true || echo "/")$(shell \
 	[ "$2" = "" ] && true || echo "$2")
+endef
+endif
+
+export COLUMNS := 0
+ifeq ($(SHELL),cmd.exe)
+define columns
+endef
+else
+	COLUMNS = $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && echo $$COLUMNS))
+define columns
+$(call ternary,[ "$(COLUMNS)" -$1 "$2" ],true,false)
 endef
 endif
 
@@ -356,6 +367,18 @@ export MKPM_BINARY ?= mkpm
 -include $(MKPM)/.bootstrap
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(MAKELEVEL),0)
+ifeq ($(call columns,lt,62),true)
+	@echo MKPM
+ifeq ($(SHELL),cmd.exe)
+	@echo.
+	@echo BitSpur Inc (c) Copyright 2021
+	@echo.
+else
+	@echo
+	@echo 'BitSpur Inc (c) Copyright 2021'
+	@echo
+endif
+else
 ifeq ($(SHELL),cmd.exe)
 	@echo.
 	@echo                     88
@@ -386,6 +409,7 @@ else
 	@echo
 	@echo 'BitSpur Inc (c) Copyright 2021'
 	@echo
+endif
 endif
 endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
