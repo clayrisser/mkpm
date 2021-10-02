@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 01:25:12
 # Author: Clay Risser
 # -----
-# Last Modified: 30-09-2021 19:04:55
+# Last Modified: 02-10-2021 01:55:32
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -19,6 +19,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+.POSIX:
+.SILENT:
 
 export MKPM_BINARY_VERSION ?= 0.0.1
 export MKPM_PACKAGES ?=
