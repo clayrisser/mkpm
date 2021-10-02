@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 02-10-2021 09:51:24
+# Last Modified: 02-10-2021 09:54:32
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -368,12 +368,15 @@ export MKPM_BINARY ?= mkpm
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(MAKELEVEL),0)
 ifeq ($(call columns,lt,62),true)
-	@echo MKPM
 ifeq ($(SHELL),cmd.exe)
+	@echo.
+	@echo MKPM
 	@echo.
 	@echo BitSpur Inc (c) Copyright 2021
 	@echo.
 else
+	@echo
+	@echo MKPM
 	@echo
 	@echo 'BitSpur Inc (c) Copyright 2021'
 	@echo
