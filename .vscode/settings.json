@@ -45,6 +45,7 @@
     "rustflags",
     "rustlang",
     "rustup",
+    "SHELLFLAGS",
     "subcommand",
     "target",
     "tempdir",
