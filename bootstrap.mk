@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 03-10-2021 16:26:53
+# Last Modified: 03-10-2021 17:35:25
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -461,11 +461,11 @@ ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	)
 endif
 ifneq (,$(MKPM_REPOS))
-	@$(MKPM_BINARY) update
+	@cd $(PROJECT_ROOT) && $(MKPM_BINARY) update
 endif
 ifneq (,$(MKPM_PACKAGES))
 ifeq ($(SHELL),cmd.exe)
-	@$(call for,i,$(subst =,:,$(MKPM_PACKAGES))) \
+	@cd $(PROJECT_ROOT) && $(call for,i,$(subst =,:,$(MKPM_PACKAGES))) \
 			cmd.exe /q /v /c " \
 				set "pkg=$(call for_i,i)" && \
 				set "pkgname=!pkg::= !" && \
@@ -485,7 +485,7 @@ ifeq ($(SHELL),cmd.exe)
 			" \
 		$(call for_end)
 else
-	@$(call for,i,$(MKPM_PACKAGES)) \
+	@cd $(PROJECT_ROOT) && $(call for,i,$(MKPM_PACKAGES)) \
 			export PKG=$(call for_i,i) && \
 			export PKGNAME="$$(echo $$PKG | $(SED) 's|=.*$$||g')" && \
 			export PKGPATH="$(MKPM)/.pkgs/$$PKGNAME" && \
