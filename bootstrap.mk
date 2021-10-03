@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 03-10-2021 18:13:44
+# Last Modified: 03-10-2021 18:16:14
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -24,8 +24,8 @@
 .SILENT:
 
 export MKPM_BINARY_VERSION ?= 0.0.1
+export MKPM_DIR := .mkpm
 export MKPM_PACKAGES ?=
-export MKPM_PACKAGE_DIR := .mkpm
 export MKPM_REPOS ?=
 
 export BANG := \!
@@ -44,7 +44,7 @@ ifeq ($(SHELL),cmd.exe) # CMD SHIM
 	STATUS = %errorlevel%
 	TRUE = type nul
 	WHICH = where
-	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_PACKAGE_DIR))
+	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_DIR))
 define cat
 cmd.exe /q /v /c "set p=$1 & type !p:/=\!"
 endef
@@ -66,7 +66,7 @@ if exist $1 ( \
 ) else ( type nul > $1 )
 endef
 else
-	export MKPM := $(abspath $(shell pwd 2>$(NULL))/$(MKPM_PACKAGE_DIR))
+	export MKPM := $(abspath $(shell pwd 2>$(NULL))/$(MKPM_DIR))
 define cat
 cat $1
 endef
@@ -239,7 +239,7 @@ define git_clean_flags
 -e $(BANG)/**/$1/**/*
 endef
 
-export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_PACKAGE_DIR))
+export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_DIR))
 
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
