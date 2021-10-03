@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 02-10-2021 09:54:32
+# Last Modified: 03-10-2021 16:26:53
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -109,8 +109,8 @@ ifeq ($(OS),Windows_NT)
 		endif
 	endif
 else
-	PLATFORM = $(shell uname 2>$(NULL) | tr '[:lower:]' '[:upper:]' 2>$(NULL))
-	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | tr '[:lower:]' '[:upper:]' 2>$(NULL))
+	PLATFORM = $(shell uname 2>$(NULL) | tr '[:upper:]' '[:lower:]' 2>$(NULL))
+	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | tr '[:upper:]' '[:lower:]' 2>$(NULL))
 	ifeq ($(ARCH),i386)
 		ARCH = 386
 	endif
@@ -127,7 +127,7 @@ else
 			endif
 		endif
 		ifeq ($(PLATFORM),linux)
-			FLAVOR = $(shell lsb_release -si 2>$(NULL) | tr '[:lower:]' '[:upper:]' 2>$(NULL))
+			FLAVOR = $(shell lsb_release -si 2>$(NULL) | tr '[:upper:]' '[:lower:]' 2>$(NULL))
 			ifeq (,$(FLAVOR))
 				FLAVOR = unknown
 				ifneq (,$(wildcard /etc/redhat-release))
