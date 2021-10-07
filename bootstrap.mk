@@ -29,6 +29,7 @@ export MKPM_DIR := .mkpm
 export MKPM_PACKAGES ?=
 export MKPM_REPOS ?=
 
+export MAKESHELL ?= $(SHELL)
 export BANG := \!
 export EXPORT := export
 export FALSE := false
@@ -37,7 +38,7 @@ export RM_RF := rm -rf
 export STATUS := $$?
 export TRUE := true
 export WHICH := command -v
-ifeq ($(SHELL),cmd.exe) # CMD SHIM
+ifeq ($(MAKESHELL),cmd.exe) # CMD SHIM
 	BANG = !
 	EXPORT = set
 	FALSE = cmd /c "exit /b 1"
@@ -158,7 +159,7 @@ else
 	endif
 endif
 
-ifeq ($(SHELL),cmd.exe)
+ifeq ($(MAKESHELL),cmd.exe)
 define for
 (for %%$1 in ($2) do (
 endef
@@ -184,7 +185,7 @@ define ternary
 $(shell $1 $(NOOUT) && echo $2|| echo $3)
 endef
 
-ifeq ($(SHELL),cmd.exe)
+ifeq ($(MAKESHELL),cmd.exe)
 define join_path
 $(shell cmd.exe /q /v /c " \
 	set "one=$1" && \
@@ -218,7 +219,7 @@ endef
 endif
 
 export COLUMNS := 0
-ifneq ($(SHELL),cmd.exe)
+ifneq ($(MAKESHELL),cmd.exe)
 	COLUMNS = $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && echo $$COLUMNS))
 define columns
 $(call ternary,[ "$(COLUMNS)" -$1 "$2" ],true,false)
@@ -239,7 +240,7 @@ endef
 
 export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_DIR))
 
-ifeq ($(SHELL),cmd.exe)
+ifeq ($(MAKESHELL),cmd.exe)
 	export NIX_ENV := false
 else
 	export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
@@ -256,7 +257,7 @@ export GREP ?= grep
 export SED ?= sed
 
 export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
-ifeq ($(SHELL),cmd.exe)
+ifeq ($(MAKESHELL),cmd.exe)
 export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
 	set "paths=$(shell cmd.exe /q /v /c " \
 		set "root=$(ROOT)" && \
@@ -340,7 +341,7 @@ export MKPM_BINARY ?= mkpm
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(MAKELEVEL),0)
 ifeq ($(call columns,lt,62),true)
-ifeq ($(SHELL),cmd.exe)
+ifeq ($(MAKESHELL),cmd.exe)
 	@echo.
 	@echo MKPM
 	@echo.
@@ -354,7 +355,7 @@ else
 	@echo
 endif
 else
-ifeq ($(SHELL),cmd.exe)
+ifeq ($(MAKESHELL),cmd.exe)
 	@echo.
 	@echo                     88
 	@echo                     88
@@ -399,7 +400,7 @@ ifneq (,$(MKPM_REPOS))
 	@cd $(PROJECT_ROOT) && $(MKPM_BINARY) update
 endif
 ifneq (,$(MKPM_PACKAGES))
-ifeq ($(SHELL),cmd.exe)
+ifeq ($(MAKESHELL),cmd.exe)
 	@cd $(PROJECT_ROOT) && $(call for,i,$(subst =,:,$(MKPM_PACKAGES))) \
 			cmd.exe /q /v /c " \
 				set "pkg=$(call for_i,i)" && \
