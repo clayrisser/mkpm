@@ -251,19 +251,6 @@ ifneq ($(NIX_ENV),true)
 		export SED ?= $(call ternary,gsed --version,gsed,sed)
 	endif
 endif
-ifeq (,$(GIT))
-	ifneq ($(call ternary,git --version,true,false),true)
-		ifeq ($(PLATFORM),win32)
-			ifeq ($(FLAVOR),win32)
-				GIT_DOWNLOAD ?= https://gitlab.com/api/v4/projects/30203156/packages/generic/portable-git/2.33.0.2/Win32PortableGit.zip
-			else
-				GIT_DOWNLOAD ?= https://gitlab.com/api/v4/projects/30203156/packages/generic/portable-git/2.33.0.2/Win64PortableGit.zip
-			endif
-			export GIT := $(HOME)\.mkpm\bin\git.exe
-		endif
-	endif
-endif
-export GIT ?= $(call ternary,git --version,git,true)
 export GREP ?= grep
 export SED ?= sed
 
@@ -401,16 +388,6 @@ endif
 endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
 	@$(call touch,$(HOME)/.mkpm/repos.list)
-ifeq ($(SHELL),cmd.exe)
-ifneq (,$(GIT_DOWNLOAD))
-	@$(GIT) --version $(NOOUT) || ( \
-		$(DOWNLOAD) "$(HOME)/.mkpm/PortableGit.zip" $(GIT_DOWNLOAD) && \
-		cd "$(HOME)/.mkpm" && \
-		tar -xzf "$(HOME)/.mkpm/PortableGit.zip" && \
-		$(call rm_rf,"$(HOME)/.mkpm/PortableGit.zip") \
-	)
-endif
-endif
 ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \
 		$(DOWNLOAD) $(MKPM_BINARY) $(MKPM_BINARY_DOWNLOAD) && \
