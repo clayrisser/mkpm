@@ -3,8 +3,8 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 30-09-2021 05:07:33
-# Modified By: Jam Risser
+# Last Modified: 07-10-2021 16:56:47
+# Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
 #
@@ -22,6 +22,7 @@
 
 include mkpm.mk
 ifneq (,$(MKPM))
+-include $(MKPM)/gnu
 -include $(MKPM)/hello
 
 .DEFAULT_GOAL := hello # this is an example
