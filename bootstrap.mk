@@ -92,7 +92,7 @@ export PLATFORM := unknown
 export FLAVOR := unknown
 export ARCH := unknown
 ifeq ($(OS),Windows_NT)
-	export HOME := $(shell echo %%CD:~0,2%%)/Users/$(USERNAME)
+	export HOME := $(HOMEDRIVE)$(HOMEPATH)
 	PLATFORM = win32
 	FLAVOR := win64
 	ARCH = $(PROCESSOR_ARCHITECTURE)
@@ -245,6 +245,28 @@ export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_DIR))
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
 export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
+ifneq ($(NIX_ENV),true)
+	ifeq ($(PLATFORM),darwin)
+		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
+		export SED ?= $(call ternary,gsed --version,gsed,sed)
+	endif
+endif
+ifeq (,$(GIT))
+	ifneq ($(call ternary,git --version,true,false),true)
+		ifeq ($(PLATFORM),win32)
+			ifeq ($(FLAVOR),win32)
+				GIT_DOWNLOAD ?= https://gitlab.com/api/v4/projects/30203156/packages/generic/portable-git/2.33.0.2/Win32PortableGit.zip
+			else
+				GIT_DOWNLOAD ?= https://gitlab.com/api/v4/projects/30203156/packages/generic/portable-git/2.33.0.2/Win64PortableGit.zip
+			endif
+			export GIT := $(HOME)\.mkpm\bin\git.exe
+		endif
+	endif
+endif
+export GIT ?= $(call ternary,git --version,git,true)
+export GREP ?= grep
+export SED ?= sed
+
 export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 ifeq ($(SHELL),cmd.exe)
 export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
@@ -295,45 +317,6 @@ export PROJECT_ROOT ?= $(shell \
 )
 endif
 
-ifneq ($(NIX_ENV),true)
-	ifeq ($(PLATFORM),darwin)
-		export FIND ?= $(call ternary,gfind --version,gfind,find)
-		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
-		export SED ?= $(call ternary,gsed --version,gsed,sed)
-	endif
-endif
-ifeq (,$(SED))
-	ifneq ($(call ternary,sed --version,true,false),true)
-		ifeq ($(PLATFORM),win32)
-			SED_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/sed/4.8/tools/install/sed-windows-master/sed-4.8-x64.exe
-			export SED := $(HOMEPATH)\.mkpm\bin\sed.exe
-		endif
-	endif
-endif
-ifeq (,$(GREP))
-	ifneq ($(call ternary,grep --version,true,false),true)
-		ifeq ($(PLATFORM),win32)
-			GREP_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/grep.exe
-			export GREP := $(HOMEPATH)\.mkpm\bin\grep.exe
-			LIBICONV_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libiconv-2.dll
-			LIBICONV_DLL := $(HOMEPATH)\.mkpm\bin\libiconv-2.dll
-			LIBINTL_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libintl-8.dll
-			LIBINTL_DLL := $(HOMEPATH)\.mkpm\bin\libintl-8.dll
-			LIBPCRE_DLL_DOWNLOAD ?= https://bitbucket.org/xoviat/chocolatey-packages/raw/4ce05f43ec7fcb21be34221c79198df3aae81f54/grep/2.10.05082020/tools/install/bin/libpcre-0.dll
-			LIBPCRE_DLL := $(HOMEPATH)\.mkpm\bin\libpcre-0.dll
-		endif
-	endif
-endif
-ifeq (,$(FIND))
-	ifneq ($(call ternary,find --version,true,false),true)
-		FIND_DOWNLOAD ?= https://sourceforge.net/projects/ezwinports/files/findutils-4.2.30-5-w32-bin.zip/download
-		export FIND := $(HOMEPATH)\.mkpm\find\bin\find.exe
-	endif
-endif
-export FIND ?= find
-export GREP ?= grep
-export SED ?= sed
-
 export NPROC := 1
 ifeq ($(PLATFORM),linux)
 	NPROC = $(shell nproc $(NOOUT) && nproc || $(GREP) -c -E "^processor" /proc/cpuinfo 2>$(NULL) || echo 1)
@@ -358,7 +341,7 @@ ifeq (,$(MKPM_BINARY))
 		endif
 		ifeq ($(PLATFORM),win32)
 			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH).exe
-			HOME_MKPM_BINARY := $(HOMEPATH)\.mkpm\bin\mkpm.exe
+			HOME_MKPM_BINARY := $(HOME)\.mkpm\bin\mkpm.exe
 			export MKPM_BINARY := $(HOME_MKPM_BINARY)
 		endif
 	endif
@@ -418,42 +401,15 @@ endif
 endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
 	@$(call touch,$(HOME)/.mkpm/repos.list)
-ifneq (,$(GREP_DOWNLOAD))
 ifeq ($(SHELL),cmd.exe)
-	@$(GREP) --version $(NOOUT) || ( \
-		$(DOWNLOAD) $(GREP) $(GREP_DOWNLOAD) && \
-		$(DOWNLOAD) $(LIBICONV_DLL) $(LIBICONV_DLL_DOWNLOAD) && \
-		$(DOWNLOAD) $(LIBINTL_DLL) $(LIBINTL_DLL_DOWNLOAD) && \
-		$(DOWNLOAD) $(LIBPCRE_DLL) $(LIBPCRE_DLL_DOWNLOAD) \
-	)
-else
-	@$(GREP) --version $(NOOUT) || ( \
-		$(DOWNLOAD) $(GREP) $(GREP_DOWNLOAD) && \
-		chmod +x $(GREP) $(NOFAIL) \
+ifneq (,$(GIT_DOWNLOAD))
+	@$(GIT) --version $(NOOUT) || ( \
+		$(DOWNLOAD) "$(HOME)/.mkpm/PortableGit.zip" $(GIT_DOWNLOAD) && \
+		cd "$(HOME)/.mkpm" && \
+		tar -xzf "$(HOME)/.mkpm/PortableGit.zip" && \
+		$(call rm_rf,"$(HOME)/.mkpm/PortableGit.zip") \
 	)
 endif
-endif
-ifneq (,$(FIND_DOWNLOAD))
-ifeq ($(SHELL),cmd.exe)
-	@$(call mkdir_p,$(HOME)/.mkpm/find)
-	@$(FIND) --version $(NOOUT) || ( \
-		$(DOWNLOAD) "$(HOME)/.mkpm/find/find.zip" $(FIND_DOWNLOAD) && \
-		cd "$(HOME)/.mkpm/find" && \
-		tar -xzf "$(HOME)/.mkpm/find/find.zip" && \
-		$(call rm_rf,"$(HOME)/.mkpm/find/find.zip") \
-	)
-else
-	@$(FIND) --version $(NOOUT) || ( \
-		$(DOWNLOAD) $(FIND) $(FIND_DOWNLOAD) && \
-		chmod +x $(FIND) $(NOFAIL) \
-	)
-endif
-endif
-ifneq (,$(SED_DOWNLOAD))
-	@$(SED) --version $(NOOUT) || ( \
-		$(DOWNLOAD) $(SED) $(SED_DOWNLOAD) && \
-		chmod +x $(SED) $(NOFAIL) \
-	)
 endif
 ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \

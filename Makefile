@@ -28,7 +28,6 @@ ifneq (,$(MKPM))
 
 CARGO ?= cargo
 DOCKER ?= docker
-GIT ?= git
 
 .PHONY: test-bootstrap
 test-bootstrap:
