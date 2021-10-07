@@ -181,7 +181,7 @@ endef
 endif
 
 define ternary
-$(shell $1 $(NOOUT) && echo $2 || echo $3)
+$(shell $1 $(NOOUT) && echo $2|| echo $3)
 endef
 
 ifeq ($(SHELL),cmd.exe)
@@ -218,10 +218,7 @@ endef
 endif
 
 export COLUMNS := 0
-ifeq ($(SHELL),cmd.exe)
-define columns
-endef
-else
+ifneq ($(SHELL),cmd.exe)
 	COLUMNS = $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && echo $$COLUMNS))
 define columns
 $(call ternary,[ "$(COLUMNS)" -$1 "$2" ],true,false)
@@ -242,8 +239,12 @@ endef
 
 export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_DIR))
 
+ifeq ($(SHELL),cmd.exe)
+	export NIX_ENV := false
+else
+	export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
+endif
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
-export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
 
 ifneq ($(NIX_ENV),true)
 	ifeq ($(PLATFORM),darwin)
