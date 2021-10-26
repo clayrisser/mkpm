@@ -1,0 +1,13 @@
+diff --git a/src/gpm/file.rs b/src/gpm/file.rs
+index 06323dc..566b0b3 100644
+--- a/src/gpm/file.rs
++++ b/src/gpm/file.rs
+@@ -9,7 +9,7 @@ use tar::Archive;
+ use indicatif::{ProgressBar, ProgressStyle};
+ 
+ pub fn get_or_init_dot_gpm_dir() -> Result<path::PathBuf, io::Error> {
+-    let dot_gpm = dirs::home_dir().unwrap().join(".gpm");
++    let dot_gpm = dirs::home_dir().unwrap().join(".mkpm");
+ 
+     if !dot_gpm.exists() {
+         return match fs::create_dir_all(&dot_gpm) {

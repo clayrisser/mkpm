@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-10-2021 16:10:02
+# Last Modified: 26-10-2021 16:16:04
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -87,6 +87,7 @@ clean:
 
 .PHONY: purge
 purge: clean
+	@$(GIT) submodule deinit --all -f
 	@$(GIT) clean -fXd
 
 .PHONY: publish
@@ -100,7 +101,7 @@ SUBMODULES := gpm/Cargo.toml
 submodules: $(SUBMODULES)
 .SECONDEXPANSION: $(SUBMODULES)
 $(SUBMODULES): .git/modules/$$(@D)/HEAD
-	@$(GIT) submodule update $(@D) --init --remote --recursive
+	@$(GIT) submodule update --init --remote --recursive $(@D)
 	@[ -f $(@D).branch ] && (cd $(@D) && $(GIT) checkout $$(cat ../$(@D).branch)) || true
 	@[ -f $(@D).patch ] && (cd $(@D) && $(GIT) apply ../$(@D).patch) || true
 	@$(TOUCH) -m $@
