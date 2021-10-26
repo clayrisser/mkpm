@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 07-10-2021 16:56:34
+# Last Modified: 26-10-2021 17:49:53
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -36,11 +36,7 @@ ifeq ($(OS),Windows_NT)
 	TRUE = type nul
 endif
 -include .mkpm/.bootstrap.mk
-.mkpm/.bootstrap.mk:
+.mkpm/.bootstrap.mk: bootstrap.mk
 	@mkdir .mkpm 2>$(NULL) || $(TRUE)
-	@cd .mkpm && \
-		$(shell curl --version >$(NULL) 2>$(NULL) && \
-			echo curl -L -o || \
-			echo wget --content-on-error -O) \
-		.bootstrap.mk $(MKPM_BOOTSTRAP) >$(NULL)
+	@cp $< $@
 ############## MKPM BOOTSTRAP SCRIPT END ##############

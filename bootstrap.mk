@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 03-10-2021 18:51:11
+# Last Modified: 26-10-2021 17:53:56
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -31,8 +31,10 @@ export MKPM_REPOS ?=
 
 export MAKESHELL ?= $(SHELL)
 export BANG := \!
+export ECHO := echo
 export EXPORT := export
 export FALSE := false
+export MV := mv
 export NULL := /dev/null
 export RM_RF := rm -rf
 export STATUS := $$?
@@ -389,7 +391,7 @@ endif
 endif
 endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
-	@$(call touch,$(HOME)/.mkpm/repos.list)
+	@$(call touch,$(HOME)/.mkpm/sources.list)
 ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \
 		$(DOWNLOAD) $(MKPM_BINARY) $(MKPM_BINARY_DOWNLOAD) && \
@@ -397,6 +399,10 @@ ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	)
 endif
 ifneq (,$(MKPM_REPOS))
+	@$(call cat,$(HOME)/.mkpm/sources.list) > $(HOME)/.mkpm/sources.list.backup
+	@$(call for,i,$(MKPM_REPOS)) \
+			$(ECHO) $(call for_i,i) >> $(HOME)/.mkpm/sources.list \
+		$(call for_end)
 	@cd $(PROJECT_ROOT) && $(MKPM_BINARY) update
 endif
 ifneq (,$(MKPM_PACKAGES))
@@ -435,4 +441,6 @@ else
 		$(call for_end)
 endif
 endif
+	$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
+	@$(MV) $(HOME)/.mkpm/sources.list.backup $(HOME)/.mkpm/sources.list
 	@$(call touch_m,"$@")
