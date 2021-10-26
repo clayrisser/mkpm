@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-10-2021 15:32:26
+# Last Modified: 26-10-2021 16:10:02
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -96,7 +96,16 @@ publish:
 		https://gitlab.com/api/v4/projects/29276259/uploads
 
 .PHONY: submodules
-submodules:
-	@$(GIT) submodule update --init --recursive
+SUBMODULES := gpm/Cargo.toml
+submodules: $(SUBMODULES)
+.SECONDEXPANSION: $(SUBMODULES)
+$(SUBMODULES): .git/modules/$$(@D)/HEAD
+	@$(GIT) submodule update $(@D) --init --remote --recursive
+	@[ -f $(@D).branch ] && (cd $(@D) && $(GIT) checkout $$(cat ../$(@D).branch)) || true
+	@[ -f $(@D).patch ] && (cd $(@D) && $(GIT) apply ../$(@D).patch) || true
+	@$(TOUCH) -m $@
+
+.PHONY: always
+always: ;
 
 endif
