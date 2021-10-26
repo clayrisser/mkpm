@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 07-10-2021 16:56:47
+# Last Modified: 26-10-2021 15:32:26
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -94,5 +94,9 @@ publish:
 	@curl --request POST --header "Private-Token: $(GITLAB_TOKEN)" \
 		--form "file=@" \
 		https://gitlab.com/api/v4/projects/29276259/uploads
+
+.PHONY: submodules
+submodules:
+	@$(GIT) submodule update --init --recursive
 
 endif
