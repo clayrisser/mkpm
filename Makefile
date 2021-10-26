@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-10-2021 16:58:47
+# Last Modified: 26-10-2021 18:21:47
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -60,13 +60,13 @@ build:
 endif
 
 .PHONY: build-musl
-build-musl: gpm/cargo.toml
+build-musl: sudo gpm/cargo.toml
 	@$(CD) gpm && $(CARGO) build --release --target x86_64-unknown-linux-musl $(ARGS)
 	@$(DU) -sh gpm/target/x86_64-unknown-linux-musl/release/gpm
 	@$(MAKE) -s fix-permissions
 
 .PHONY: build-darwin
-build-darwin: gpm/cargo.toml
+build-darwin: sudo gpm/cargo.toml
 	@$(CD) gpm && CC=o64-clang \
 		CXX=o64-clang++ \
 		LIBZ_SYS_STATIC=1 \
@@ -115,9 +115,7 @@ $(SUBMODULES): .git/modules/$$(@D)/HEAD $(MKPM)/.cleaned
 	@[ -f $(@D).branch ] && (cd $(@D) && $(GIT) checkout $$(cat ../$(@D).branch)) || true
 	@[ -f $(@D).patch ] && (cd $(@D) && $(GIT) apply ../$(@D).patch) || true
 	@$(TOUCH) -m $@
-
-.PHONY: always
-always: ;
+.git/%: ;
 
 .PHONY: sudo
 sudo:
