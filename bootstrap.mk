@@ -360,7 +360,7 @@ ifeq (,$(MKPM_BINARY))
 			HOME_MKPM_BINARY := $(HOME)/.mkpm/bin/mkpm
 			export MKPM_BINARY := $(HOME_MKPM_BINARY)
 		endif
-		ifeq ($(PLATFORM),win)
+		ifeq ($(PLATFORM),win32)
 			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH).exe
 			HOME_MKPM_BINARY := $(HOME)\.mkpm\bin\mkpm.exe
 			export MKPM_BINARY := $(HOME_MKPM_BINARY)
