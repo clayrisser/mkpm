@@ -1,5 +1,6 @@
 {
   "cSpell.words": [
+    "SHELLFLAGS",
     "aerys",
     "armv",
     "autotag",
@@ -17,6 +18,7 @@
     "endef",
     "entrypoint",
     "flate",
+    "git",
     "gitlab",
     "gitlfs",
     "gnueabihf",
@@ -45,8 +47,9 @@
     "rustflags",
     "rustlang",
     "rustup",
-    "SHELLFLAGS",
+    "strategy",
     "subcommand",
+    "submodule",
     "target",
     "tempdir",
     "tempfile",
