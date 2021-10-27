@@ -41,6 +41,7 @@ export STATUS := $$?
 export TRUE := true
 export WHICH := command -v
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL)) # CMD SHIM
+	export .SHELLFLAGS = /q /v /c
 	BANG = !
 	EXPORT = set
 	FALSE = cmd /c "exit /b 1"
@@ -59,7 +60,7 @@ define mkdir_p
 cmd.exe /q /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
 endef
 define mv
-cmd.exe /q /v /c "set a=$1 & set b=$1 & move !a:/=\! !b:/=\!"
+cmd.exe /q /v /c "set a=$1 & set b=$1 & move !a:/=\! !b:/=\! >/nul"
 endef
 define touch
 if exist $1 ( type nul ) else ( type nul > $1 )
@@ -196,12 +197,24 @@ endef
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 define join_path
 $(shell cmd.exe /q /v /c " \
-	set "one=$1" && \
-	set "two=$2" && \
+	(if "$1"=="" ( \
+		set "one=/" \
+	) else ( \
+		set "one=$1" \
+	)) && \
+	(if "$2"=="" ( \
+		set "two=!one!" \
+	) else ( \
+		set "two=$2" \
+	)) && \
+	set "one=!one: =!" && \
+	set "two=!two: =!" && \
 	set "one=!one:\=/!" && \
 	set "two=!two:\=/!" && \
 	(if "!one:~-1!"=="/" ( \
-		set "one=!one:~0,-1!" \
+		(if "!one!"!==!"/" ( \
+			set "one=!one:~0,-1!" \
+		)) \
 	)) && \
 	(if "!one:~0,1!"=="/" ( \
 		set "one=C:!one!" \
@@ -212,7 +225,11 @@ $(shell cmd.exe /q /v /c " \
 		(if "!two:~1,2!"==":/" ( \
 			echo !two! \
 		) else ( \
-			echo !one!/!two! \
+			(if "!one:~-1!"=="/" ( \
+				echo !one!!two! \
+			) else ( \
+				echo !one!/!two! \
+			)) \
 		)) \
 	)) \
 ")
@@ -293,7 +310,8 @@ export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
 			set "root=%%i" \
 		)) \
 	)) && \
-	echo !root!")
+	echo !root! \
+")
 else
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \

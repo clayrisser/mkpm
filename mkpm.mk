@@ -24,6 +24,8 @@ MKPM_PACKAGES := \
 	gnu=0.0.1 \
 	hello=0.0.4
 
+SHELL := cmd.exe
+
 MKPM_REPOS := \
 	https://gitlab.com/bitspur/community/mkpm-stable.git
 
