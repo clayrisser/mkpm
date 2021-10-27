@@ -23,8 +23,8 @@
 .POSIX:
 .SILENT:
 
-export MKPM_BOOTSTRAP_VERSION := 0.0.1
-export MKPM_BINARY_VERSION := 0.0.1
+export MKPM_BOOTSTRAP_VERSION := 0.0.2
+export MKPM_BINARY_VERSION := 0.0.2
 export MKPM_DIR := .mkpm
 export MKPM_PACKAGES ?=
 export MKPM_REPOS ?=
