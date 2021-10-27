@@ -45,7 +45,7 @@ https://gitlab.com/bitspur/community/mkpm-example
 
 ```makefile
 MKPM_PACKAGES := \
-    hello=0.0.4
+    hello=0.0.5
 ```
 
 3. To include packages in a _Makefile_, simply prefix them with the `MKPM`
