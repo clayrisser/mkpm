@@ -446,7 +446,6 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 				set "pkg=!pkg::==!" && \
 				(for /f "usebackq tokens=1" %%j in (`echo !pkgname!`) do ( \
 					set "pkgname=%%j" && \
-					echo !pkgname! && \
 					set "pkgpath="$(MKPM)/.pkgs/!pkgname!"" && \
 					(rmdir /s /q !pkgpath! 2>nul || echo 1>nul) && \
 					mkdir !pkgpath:/=\! 2>nul && \
