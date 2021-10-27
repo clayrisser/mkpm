@@ -17,7 +17,7 @@ https://gitlab.com/bitspur/community/mkpm-example
 
    ```makefile
    MKPM_PACKAGES := \
-       hello=0.0.4
+       hello=0.0.5
 
    MKPM_REPOS := \
        https://gitlab.com/bitspur/community/mkpm-stable.git
