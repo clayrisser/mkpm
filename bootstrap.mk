@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 27-10-2021 01:14:50
+# Last Modified: 27-10-2021 01:53:37
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -33,6 +33,7 @@ export MAKESHELL ?= $(SHELL)
 export BANG := \!
 export CD := cd
 export ECHO := echo
+export EXIT := exit
 export EXPORT := export
 export FALSE := false
 export NULL := /dev/null
@@ -156,6 +157,9 @@ else
 				ifneq (,$(wildcard /etc/debian_version))
 					FLAVOR = debian
 				endif
+				ifeq ($(shell cat /etc/os-release 2>$(NULL) | grep -qE "^ID=alpine$$"),ID=alpine)
+					FLAVOR = alpine
+				endif
 			endif
 		endif
 	else
@@ -278,7 +282,7 @@ endef
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	export NIX_ENV := false
 else
-	export NIX_ENV := $(call ternary,echo '$(PATH)' | $(GREP) -q ":/nix/store",true,false)
+	export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",true,false)
 endif
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
 
@@ -423,6 +427,83 @@ else
 	@echo
 endif
 endif
+endif
+ifneq ($(call ternary,git --version,true,false),true)
+	@echo mkpm requires git
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+	@echo.
+else
+	@echo
+endif
+	@echo you can get git at https://git-scm.com
+	@echo you can get git-lfs at https://git-lfs.github.com
+ifeq ($(FLAVOR),rhel)
+	@echo
+	@echo or you can try to install git and git-lfs with the following command
+	@echo
+	@echo '    sudo yum install -y git git-lfs'
+	@echo
+endif
+ifeq ($(FLAVOR),debian)
+	@echo
+	@echo or you can try to install git and git-lfs with the following command
+	@echo
+	@echo '    sudo apt-get install -y git git-lfs'
+	@echo
+endif
+ifeq ($(FLAVOR),alpine)
+	@echo
+	@echo or you can try to install git and git-lfs with the following command
+	@echo
+	@echo '    apk add --no-cache git git-lfs'
+	@echo
+endif
+ifeq ($(PLATFORM),darwin)
+	@echo
+	@echo or you can try to install git and git-lfs with the following command
+	@echo
+	@echo '    brew install git git-lfs'
+	@echo
+endif
+	@$(EXIT) 9009
+endif
+ifneq ($(call ternary,git lfs --version,true,false),true)
+	@echo mkpm requires git-lfs
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+	@echo.
+else
+	@echo
+endif
+	@echo you can get git-lfs at https://git-lfs.github.com
+ifeq ($(FLAVOR),rhel)
+	@echo
+	@echo or you can try to install git-lfs with the following command
+	@echo
+	@echo '    sudo yum install -y git-lfs'
+	@echo
+endif
+ifeq ($(FLAVOR),debian)
+	@echo
+	@echo or you can try to install git-lfs with the following command
+	@echo
+	@echo '    sudo apt-get install -y git-lfs'
+	@echo
+endif
+ifeq ($(FLAVOR),alpine)
+	@echo
+	@echo or you can try to install git-lfs with the following command
+	@echo
+	@echo '    apk add --no-cache git-lfs'
+	@echo
+endif
+ifeq ($(PLATFORM),darwin)
+	@echo
+	@echo or you can try to install git-lfs with the following command
+	@echo
+	@echo '    brew install git-lfs'
+	@echo
+endif
+	@$(EXIT) 9009
 endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
 	@$(call touch,$(HOME)/.mkpm/sources.list)
