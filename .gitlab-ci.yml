@@ -18,7 +18,7 @@ build:darwin:
     - if: $CI_COMMIT_TAG
   script:
     - cd gpm && cargo build --release
-    - du -sh gpm/target/release/gpm
+    - du -sh target/release/gpm
     - mkdir ../bin
     - mv target/release/gpm ../bin/${DARWIN_AMD64_BINARY}
   artifacts:
