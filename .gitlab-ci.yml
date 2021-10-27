@@ -17,10 +17,13 @@ build:darwin:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cd gpm && cargo build --release
-    - du -sh target/release/gpm
+    - cd gpm
+    - git reset --hard
+    - git apply ../gpm.patch
+    - cargo build --release
+    - du -sh target/release/mkpm
     - mkdir ../bin
-    - mv target/release/gpm ../bin/${DARWIN_AMD64_BINARY}
+    - mv target/release/mkpm ../bin/${DARWIN_AMD64_BINARY}
   artifacts:
     paths:
       - bin
@@ -32,10 +35,13 @@ build:linux:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cd gpm && cargo build --release --target x86_64-unknown-linux-musl
-    - du -sh target/x86_64-unknown-linux-musl/release/gpm
+    - cd gpm
+    - git reset --hard
+    - git apply ../gpm.patch
+    - cargo build --release --target x86_64-unknown-linux-musl
+    - du -sh target/x86_64-unknown-linux-musl/release/mkpm
     - mkdir ../bin
-    - mv target/x86_64-unknown-linux-musl/release/gpm ../bin/${LINUX_AMD64_BINARY}
+    - mv target/x86_64-unknown-linux-musl/release/mkpm ../bin/${LINUX_AMD64_BINARY}
   artifacts:
     paths:
       - bin
@@ -48,10 +54,13 @@ build:win32:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cd gpm && cargo build --release
-    - dir target/release/gpm.exe
+    - cd gpm
+    - git reset --hard
+    - git apply ../gpm.patch
+    - cargo build --release
+    - dir target/release/mkpm.exe
     - mkdir ../bin
-    - mv target/release/gpm.exe ../bin/${WIN32_AMD64_BINARY}
+    - mv target/release/mkpm.exe ../bin/${WIN32_AMD64_BINARY}
   artifacts:
     paths:
       - bin

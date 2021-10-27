@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 26-10-2021 17:53:56
+# Last Modified: 27-10-2021 01:14:50
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -270,11 +270,15 @@ define git_clean_flags
 endef
 
 export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_DIR))
+export MKPM_CLEANED := $(MKPM)/.cleaned
+define MKPM_CLEAN
+$(call touch_m,.mkpm/.cleaned)
+endef
 
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	export NIX_ENV := false
 else
-	export NIX_ENV := $(call ternary,echo $(PATH) | grep -q ":/nix/store",true,false)
+	export NIX_ENV := $(call ternary,echo '$(PATH)' | $(GREP) -q ":/nix/store",true,false)
 endif
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
 
