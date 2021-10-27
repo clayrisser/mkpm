@@ -31,10 +31,10 @@ export MKPM_REPOS ?=
 
 export MAKESHELL ?= $(SHELL)
 export BANG := \!
+export CD := cd
 export ECHO := echo
 export EXPORT := export
 export FALSE := false
-export MV := mv
 export NULL := /dev/null
 export RM_RF := rm -rf
 export STATUS := $$?
@@ -57,6 +57,9 @@ cmd.exe /q /v /c "rmdir /s /q $1 2>nul || set p=$1 & del !p:/=\! 2>nul || echo >
 endef
 define mkdir_p
 cmd.exe /q /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
+endef
+define mv
+cmd.exe /q /v /c "set a=$1 & set b=$1 & move !a:/=\! !b:/=\!"
 endef
 define touch
 if exist $1 ( type nul ) else ( type nul > $1 )
@@ -82,6 +85,9 @@ mkdir -p $1
 endef
 define touch_m
 touch -m $1
+endef
+define mv
+mv $1 $2
 endef
 define touch
 touch $1
@@ -398,12 +404,13 @@ ifneq (,$(MKPM_BINARY_DOWNLOAD))
 		chmod +x $(MKPM_BINARY) $(NOFAIL) \
 	)
 endif
+# TODO: add lock here
 ifneq (,$(MKPM_REPOS))
 	@$(call cat,$(HOME)/.mkpm/sources.list) > $(HOME)/.mkpm/sources.list.backup
 	@$(call for,i,$(MKPM_REPOS)) \
 			$(ECHO) $(call for_i,i) >> $(HOME)/.mkpm/sources.list \
 		$(call for_end)
-	@cd $(PROJECT_ROOT) && $(MKPM_BINARY) update
+	@$(CD) $(PROJECT_ROOT) && $(MKPM_BINARY) update
 endif
 ifneq (,$(MKPM_PACKAGES))
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
@@ -442,5 +449,5 @@ else
 endif
 endif
 	$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
-	@$(MV) $(HOME)/.mkpm/sources.list.backup $(HOME)/.mkpm/sources.list
+	@$(call mv,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list)
 	@$(call touch_m,"$@")

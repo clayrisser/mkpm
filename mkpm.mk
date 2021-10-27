@@ -38,5 +38,9 @@ endif
 -include .mkpm/.bootstrap.mk
 .mkpm/.bootstrap.mk: bootstrap.mk
 	@mkdir .mkpm 2>$(NULL) || $(TRUE)
+ifeq ($(OS),Windows_NT)
+	@type $< > $@
+else
 	@cp $< $@
+endif
 ############## MKPM BOOTSTRAP SCRIPT END ##############
