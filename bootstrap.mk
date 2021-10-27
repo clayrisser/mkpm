@@ -60,7 +60,10 @@ define mkdir_p
 cmd.exe /q /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
 endef
 define mv
-cmd.exe /q /v /c "set a=$1 & set b=$1 & move !a:/=\! !b:/=\! >/nul"
+cmd.exe /q /v /c "set a=$1 & set b=$2 & move !a:/=\! !b:/=\! >/nul"
+endef
+define mv_f
+cmd.exe /q /v /c "set a=$1 & set b=$2 & move /y !a:/=\! !b:/=\! >/nul"
 endef
 define touch
 if exist $1 ( type nul ) else ( type nul > $1 )
@@ -90,6 +93,9 @@ endef
 define mv
 mv $1 $2
 endef
+define mv_f
+mv -f $1 $2
+endef
 define touch
 touch $1
 endef
@@ -103,7 +109,7 @@ export FLAVOR := unknown
 export ARCH := unknown
 ifeq ($(OS),Windows_NT)
 	export HOME := $(HOMEDRIVE)$(HOMEPATH)
-	PLATFORM = win32
+	PLATFORM = win
 	FLAVOR := win64
 	ARCH = $(PROCESSOR_ARCHITECTURE)
 	ifeq ($(ARCH),AMD64)
@@ -154,15 +160,15 @@ else
 		endif
 	else
 		ifneq (,$(findstring CYGWIN,$(PLATFORM))) # CYGWIN
-			PLATFORM = win32
+			PLATFORM = win
 			FLAVOR = cygwin
 		endif
 		ifneq (,$(findstring MINGW,$(PLATFORM))) # MINGW
-			PLATFORM = win32
+			PLATFORM = win
 			FLAVOR = msys
 		endif
 		ifneq (,$(findstring MSYS,$(PLATFORM))) # MSYS
-			PLATFORM = win32
+			PLATFORM = win
 			FLAVOR = msys
 		endif
 	endif
@@ -354,7 +360,7 @@ ifeq (,$(MKPM_BINARY))
 			HOME_MKPM_BINARY := $(HOME)/.mkpm/bin/mkpm
 			export MKPM_BINARY := $(HOME_MKPM_BINARY)
 		endif
-		ifeq ($(PLATFORM),win32)
+		ifeq ($(PLATFORM),win)
 			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH).exe
 			HOME_MKPM_BINARY := $(HOME)\.mkpm\bin\mkpm.exe
 			export MKPM_BINARY := $(HOME_MKPM_BINARY)
@@ -416,6 +422,7 @@ endif
 endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
 	@$(call touch,$(HOME)/.mkpm/sources.list)
+	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
 ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	@$(MKPM_BINARY) -V $(NOOUT) || ( \
 		$(DOWNLOAD) $(MKPM_BINARY) $(MKPM_BINARY_DOWNLOAD) && \
@@ -466,6 +473,6 @@ else
 		$(call for_end)
 endif
 endif
-	$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
-	@$(call mv,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list)
+	@$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
+	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list)
 	@$(call touch_m,"$@")

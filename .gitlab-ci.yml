@@ -4,6 +4,7 @@ stages:
   - publish
 
 variables:
+  GIT_SUBMODULE_STRATEGY: recursive
   DARWIN_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64'
   LINUX_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64'
   WIN32_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-win32-amd64.exe'
@@ -16,10 +17,10 @@ build:darwin:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cargo build --release
-    - du -sh target/release/mkpm
+    - cd gpm && cargo build --release
+    - du -sh gpm/target/release/mkpm
     - mkdir bin
-    - mv target/release/mkpm bin/${DARWIN_AMD64_BINARY}
+    - mv gpm/target/release/mkpm bin/${DARWIN_AMD64_BINARY}
   artifacts:
     paths:
       - bin
@@ -31,10 +32,10 @@ build:linux:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cargo build --release --target x86_64-unknown-linux-musl
-    - du -sh target/x86_64-unknown-linux-musl/release/mkpm
+    - cd gpm/cargo build --release --target x86_64-unknown-linux-musl
+    - du -sh gpm/target/x86_64-unknown-linux-musl/release/mkpm
     - mkdir bin
-    - mv target/x86_64-unknown-linux-musl/release/mkpm bin/${LINUX_AMD64_BINARY}
+    - mv gpm/target/x86_64-unknown-linux-musl/release/mkpm bin/${LINUX_AMD64_BINARY}
   artifacts:
     paths:
       - bin
@@ -47,10 +48,10 @@ build:win32:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cargo build --release
-    - dir target/release/mkpm.exe
+    - cd gpm && cargo build --release
+    - dir gpm/target/release/mkpm.exe
     - mkdir bin
-    - mv target/release/mkpm.exe bin/${WIN32_AMD64_BINARY}
+    - mv gpm/target/release/mkpm.exe bin/${WIN32_AMD64_BINARY}
   artifacts:
     paths:
       - bin
