@@ -109,7 +109,7 @@ export FLAVOR := unknown
 export ARCH := unknown
 ifeq ($(OS),Windows_NT)
 	export HOME := $(HOMEDRIVE)$(HOMEPATH)
-	PLATFORM = win
+	PLATFORM = win32
 	FLAVOR := win64
 	ARCH = $(PROCESSOR_ARCHITECTURE)
 	ifeq ($(ARCH),AMD64)
@@ -160,15 +160,15 @@ else
 		endif
 	else
 		ifneq (,$(findstring CYGWIN,$(PLATFORM))) # CYGWIN
-			PLATFORM = win
+			PLATFORM = win32
 			FLAVOR = cygwin
 		endif
 		ifneq (,$(findstring MINGW,$(PLATFORM))) # MINGW
-			PLATFORM = win
+			PLATFORM = win32
 			FLAVOR = msys
 		endif
 		ifneq (,$(findstring MSYS,$(PLATFORM))) # MSYS
-			PLATFORM = win
+			PLATFORM = win32
 			FLAVOR = msys
 		endif
 	endif

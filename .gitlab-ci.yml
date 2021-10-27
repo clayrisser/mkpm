@@ -32,7 +32,7 @@ build:linux:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cd gpm/cargo build --release --target x86_64-unknown-linux-musl
+    - cd gpm/cargo && build --release --target x86_64-unknown-linux-musl
     - du -sh gpm/target/x86_64-unknown-linux-musl/release/mkpm
     - mkdir bin
     - mv gpm/target/x86_64-unknown-linux-musl/release/mkpm bin/${LINUX_AMD64_BINARY}
