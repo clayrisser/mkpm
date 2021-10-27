@@ -17,10 +17,10 @@ https://gitlab.com/bitspur/community/mkpm-example
 
    ```makefile
    MKPM_PACKAGES := \
-       hello=0.0.5
+   	hello=0.0.5
 
    MKPM_REPOS := \
-       https://gitlab.com/bitspur/community/mkpm-stable.git
+   	https://gitlab.com/bitspur/community/mkpm-stable.git
 
    ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
    MKPM_BOOTSTRAP := https://bitspur.gitlab.io/community/mkpm/bootstrap.mk
@@ -43,10 +43,10 @@ https://gitlab.com/bitspur/community/mkpm-example
 
 2. Add mkpm packages to the `MKPM_PACKAGES` config. Below is an example.
 
-```makefile
-MKPM_PACKAGES := \
-    hello=0.0.5
-```
+   ```makefile
+   MKPM_PACKAGES := \
+   	hello=0.0.5
+   ```
 
 3. To include packages in a _Makefile_, simply prefix them with the `MKPM`
    variable. They MUST be included after the `mkpm.mk` file. Below is an
