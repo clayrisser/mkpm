@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 29-10-2021 02:20:30
+# Last Modified: 29-10-2021 02:17:07
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -50,6 +50,7 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL)) # CMD SHIM
 	STATUS = %errorlevel%
 	TRUE = type nul
 	WHICH = where
+	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_DIR))
 define cat
 cmd.exe /q /v /c "set p=$1 & type !p:/=\!"
 endef
@@ -77,6 +78,7 @@ if exist $1 ( \
 ) else ( type nul > $1 )
 endef
 else
+	export MKPM := $(abspath $(shell pwd 2>$(NULL))/$(MKPM_DIR))
 define cat
 cat $1
 endef
@@ -572,9 +574,3 @@ endif
 	@$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
 	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list)
 	@$(call touch_m,"$@")
-
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_DIR))
-else
-	export MKPM := $(abspath $(shell pwd 2>$(NULL))/$(MKPM_DIR))
-endif
