@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 27-10-2021 01:53:37
+# Last Modified: 29-10-2021 02:17:07
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -451,6 +451,13 @@ ifeq ($(FLAVOR),debian)
 	@echo '    sudo apt-get install -y git git-lfs'
 	@echo
 endif
+ifeq ($(FLAVOR),ubuntu)
+	@echo
+	@echo or you can try to install git and git-lfs with the following command
+	@echo
+	@echo '    sudo apt-get install -y git git-lfs'
+	@echo
+endif
 ifeq ($(FLAVOR),alpine)
 	@echo
 	@echo or you can try to install git and git-lfs with the following command
@@ -483,6 +490,13 @@ ifeq ($(FLAVOR),rhel)
 	@echo
 endif
 ifeq ($(FLAVOR),debian)
+	@echo
+	@echo or you can try to install git-lfs with the following command
+	@echo
+	@echo '    sudo apt-get install -y git-lfs'
+	@echo
+endif
+ifeq ($(FLAVOR),ubuntu)
 	@echo
 	@echo or you can try to install git-lfs with the following command
 	@echo
