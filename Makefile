@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-10-2021 18:21:47
+# Last Modified: 09-11-2021 08:25:30
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -21,9 +21,9 @@
 # limitations under the License.
 
 include mkpm.mk
-ifneq (,$(MKPM))
 -include $(MKPM)/gnu
 -include $(MKPM)/hello
+ifneq (,$(MKPM_READY))
 
 .DEFAULT_GOAL := hello # this is an example
 

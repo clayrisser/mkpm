@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 29-10-2021 02:17:07
+# Last Modified: 09-11-2021 08:28:27
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -549,10 +549,16 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 					(rmdir /s /q !pkgpath! 2>nul || echo 1>nul) && \
 					mkdir !pkgpath:/=\! 2>nul && \
 					$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! && \
-					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk > "$(MKPM)/!pkgname!" && \
-					echo .PHONY: !pkgname!-%% > "$(MKPM)/-!pkgname!" && \
+					echo _MKPM_READY ?= 0 > "$(MKPM)/!pkgname!" && \
+					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/!pkgname!" && \
+					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk >> "$(MKPM)/!pkgname!" && \
+					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/!pkgname!" && \
+					echo _MKPM_READY ?= 0 > "$(MKPM)/-!pkgname!" && \
+					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/-!pkgname!" && \
+					echo .PHONY: !pkgname!-%% >> "$(MKPM)/-!pkgname!" && \
 					echo !pkgname!-%%: >> "$(MKPM)/-!pkgname!" && \
-					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" \
+					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" && \
+					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/-!pkgname!" \
 				)) \
 			" \
 		$(call for_end)
@@ -564,13 +570,23 @@ else
 			$(call rm_rf,$$PKGPATH) $(NOFAIL) && \
 			$(call mkdir_p,$$PKGPATH) && \
 			$(MKPM_BINARY) install $$PKG --prefix $$PKGPATH && \
-			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" > "$(MKPM)/$$PKGNAME" && \
-			echo ".PHONY: $$PKGNAME-%" > "$(MKPM)/-$$PKGNAME" && \
+			echo '_MKPM_READY ?= 0' >  "$(MKPM)/$$PKGNAME" && \
+			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/$$PKGNAME" && \
+			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" >> "$(MKPM)/$$PKGNAME" && \
+			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/$$PKGNAME" && \
+			echo '_MKPM_READY ?= 0' >  "$(MKPM)/-$$PKGNAME" && \
+			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/-$$PKGNAME" && \
+			echo ".PHONY: $$PKGNAME-%" >> "$(MKPM)/-$$PKGNAME" && \
 			echo "$$PKGNAME-%:" >> "$(MKPM)/-$$PKGNAME" && \
-			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/'"$$PKGNAME/main.mk "'$$(subst '"$$PKGNAME-,,$$"'@)' >> "$(MKPM)/-$$PKGNAME" \
+			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/'"$$PKGNAME/main.mk "'$$(subst '"$$PKGNAME-,,$$"'@)' >> "$(MKPM)/-$$PKGNAME" && \
+			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/-$$PKGNAME" \
 		$(call for_end)
 endif
 endif
 	@$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
 	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list)
 	@$(call touch_m,"$@")
+
+define MKPM_READY
+$(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | bc)" = "0" ] && echo true || true)
+endef

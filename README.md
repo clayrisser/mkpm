@@ -59,8 +59,9 @@ https://gitlab.com/bitspur/community/mkpm-example
 
    ```makefile
    include mkpm.mk # load mkpm
-   ifneq (,$(MKPM)) # prevent code from executing before mkpm is loaded
    -include $(MKPM)/hello # import an mkpm package
+   -include $(MKPM)/hello # import an mkpm package
+   ifneq (,$(MKPM_READY)) # prevent code from executing before mkpm is ready
 
    # makefile logic here . . .
    .DEFAULT_GOAL := hello # calls a target from the hello package
