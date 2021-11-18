@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 09-11-2021 08:28:27
+# Last Modified: 18-11-2021 04:20:22
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -105,14 +105,16 @@ export NOFAIL := 2>$(NULL) || $(TRUE)
 export NOOUT := >$(NULL) 2>$(NULL)
 export MKPM_TMP := $(MKPM)/.tmp
 
-export PLATFORM := unknown
-export FLAVOR := unknown
 export ARCH := unknown
+export FLAVOR := unknown
+export PKG_MANAGER := unknown
+export PLATFORM := unknown
 ifeq ($(OS),Windows_NT)
 	export HOME := $(HOMEDRIVE)$(HOMEPATH)
 	PLATFORM = win32
-	FLAVOR := win64
+	FLAVOR = win64
 	ARCH = $(PROCESSOR_ARCHITECTURE)
+	PKG_MANAGER = choco
 	ifeq ($(ARCH),AMD64)
 		ARCH = amd64
 	endif
@@ -161,6 +163,21 @@ else
 					FLAVOR = alpine
 				endif
 			endif
+			ifeq ($(FLAVOR),rhel)
+				PKG_MANAGER = yum
+			endif
+			ifeq ($(FLAVOR),suse)
+				PKG_MANAGER = zypper
+			endif
+			ifeq ($(FLAVOR),debian)
+				PKG_MANAGER = apt-get
+			endif
+			ifeq ($(FLAVOR),ubuntu)
+				PKG_MANAGER = apt-get
+			endif
+			ifeq ($(FLAVOR),alpine)
+				PKG_MANAGER = apk
+			endif
 		endif
 	else
 		ifneq (,$(findstring CYGWIN,$(PLATFORM))) # CYGWIN
@@ -170,11 +187,16 @@ else
 		ifneq (,$(findstring MINGW,$(PLATFORM))) # MINGW
 			PLATFORM = win32
 			FLAVOR = msys
+			PKG_MANAGER = mingw-get
 		endif
 		ifneq (,$(findstring MSYS,$(PLATFORM))) # MSYS
 			PLATFORM = win32
 			FLAVOR = msys
+			PKG_MANAGER = pacman
 		endif
+	endif
+	ifeq ($(PLATFORM),darwin)
+		PKG_MANAGER = brew
 	endif
 endif
 
