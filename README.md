@@ -60,7 +60,6 @@ https://gitlab.com/bitspur/community/mkpm-example
    ```makefile
    include mkpm.mk # load mkpm
    -include $(MKPM)/hello # import an mkpm package
-   -include $(MKPM)/hello # import an mkpm package
    ifneq (,$(MKPM_READY)) # prevent code from executing before mkpm is ready
 
    # makefile logic here . . .
