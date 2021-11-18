@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 18-11-2021 04:28:55
+# Last Modified: 18-11-2021 04:39:08
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -20,16 +20,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-include mkpm.mk
+-include mkpm.mk
 -include $(MKPM)/gnu
 -include $(MKPM)/hello
+
+CARGO ?= cargo
+CD ?= cd
+CHOWN ?= chown
+CURL ?= curl
+DOCKER ?= docker
+DU ?= du
+GIT ?= git
+SUDO ?= sudo
+TOUCH ?= touch
+
 ifneq (,$(MKPM_READY))
 
 .DEFAULT_GOAL := hello # this is an example
 
-SUDO ?= $(call ternary,sudo --version,sudo,true)
-CARGO ?= cargo
-DOCKER ?= docker
+SUDO := $(call ternary,sudo --version,sudo,true)
 
 .PHONY: test-bootstrap
 test-bootstrap:
@@ -48,6 +57,26 @@ test-bootstrap:
 	@echo SED: $(SED)
 	@echo SHELL: $(SHELL)
 	@echo WHICH: $(WHICH)
+
+.PHONY: clean
+clean:
+	@$(GIT) submodule foreach git add .
+	@$(GIT) submodule foreach git reset --hard
+	@$(GIT) clean -fXd \
+		$(MKPM_GIT_CLEAN_FLAGS) \
+		-e $(BANG)/target \
+		-e $(BANG)/target/ \
+		-e $(BANG)/target/**/*
+	@$(TOUCH) -m $(MKPM)/.cleaned
+$(MKPM)/.cleaned:
+	@$(TOUCH) -m $@
+
+.PHONY: purge
+purge: clean
+	@$(GIT) submodule deinit --all -f
+	@$(GIT) clean -fXd
+
+endif
 
 .PHONY: build
 ifneq ($(call ternary,$(DOCKER) --version,true,false),true)
@@ -83,30 +112,6 @@ fix-permissions: sudo
 run:
 	@RUST_LOG=debug RUST_BACKTRACE=1 $(CARGO) run -- $(ARGS)
 
-.PHONY: clean
-clean:
-	@$(GIT) submodule foreach git add .
-	@$(GIT) submodule foreach git reset --hard
-	@$(GIT) clean -fXd \
-		$(MKPM_GIT_CLEAN_FLAGS) \
-		-e $(BANG)/target \
-		-e $(BANG)/target/ \
-		-e $(BANG)/target/**/*
-	@$(TOUCH) -m $(MKPM)/.cleaned
-$(MKPM)/.cleaned:
-	@$(TOUCH) -m $@
-
-.PHONY: purge
-purge: clean
-	@$(GIT) submodule deinit --all -f
-	@$(GIT) clean -fXd
-
-.PHONY: publish
-publish:
-	@curl --request POST --header "Private-Token: $(GITLAB_TOKEN)" \
-		--form "file=@" \
-		https://gitlab.com/api/v4/projects/29276259/uploads
-
 .PHONY: submodules
 SUBMODULES := gpm/cargo.toml
 submodules: $(SUBMODULES)
@@ -122,4 +127,11 @@ $(SUBMODULES): .git/modules/$$(@D)/HEAD $(MKPM)/.cleaned
 sudo:
 	@$(SUDO) true
 
-endif
+.PHONY: publish
+publish:
+	@$(CURL) --request POST --header "Private-Token: $(GITLAB_TOKEN)" \
+		--form "file=@" \
+		https://gitlab.com/api/v4/projects/29276259/uploads
+
+.PHONY: %
+%: ;
