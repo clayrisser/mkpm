@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 09-11-2021 08:25:30
+# Last Modified: 18-11-2021 04:28:55
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -42,6 +42,7 @@ test-bootstrap:
 	@echo NPROC: $(NPROC)
 	@echo NULL: $(NULL)
 	@echo NUMPROC: $(NUMPROC)
+	@echo PKG_MANAGER: $(PKG_MANAGER)
 	@echo PLATFORM: $(PLATFORM)
 	@echo ROOT: $(ROOT)
 	@echo SED: $(SED)

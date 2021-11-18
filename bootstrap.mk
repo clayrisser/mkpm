@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 18-11-2021 04:20:22
+# Last Modified: 18-11-2021 04:27:25
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -223,8 +223,12 @@ endef
 endif
 
 define ternary
-$(shell $1 $(NOOUT) && echo $2|| echo $3)
+$(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
 endef
+
+ifeq ($(PKG_MANAGER),unknown)
+	PKG_MANAGER = $(call ternary,apt-get,apt-get,$(call ternary,apk,apk,$(call ternary,yum,yum,$(call ternary,brew,brew,unknown))))
+endif
 
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 define join_path
