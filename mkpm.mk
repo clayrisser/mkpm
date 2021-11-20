@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 27-10-2021 00:58:02
+# Last Modified: 20-11-2021 14:47:37
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -31,7 +31,7 @@ MKPM_REPOS := \
 MKPM_BOOTSTRAP := https://bitspur.gitlab.io/community/mkpm/bootstrap.mk
 NULL := /dev/null
 TRUE := true
-ifeq ($(OS),Windows_NT)
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	NULL = nul
 	TRUE = type nul
 endif

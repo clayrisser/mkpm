@@ -26,7 +26,7 @@ https://gitlab.com/bitspur/community/mkpm-example
    MKPM_BOOTSTRAP := https://bitspur.gitlab.io/community/mkpm/bootstrap.mk
    NULL := /dev/null
    TRUE := true
-   ifeq ($(OS),Windows_NT)
+   ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
    	NULL = nul
    	TRUE = type nul
    endif

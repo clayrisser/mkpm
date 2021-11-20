@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 20-11-2021 14:03:10
+# Last Modified: 20-11-2021 14:35:34
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -28,6 +28,7 @@ export MKPM_BINARY_VERSION := 0.0.2
 export MKPM_DIR := .mkpm
 export MKPM_PACKAGES ?=
 export MKPM_REPOS ?=
+export MKPM := $(abspath $(CURDIR)/$(MKPM_DIR))
 
 export MAKESHELL ?= $(SHELL)
 export BANG := \!
@@ -50,7 +51,6 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL)) # CMD SHIM
 	STATUS = %errorlevel%
 	TRUE = type nul
 	WHICH = where
-	export MKPM := $(abspath $(shell echo %cd%)/$(MKPM_DIR))
 define cat
 cmd.exe /q /v /c "set p=$1 & type !p:/=\!"
 endef
@@ -78,7 +78,6 @@ if exist $1 ( \
 ) else ( type nul > $1 )
 endef
 else
-	export MKPM := $(abspath $(shell pwd 2>$(NULL))/$(MKPM_DIR))
 define cat
 cat $1
 endef

@@ -39,6 +39,7 @@
     "nixpkgs",
     "numproc",
     "org",
+    "patsubst",
     "refname",
     "refspec",
     "registry",
