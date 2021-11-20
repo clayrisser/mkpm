@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 18-11-2021 04:27:25
+# Last Modified: 20-11-2021 14:03:10
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -142,7 +142,7 @@ else
 	endif
 	ifeq ($(PLATFORM),linux) # LINUX
 		ifneq (,$(wildcard /system/bin/adb))
-			ifneq ($(shell getprop --help >$(NULL) 2>$(NULL) && echo true || echo false),true)
+			ifneq ($(shell getprop --help >$(NULL) 2>$(NULL) && echo 1 || echo 0),1)
 				PLATFORM = android
 			endif
 		endif
@@ -283,7 +283,7 @@ export COLUMNS := 0
 ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	COLUMNS = $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && echo $$COLUMNS))
 define columns
-$(call ternary,[ "$(COLUMNS)" -$1 "$2" ],true,false)
+$(call ternary,[ "$(COLUMNS)" -$1 "$2" ],1)
 endef
 endif
 
@@ -306,13 +306,13 @@ $(call touch_m,.mkpm/.cleaned)
 endef
 
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	export NIX_ENV := false
+	export NIX_ENV :=
 else
-	export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",true,false)
+	export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",1)
 endif
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
 
-ifneq ($(NIX_ENV),true)
+ifneq ($(NIX_ENV),1)
 	ifeq ($(PLATFORM),darwin)
 		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
 		export SED ?= $(call ternary,gsed --version,gsed,sed)
@@ -371,6 +371,14 @@ export PROJECT_ROOT ?= $(shell \
 	echo $$(project_root $(ROOT)) \
 )
 endif
+export SUBPROC :=
+ifneq ($(ROOT),$(CURDIR))
+	SUBPROC = 1
+endif
+export SUBDIR :=
+ifneq ($(PROJECT_ROOT),$(CURDIR))
+	SUBDIR = 1
+endif
 
 export NPROC := 1
 ifeq ($(PLATFORM),linux)
@@ -383,7 +391,7 @@ export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
 
 ifeq (,$(MKPM_BINARY))
-	ifneq ($(call ternary,mkpm -V,true,false),true)
+	ifneq ($(call ternary,mkpm -V,1),1)
 		ifeq ($(PLATFORM),linux)
 			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
 		endif
@@ -406,7 +414,7 @@ export MKPM_BINARY ?= mkpm
 -include $(MKPM)/.bootstrap
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(MAKELEVEL),0)
-ifeq ($(call columns,lt,62),true)
+ifeq ($(call columns,lt,62),1)
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo.
 	@echo MKPM
@@ -454,7 +462,7 @@ else
 endif
 endif
 endif
-ifneq ($(call ternary,git --version,true,false),true)
+ifneq ($(call ternary,git --version,1),1)
 	@echo mkpm requires git
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo.
@@ -500,7 +508,7 @@ ifeq ($(PLATFORM),darwin)
 endif
 	@$(EXIT) 9009
 endif
-ifneq ($(call ternary,git lfs --version,true,false),true)
+ifneq ($(call ternary,git lfs --version,1),1)
 	@echo mkpm requires git-lfs
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo.
@@ -614,5 +622,5 @@ endif
 	@$(call touch_m,"$@")
 
 define MKPM_READY
-$(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | bc)" = "0" ] && echo true || true)
+$(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | bc)" = "0" ] && echo 1 || true)
 endef
