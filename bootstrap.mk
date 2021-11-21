@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 20-11-2021 14:35:34
+# Last Modified: 21-11-2021 01:01:22
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -567,7 +567,8 @@ ifneq (,$(MKPM_REPOS))
 	@$(call for,i,$(MKPM_REPOS)) \
 			$(ECHO) $(call for_i,i) >> $(HOME)/.mkpm/sources.list \
 		$(call for_end)
-	@$(CD) $(PROJECT_ROOT) && $(MKPM_BINARY) update
+	@$(ECHO) MKPM: updating mkpm repos
+	@$(CD) $(PROJECT_ROOT) && $(MKPM_BINARY) update 1>$(NULL)
 endif
 ifneq (,$(MKPM_PACKAGES))
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
@@ -581,7 +582,8 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 					set "pkgpath="$(MKPM)/.pkgs/!pkgname!"" && \
 					(rmdir /s /q !pkgpath! 2>nul || echo 1>nul) && \
 					mkdir !pkgpath:/=\! 2>nul && \
-					$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! && \
+					echo MKPM: installing !pkg! && \
+					$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! 1>$(NULL) && \
 					echo _MKPM_READY ?= 0 > "$(MKPM)/!pkgname!" && \
 					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/!pkgname!" && \
 					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk >> "$(MKPM)/!pkgname!" && \
@@ -602,7 +604,8 @@ else
 			export PKGPATH="$(MKPM)/.pkgs/$$PKGNAME" && \
 			$(call rm_rf,$$PKGPATH) $(NOFAIL) && \
 			$(call mkdir_p,$$PKGPATH) && \
-			$(MKPM_BINARY) install $$PKG --prefix $$PKGPATH && \
+			echo MKPM: installing $$PKG && \
+			$(MKPM_BINARY) install $$PKG --prefix $$PKGPATH 1>$(NULL) && \
 			echo '_MKPM_READY ?= 0' >  "$(MKPM)/$$PKGNAME" && \
 			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/$$PKGNAME" && \
 			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" >> "$(MKPM)/$$PKGNAME" && \
