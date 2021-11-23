@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 23-11-2021 07:12:04
+# Last Modified: 23-11-2021 09:00:00
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -656,4 +656,8 @@ else
 		$(SORT) | \
 		$(AWK) 'BEGIN {FS = ":[^#]*([ 	]+##[ 	]*)?"}; {printf "\033[36m%-$(HELP_SPACING)s  \033[0m%s\n", "$(HELP_PREFIX)"$$1, $$2}' | \
 		$(UNIQ)
+endif
+
+ifeq (,$(DEFAULT_GOAL))
+.DEFAULT_GOAL := $(HELP)
 endif
