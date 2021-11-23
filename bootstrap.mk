@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 21-11-2021 01:01:22
+# Last Modified: 23-11-2021 01:43:38
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -33,6 +33,7 @@ export MKPM := $(abspath $(CURDIR)/$(MKPM_DIR))
 export MAKESHELL ?= $(SHELL)
 export BANG := \!
 export CD := cd
+export CP_R := cp -r
 export ECHO := echo
 export EXIT := exit
 export EXPORT := export
@@ -45,6 +46,7 @@ export WHICH := command -v
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL)) # CMD SHIM
 	export .SHELLFLAGS = /q /v /c
 	BANG = !
+	CP_R = xcopy /e /k /h /i
 	EXPORT = set
 	FALSE = cmd /c "exit /b 1"
 	NULL = nul
@@ -301,7 +303,7 @@ endef
 export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_DIR))
 export MKPM_CLEANED := $(MKPM)/.cleaned
 define MKPM_CLEAN
-$(call touch_m,.mkpm/.cleaned)
+$(call touch_m,$(MKPM)/.cleaned)
 endef
 
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
@@ -410,6 +412,11 @@ ifeq (,$(MKPM_BINARY))
 endif
 export MKPM_BINARY ?= mkpm
 
+ifneq ($(PROJECT_ROOT),$(CURDIR))
+ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)))
+_COPY_MKPM := 1
+endif
+endif
 -include $(MKPM)/.bootstrap
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(MAKELEVEL),0)
@@ -563,6 +570,7 @@ ifneq (,$(MKPM_BINARY_DOWNLOAD))
 endif
 # TODO: add lock here
 ifneq (,$(MKPM_REPOS))
+ifeq (,$(_COPY_MKPM))
 	@$(call cat,$(HOME)/.mkpm/sources.list) > $(HOME)/.mkpm/sources.list.backup
 	@$(call for,i,$(MKPM_REPOS)) \
 			$(ECHO) $(call for_i,i) >> $(HOME)/.mkpm/sources.list \
@@ -570,7 +578,13 @@ ifneq (,$(MKPM_REPOS))
 	@$(ECHO) MKPM: updating mkpm repos
 	@$(CD) $(PROJECT_ROOT) && $(MKPM_BINARY) update 1>$(NULL)
 endif
+endif
 ifneq (,$(MKPM_PACKAGES))
+ifneq (,$(_COPY_MKPM))
+	@$(call rm_rf,$(MKPM)) $(NOFAIL)
+	@$(CP_R) $(PROJECT_ROOT)/$(MKPM_DIR) $(MKPM)
+	@$(call rm_rf,$(MKPM_TMP)) $(NOFAIL)
+else
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@cd $(PROJECT_ROOT) && $(call for,i,$(subst =,:,$(MKPM_PACKAGES))) \
 			cmd.exe /q /v /c " \
@@ -619,8 +633,9 @@ else
 		$(call for_end)
 endif
 endif
+endif
 	@$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
-	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list)
+	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
 	@$(call touch_m,"$@")
 
 define MKPM_READY
