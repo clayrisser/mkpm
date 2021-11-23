@@ -658,7 +658,7 @@ else
 		$(UNIQ)
 endif
 
-ifeq (,$(DEFAULT_GOAL))
+ifeq (,$(.DEFAULT_GOAL))
 .DEFAULT_GOAL := $(HELP)
 endif
 
