@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 23-11-2021 01:43:38
+# Last Modified: 23-11-2021 07:12:04
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -30,7 +30,6 @@ export MKPM_PACKAGES ?=
 export MKPM_REPOS ?=
 export MKPM := $(abspath $(CURDIR)/$(MKPM_DIR))
 
-export MAKESHELL ?= $(SHELL)
 export BANG := \!
 export CD := cd
 export CP_R := cp -r
@@ -38,10 +37,13 @@ export ECHO := echo
 export EXIT := exit
 export EXPORT := export
 export FALSE := false
+export MAKESHELL ?= $(SHELL)
 export NULL := /dev/null
 export RM_RF := rm -rf
+export SORT := sort
 export STATUS := $$?
 export TRUE := true
+export UNIQ := uniq
 export WHICH := command -v
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL)) # CMD SHIM
 	export .SHELLFLAGS = /q /v /c
@@ -641,3 +643,17 @@ endif
 define MKPM_READY
 $(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | bc)" = "0" ] && echo 1 || true)
 endef
+
+HELP_PREFIX ?=
+HELP_SPACING ?= 32
+HELP := _help
+$(HELP):
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+	@echo help only works on unix
+else
+	@$(call cat,$(CURDIR)/Makefile) | \
+		$(GREP) -E '^[a-zA-Z0-9][^ 	%*]*:.*##' | \
+		$(SORT) | \
+		$(AWK) 'BEGIN {FS = ":[^#]*([ 	]+##[ 	]*)?"}; {printf "\033[36m%-$(HELP_SPACING)s  \033[0m%s\n", "$(HELP_PREFIX)"$$1, $$2}' | \
+		$(UNIQ)
+endif

@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 18-11-2021 04:39:08
+# Last Modified: 23-11-2021 07:07:51
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -41,7 +41,7 @@ ifneq (,$(MKPM_READY))
 SUDO := $(call ternary,sudo --version,sudo,true)
 
 .PHONY: test-bootstrap
-test-bootstrap:
+test-bootstrap: ##
 	@echo ARCH: $(ARCH)
 	@echo DOWNLOAD: $(DOWNLOAD)
 	@echo FLAVOR: $(FLAVOR)
@@ -59,7 +59,7 @@ test-bootstrap:
 	@echo WHICH: $(WHICH)
 
 .PHONY: clean
-clean:
+clean: ##
 	@$(GIT) submodule foreach git add .
 	@$(GIT) submodule foreach git reset --hard
 	@$(GIT) clean -fXd \
@@ -72,7 +72,7 @@ $(MKPM)/.cleaned:
 	@$(TOUCH) -m $@
 
 .PHONY: purge
-purge: clean
+purge: clean ##
 	@$(GIT) submodule deinit --all -f
 	@$(GIT) clean -fXd
 
@@ -80,9 +80,9 @@ endif
 
 .PHONY: build
 ifneq ($(call ternary,$(DOCKER) --version,true,false),true)
-build: build-musl build-darwin
+build: build-musl build-darwin ##
 else
-build:
+build: ##
 	@$(DOCKER) run --rm -it \
 		-v $(PWD):/root/src \
 		joseluisq/rust-linux-darwin-builder:1.55.0 \
@@ -90,13 +90,13 @@ build:
 endif
 
 .PHONY: build-musl
-build-musl: sudo gpm/cargo.toml
+build-musl: sudo gpm/cargo.toml ##
 	@$(CD) gpm && $(CARGO) build --release --target x86_64-unknown-linux-musl $(ARGS)
 	@$(DU) -sh gpm/target/x86_64-unknown-linux-musl/release/gpm
 	@$(MAKE) -s fix-permissions
 
 .PHONY: build-darwin
-build-darwin: sudo gpm/cargo.toml
+build-darwin: sudo gpm/cargo.toml ##
 	@$(CD) gpm && CC=o64-clang \
 		CXX=o64-clang++ \
 		LIBZ_SYS_STATIC=1 \
@@ -105,16 +105,16 @@ build-darwin: sudo gpm/cargo.toml
 	@$(MAKE) -s fix-permissions
 
 .PHONY: fix-permissions
-fix-permissions: sudo
+fix-permissions: sudo ##
 	@$(SUDO) $(CHOWN) -R $$(stat -c '%u:%g' mkpm.mk) gpm/target
 
 .PHONY: run
-run:
+run: ##
 	@RUST_LOG=debug RUST_BACKTRACE=1 $(CARGO) run -- $(ARGS)
 
 .PHONY: submodules
 SUBMODULES := gpm/cargo.toml
-submodules: $(SUBMODULES)
+submodules: $(SUBMODULES) ##
 .SECONDEXPANSION: $(SUBMODULES)
 $(SUBMODULES): .git/modules/$$(@D)/HEAD $(MKPM)/.cleaned
 	@$(GIT) submodule update --init --remote --recursive $(@D)
@@ -124,11 +124,11 @@ $(SUBMODULES): .git/modules/$$(@D)/HEAD $(MKPM)/.cleaned
 .git/%: ;
 
 .PHONY: sudo
-sudo:
+sudo: ##
 	@$(SUDO) true
 
 .PHONY: publish
-publish:
+publish: ##
 	@$(CURL) --request POST --header "Private-Token: $(GITLAB_TOKEN)" \
 		--form "file=@" \
 		https://gitlab.com/api/v4/projects/29276259/uploads
