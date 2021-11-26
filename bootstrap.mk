@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 23-11-2021 09:29:17
+# Last Modified: 26-11-2021 02:08:46
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -664,3 +664,5 @@ endif
 
 -include $(PROJECT_ROOT)/global.mk
 -include $(CURDIR)/local.mk
+
+_MKPM_READY := 0
