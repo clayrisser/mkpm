@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 26-11-2021 02:08:46
+# Last Modified: 26-11-2021 02:15:07
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -660,6 +660,15 @@ endif
 
 ifeq (,$(.DEFAULT_GOAL))
 .DEFAULT_GOAL := $(HELP)
+endif
+
+export SUDO ?= $(call ternary,$(WHICH) sudo,sudo,)
+.PHONY: sudo
+ifneq (,$(SUDO))
+sudo:
+	@$(SUDO) $(TRUE)
+else
+sudo: ;
 endif
 
 -include $(PROJECT_ROOT)/global.mk
