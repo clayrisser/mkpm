@@ -326,7 +326,7 @@ export SED ?= sed
 
 export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
+export PROJECT_ROOT ?= $(strip $(shell cmd.exe /q /v /c " \
 	set "paths=$(shell cmd.exe /q /v /c " \
 		set "root=$(ROOT)" && \
 		set "root=!root:/= !" && \
@@ -354,7 +354,7 @@ export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
 		)) \
 	)) && \
 	echo !root! \
-")
+"))
 else
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
@@ -600,16 +600,10 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 					mkdir !pkgpath:/=\! 2>nul && \
 					echo MKPM: installing !pkg! && \
 					$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! 1>$(NULL) && \
-					echo _MKPM_READY ?= 0 > "$(MKPM)/!pkgname!" && \
-					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/!pkgname!" && \
-					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk >> "$(MKPM)/!pkgname!" && \
-					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/!pkgname!" && \
-					echo _MKPM_READY ?= 0 > "$(MKPM)/-!pkgname!" && \
-					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/-!pkgname!" && \
-					echo .PHONY: !pkgname!-%% >> "$(MKPM)/-!pkgname!" && \
+					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk > "$(MKPM)/!pkgname!" && \
+					echo .PHONY: !pkgname!-%% > "$(MKPM)/-!pkgname!" && \
 					echo !pkgname!-%%: >> "$(MKPM)/-!pkgname!" && \
-					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" && \
-					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/-!pkgname!" \
+					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" \
 				)) \
 			" \
 		$(call for_end)
@@ -640,9 +634,13 @@ endif
 	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
 	@$(call touch_m,"$@")
 
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+MKPM_READY := 1
+else
 define MKPM_READY
 $(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | bc)" = "0" ] && echo 1 || true)
 endef
+endif
 
 HELP_PREFIX ?=
 HELP_SPACING ?= 32

@@ -123,10 +123,6 @@ $(SUBMODULES): .git/modules/$$(@D)/HEAD $(MKPM)/.cleaned
 	@$(TOUCH) -m $@
 .git/%: ;
 
-.PHONY: sudo
-sudo: ##
-	@$(SUDO) true
-
 .PHONY: publish
 publish: ##
 	@$(CURL) --request POST --header "Private-Token: $(GITLAB_TOKEN)" \
