@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 26-11-2021 02:15:07
+# Last Modified: 02-12-2021 08:51:22
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -648,6 +648,9 @@ sudo:
 else
 sudo: ;
 endif
+
+.PHONY: mkpm
+mkpm: ;
 
 -include $(PROJECT_ROOT)/global.mk
 -include $(CURDIR)/local.mk
