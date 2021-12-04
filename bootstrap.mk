@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 04:18:01
+# Last Modified: 04-12-2021 04:39:25
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -627,8 +627,9 @@ PRETTIER ?= $(call ternary,prettier -v,prettier,$(call ternary,$(PROJECT_ROOT)/n
 HELP_GENERATE_TABLE ?= $(NODE) -e 'var a=console.log;a("|command|description|");a("|-|-|");require("fs").readFileSync(0,"utf-8").replace(/\u001b\[\d*?m/g,"").split("\n").map(e=>e.split(/\s+(.+)/).map(e=>e.trim())).map(e=>{var r=e[0];if(e&&r)a("|","`make "+r+"`","|",e.length>1?e[1]:"","|")})'
 HELP_PREFIX ?=
 HELP_SPACING ?= 32
-export HELP ?= _help
-$(HELP):
+export MKPM_HELP ?= _mkpm_help
+export HELP ?= $(MKPM_HELP)
+$(MKPM_HELP):
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo $@ only works on unix
 else
@@ -646,7 +647,9 @@ else
 ifeq (,$(PRETTIER))
 	@$(call requires_pkg,prettier,https://prettier.io,npm install -g prettier)
 else
+ifneq ($(HELP),help-generate-table)
 	@$(MAKE) -s $(HELP)
+endif
 	@$(call mkdir_p,$(MKPM_TMP))
 	@$(EXPORT) HELP_TABLE=$(MKPM_TMP)/help-table.md && \
 		$(MAKE) -s $(HELP) | \
@@ -656,7 +659,7 @@ endif
 endif
 
 ifeq (,$(.DEFAULT_GOAL))
-.DEFAULT_GOAL := $(HELP)
+.DEFAULT_GOAL = $(HELP)
 endif
 
 export SUDO ?= $(call ternary,$(WHICH) sudo,sudo,)
