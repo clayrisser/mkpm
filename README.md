@@ -32,12 +32,12 @@ https://gitlab.com/bitspur/community/mkpm-example
    endif
    -include .mkpm/.bootstrap.mk
    .mkpm/.bootstrap.mk:
-   	@mkdir .mkpm 2>$(NULL) || $(TRUE)
-   	@cd .mkpm && \
+   	@mkdir $(@D) 2>$(NULL) || $(TRUE)
+   	@cd $(@D) && \
    		$(shell curl --version >$(NULL) 2>$(NULL) && \
    			echo curl -L -o || \
    			echo wget --content-on-error -O) \
-   		.bootstrap.mk $(MKPM_BOOTSTRAP) >$(NULL)
+   		$(@F) $(MKPM_BOOTSTRAP) >$(NULL)
    ############## MKPM BOOTSTRAP SCRIPT END ##############
    ```
 
