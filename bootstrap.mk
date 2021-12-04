@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 04:39:25
+# Last Modified: 04-12-2021 04:48:06
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -659,6 +659,9 @@ endif
 endif
 
 ifeq (,$(.DEFAULT_GOAL))
+.DEFAULT_GOAL = $(HELP)
+endif
+ifeq ($(findstring .mkpm/.bootstrap,$(.DEFAULT_GOAL)),.mkpm/.bootstrap)
 .DEFAULT_GOAL = $(HELP)
 endif
 
