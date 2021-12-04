@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 02:16:22
+# Last Modified: 04-12-2021 04:18:01
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -470,7 +470,7 @@ echo "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
 	echo && \
 	echo or you can try to install $1 with the following command && \
 	echo && \
-	echo "$(GREEN)    $(call pkg_manager_install,$1)$(NOCOLOR)" && \
+	([ "$3" != "" ] && echo "$(GREEN)    $3$(NOCOLOR)" || echo "$(GREEN)    $(call pkg_manager_install,$1)$(NOCOLOR)") && \
 	echo && \
 	$(EXIT) 9009
 endef
@@ -622,18 +622,37 @@ $(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | 
 endef
 endif
 
+NODE ?= node
+PRETTIER ?= $(call ternary,prettier -v,prettier,$(call ternary,$(PROJECT_ROOT)/node_modules/.bin/prettier -v,$(PROJECT_ROOT)/node_modules/.bin/prettier,$(call ternary,node_modules/.bin/prettier -v,node_modules/.bin/prettier,)))
+HELP_GENERATE_TABLE ?= $(NODE) -e 'var a=console.log;a("|command|description|");a("|-|-|");require("fs").readFileSync(0,"utf-8").replace(/\u001b\[\d*?m/g,"").split("\n").map(e=>e.split(/\s+(.+)/).map(e=>e.trim())).map(e=>{var r=e[0];if(e&&r)a("|","`make "+r+"`","|",e.length>1?e[1]:"","|")})'
 HELP_PREFIX ?=
 HELP_SPACING ?= 32
-HELP := _help
+export HELP ?= _help
 $(HELP):
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	@echo help only works on unix
+	@echo $@ only works on unix
 else
 	@$(call cat,$(CURDIR)/Makefile) | \
 		$(GREP) -E '^[a-zA-Z0-9][^ 	%*]*:.*##' | \
 		$(SORT) | \
 		$(AWK) 'BEGIN {FS = ":[^#]*([ 	]+##[ 	]*)?"}; {printf "\033[36m%-$(HELP_SPACING)s  \033[0m%s\n", "$(HELP_PREFIX)"$$1, $$2}' | \
 		$(UNIQ)
+endif
+.PHONY: help-generate-table
+help-generate-table:
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+	@echo $@ only works on unix
+else
+ifeq (,$(PRETTIER))
+	@$(call requires_pkg,prettier,https://prettier.io,npm install -g prettier)
+else
+	@$(MAKE) -s $(HELP)
+	@$(call mkdir_p,$(MKPM_TMP))
+	@$(EXPORT) HELP_TABLE=$(MKPM_TMP)/help-table.md && \
+		$(MAKE) -s $(HELP) | \
+		$(HELP_GENERATE_TABLE) > $$HELP_TABLE && \
+		$(PRETTIER) $$HELP_TABLE
+endif
 endif
 
 ifeq (,$(.DEFAULT_GOAL))
