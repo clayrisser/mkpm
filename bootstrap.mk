@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 07:03:02
+# Last Modified: 04-12-2021 07:14:46
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -673,6 +673,10 @@ endif
 .PHONY: mkpm
 mkpm: ;
 
+define MKPM_BOOTSTRAPPED
+$(wildcard $(MKPM)/.bootstrap)
+endef
+
 export GLOBAL_MK := $(wildcard $(call join_path,$(PROJECT_ROOT),global.mk))
 export LOCAL_MK := $(wildcard $(call join_path,$(CURDIR),local.mk))
 ifneq (,$(MKPM_BOOTSTRAPPED))
@@ -683,10 +687,6 @@ ifneq (,$(LOCAL_MK))
 -include $(LOCAL_MK)
 endif
 endif
-
-define MKPM_BOOTSTRAPPED
-$(wildcard $(MKPM)/.bootstrap)
-endef
 
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 MKPM_READY := 1
