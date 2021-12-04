@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 05:35:02
+# Last Modified: 04-12-2021 06:31:59
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -618,14 +618,6 @@ endif
 	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
 	@$(call touch_m,"$@")
 
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-MKPM_READY := 1
-else
-define MKPM_READY
-$(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | $(BC))" = "0" ] && echo 1 || true)
-endef
-endif
-
 NODE ?= node
 PRETTIER ?= $(call ternary,prettier -v,prettier,$(call ternary,$(PROJECT_ROOT)/node_modules/.bin/prettier -v,$(PROJECT_ROOT)/node_modules/.bin/prettier,$(call ternary,node_modules/.bin/prettier -v,node_modules/.bin/prettier,)))
 HELP_GENERATE_TABLE ?= $(NODE) -e 'var a=console.log;a("|command|description|");a("|-|-|");require("fs").readFileSync(0,"utf-8").replace(/\u001b\[\d*?m/g,"").split("\n").map(e=>e.split(/\s+(.+)/).map(e=>e.trim())).map(e=>{var r=e[0];if(e&&r)a("|","`make "+r+"`","|",e.length>1?e[1]:"","|")})'
@@ -688,6 +680,18 @@ ifneq (,$(GLOBAL_MK))
 endif
 ifneq (,$(LOCAL_MK))
 -include $(LOCAL_MK)
+endif
+
+define MKPM_BOOTSTRAPPED
+$(wildcard $(MKPM)/.bootstrap)
+endef
+
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+MKPM_READY := 1
+else
+define MKPM_READY
+$(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | $(BC))" = "0" ] && echo 1 || true)
+endef
 endif
 
 _MKPM_READY := 0
