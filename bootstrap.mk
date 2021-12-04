@@ -3,7 +3,7 @@
 # File Created: 30-09-2021 05:09:05
 # Author: Clay Risser
 # -----
-# Last Modified: 26-11-2021 02:15:07
+# Last Modified: 04-12-2021 02:12:33
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -671,7 +671,13 @@ else
 sudo: ;
 endif
 
--include $(PROJECT_ROOT)/global.mk
--include $(CURDIR)/local.mk
+export GLOBAL_MK := $(wildcard $(call join_path,$(PROJECT_ROOT),global.mk))
+export LOCAL_MK := $(wildcard $(call join_path,$(CURDIR),local.mk))
+ifneq (,$(GLOBAL_MK))
+-include $(GLOBAL_MK)
+endif
+ifneq (,$(LOCAL_MK))
+-include $(LOCAL_MK)
+endif
 
 _MKPM_READY := 0
