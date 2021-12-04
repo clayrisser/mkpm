@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 07:14:46
+# Last Modified: 04-12-2021 08:19:25
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -335,7 +335,6 @@ else
 	export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",1)
 endif
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
-export BC ?= $(call ternary,bc --version,bc,)
 
 ifneq ($(NIX_ENV),1)
 	ifeq ($(PLATFORM),darwin)
@@ -542,9 +541,6 @@ endif
 ifneq ($(call ternary,git lfs --version,1),1)
 	@$(call requires_pkg,git-lfs,https://git-lfs.github.com)
 endif
-ifeq (,$(BC))
-	@$(call requires_pkg,bc,https://www.gnu.org/software/bc)
-endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
 	@$(call touch,$(HOME)/.mkpm/sources.list)
 	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
@@ -600,16 +596,10 @@ else
 			$(call mkdir_p,$$PKGPATH) && \
 			echo MKPM: installing $$PKG && \
 			$(MKPM_BINARY) install $$PKG --prefix $$PKGPATH 1>$(NULL) && \
-			echo '_MKPM_READY ?= 0' >  "$(MKPM)/$$PKGNAME" && \
-			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | $$(BC))' >>  "$(MKPM)/$$PKGNAME" && \
-			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" >> "$(MKPM)/$$PKGNAME" && \
-			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | $$(BC))' >>  "$(MKPM)/$$PKGNAME" && \
-			echo '_MKPM_READY ?= 0' >  "$(MKPM)/-$$PKGNAME" && \
-			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | $$(BC))' >>  "$(MKPM)/-$$PKGNAME" && \
-			echo ".PHONY: $$PKGNAME-%" >> "$(MKPM)/-$$PKGNAME" && \
+			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" > "$(MKPM)/$$PKGNAME" && \
+			echo ".PHONY: $$PKGNAME-%" > "$(MKPM)/-$$PKGNAME" && \
 			echo "$$PKGNAME-%:" >> "$(MKPM)/-$$PKGNAME" && \
-			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/'"$$PKGNAME/main.mk "'$$(subst '"$$PKGNAME-,,$$"'@)' >> "$(MKPM)/-$$PKGNAME" && \
-			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | $$(BC))' >>  "$(MKPM)/-$$PKGNAME" \
+			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/'"$$PKGNAME/main.mk "'$$(subst '"$$PKGNAME-,,$$"'@)' >> "$(MKPM)/-$$PKGNAME" \
 		$(call for_end)
 endif
 endif
@@ -673,13 +663,13 @@ endif
 .PHONY: mkpm
 mkpm: ;
 
-define MKPM_BOOTSTRAPPED
+define MKPM_READY
 $(wildcard $(MKPM)/.bootstrap)
 endef
 
 export GLOBAL_MK := $(wildcard $(call join_path,$(PROJECT_ROOT),global.mk))
 export LOCAL_MK := $(wildcard $(call join_path,$(CURDIR),local.mk))
-ifneq (,$(MKPM_BOOTSTRAPPED))
+ifneq (,$(MKPM_READY))
 ifneq (,$(GLOBAL_MK))
 -include $(GLOBAL_MK)
 endif
@@ -687,13 +677,3 @@ ifneq (,$(LOCAL_MK))
 -include $(LOCAL_MK)
 endif
 endif
-
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-MKPM_READY := 1
-else
-define MKPM_READY
-$(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | $(BC))" = "0" ] && echo 1 || true)
-endef
-endif
-
-_MKPM_READY := 0

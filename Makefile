@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 23-11-2021 09:20:24
+# Last Modified: 04-12-2021 08:20:33
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -21,8 +21,9 @@
 # limitations under the License.
 
 -include mkpm.mk
--include $(MKPM)/gnu
--include $(MKPM)/hello
+ifneq (,$(MKPM_READY))
+include $(MKPM)/gnu
+include $(MKPM)/hello
 
 CARGO ?= cargo
 CD ?= cd
@@ -33,8 +34,6 @@ DU ?= du
 GIT ?= git
 SUDO ?= sudo
 TOUCH ?= touch
-
-ifneq (,$(MKPM_READY))
 
 .DEFAULT_GOAL := hello # this is an example
 
