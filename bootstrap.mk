@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 04:48:06
+# Last Modified: 04-12-2021 05:35:02
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -47,6 +47,12 @@ export LIGHTPURPLE=\033[1;35m
 export LIGHTCYAN=\033[1;36m
 export WHITE=\033[1;37m
 
+export AWK ?= awk
+export CUT ?= cut
+export SORT ?= sort
+export TR ?= tr
+export UNIQ ?= uniq
+
 export BANG := \!
 export CD := cd
 export CP_R := cp -r
@@ -57,10 +63,8 @@ export FALSE := false
 export MAKESHELL ?= $(SHELL)
 export NULL := /dev/null
 export RM_RF := rm -rf
-export SORT := sort
 export STATUS := $$?
 export TRUE := true
-export UNIQ := uniq
 export WHICH := command -v
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL)) # CMD SHIM
 	export .SHELLFLAGS = /q /v /c
@@ -149,8 +153,8 @@ ifeq ($(OS),Windows_NT)
 		endif
 	endif
 else
-	PLATFORM = $(shell uname 2>$(NULL) | tr '[:upper:]' '[:lower:]' 2>$(NULL))
-	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | tr '[:upper:]' '[:lower:]' 2>$(NULL))
+	PLATFORM = $(shell uname 2>$(NULL) | $(TR) '[:upper:]' '[:lower:]' 2>$(NULL))
+	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | $(TR) '[:upper:]' '[:lower:]' 2>$(NULL))
 	ifeq ($(ARCH),i386)
 		ARCH = 386
 	endif
@@ -167,7 +171,7 @@ else
 			endif
 		endif
 		ifeq ($(PLATFORM),linux)
-			FLAVOR = $(shell lsb_release -si 2>$(NULL) | tr '[:upper:]' '[:lower:]' 2>$(NULL))
+			FLAVOR = $(shell lsb_release -si 2>$(NULL) | $(TR) '[:upper:]' '[:lower:]' 2>$(NULL))
 			ifeq (,$(FLAVOR))
 				FLAVOR = unknown
 				ifneq (,$(wildcard /etc/redhat-release))
@@ -292,9 +296,9 @@ $(shell cmd.exe /q /v /c " \
 endef
 else
 define join_path
-$(shell [ "$$(echo "$2" | cut -c 1-1)" = "/" ] && true || \
+$(shell [ "$$(echo "$2" | $(CUT) -c 1-1)" = "/" ] && true || \
 	(echo $1 | $(SED) 's|\/$$||g'))$(shell \
-	[ "$$(echo "$2" | cut -c 1-1)" = "/" ] && true || echo "/")$(shell \
+	[ "$$(echo "$2" | $(CUT) -c 1-1)" = "/" ] && true || echo "/")$(shell \
 	[ "$2" = "" ] && true || echo "$2")
 endef
 endif
@@ -406,7 +410,7 @@ ifeq ($(PLATFORM),linux)
 	NPROC = $(shell nproc $(NOOUT) && nproc || $(GREP) -c -E "^processor" /proc/cpuinfo 2>$(NULL) || echo 1)
 endif
 ifeq ($(PLATFORM),darwin)
-	NPROC = $(shell sysctl hw.ncpu | cut -d " " -f 2 2>$(NULL) || echo 1)
+	NPROC = $(shell sysctl hw.ncpu | $(CUT) -d " " -f 2 2>$(NULL) || echo 1)
 endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
