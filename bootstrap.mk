@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 06:31:59
+# Last Modified: 04-12-2021 07:03:02
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -675,11 +675,13 @@ mkpm: ;
 
 export GLOBAL_MK := $(wildcard $(call join_path,$(PROJECT_ROOT),global.mk))
 export LOCAL_MK := $(wildcard $(call join_path,$(CURDIR),local.mk))
+ifneq (,$(MKPM_BOOTSTRAPPED))
 ifneq (,$(GLOBAL_MK))
 -include $(GLOBAL_MK)
 endif
 ifneq (,$(LOCAL_MK))
 -include $(LOCAL_MK)
+endif
 endif
 
 define MKPM_BOOTSTRAPPED
