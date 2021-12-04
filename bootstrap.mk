@@ -1,9 +1,9 @@
 # File: /bootstrap.mk
 # Project: mkpm
-# File Created: 30-09-2021 05:09:05
+# File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 02:12:33
+# Last Modified: 04-12-2021 02:16:22
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -29,6 +29,23 @@ export MKPM_DIR := .mkpm
 export MKPM_PACKAGES ?=
 export MKPM_REPOS ?=
 export MKPM := $(abspath $(CURDIR)/$(MKPM_DIR))
+
+export NOCOLOR=\033[0m
+export RED=\033[0;31m
+export GREEN=\033[0;32m
+export ORANGE=\033[0;33m
+export BLUE=\033[0;34m
+export PURPLE=\033[0;35m
+export CYAN=\033[0;36m
+export LIGHTGRAY=\033[0;37m
+export DARKGRAY=\033[1;30m
+export LIGHTRED=\033[1;31m
+export LIGHTGREEN=\033[1;32m
+export YELLOW=\033[1;33m
+export LIGHTBLUE=\033[1;34m
+export LIGHTPURPLE=\033[1;35m
+export LIGHTCYAN=\033[1;36m
+export WHITE=\033[1;37m
 
 export BANG := \!
 export CD := cd
@@ -314,6 +331,7 @@ else
 	export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",1)
 endif
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
+export BC ?= $(call ternary,bc --version,bc,)
 
 ifneq ($(NIX_ENV),1)
 	ifeq ($(PLATFORM),darwin)
@@ -326,7 +344,7 @@ export SED ?= sed
 
 export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
+export PROJECT_ROOT ?= $(strip $(shell cmd.exe /q /v /c " \
 	set "paths=$(shell cmd.exe /q /v /c " \
 		set "root=$(ROOT)" && \
 		set "root=!root:/= !" && \
@@ -354,7 +372,7 @@ export PROJECT_ROOT ?= $(shell cmd.exe /q /v /c " \
 		)) \
 	)) && \
 	echo !root! \
-")
+"))
 else
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
@@ -414,6 +432,50 @@ ifeq (,$(MKPM_BINARY))
 endif
 export MKPM_BINARY ?= mkpm
 
+ifeq ($(PKG_MANAGER),yum)
+define pkg_manager_install
+sudo yum install -y $1
+endef
+endif
+ifeq ($(PKG_MANAGER),apt-get)
+define pkg_manager_install
+sudo apt-get install -y $1
+endef
+endif
+ifeq ($(PKG_MANAGER),apk)
+define pkg_manager_install
+apk add --no-cache $1
+endef
+endif
+ifeq ($(PKG_MANAGER),brew)
+define pkg_manager_install
+brew install $1
+endef
+endif
+ifeq ($(PKG_MANAGER),choco)
+define pkg_manager_install
+choco install /y $1
+endef
+endif
+
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+define requires_pkg
+echo.
+endef
+else
+define requires_pkg
+echo "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
+	echo && \
+	echo "you can get \e[1m$1\e[0m at $2" && \
+	echo && \
+	echo or you can try to install $1 with the following command && \
+	echo && \
+	echo "$(GREEN)    $(call pkg_manager_install,$1)$(NOCOLOR)" && \
+	echo && \
+	$(EXIT) 9009
+endef
+endif
+
 ifneq ($(PROJECT_ROOT),$(CURDIR))
 ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)))
 _COPY_MKPM := 1
@@ -431,7 +493,7 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo.
 else
 	@echo
-	@echo MKPM
+	@echo "$(LIGHTBLUE)MKPM$(NOCOLOR)"
 	@echo
 	@echo 'BitSpur Inc (c) Copyright 2021'
 	@echo
@@ -454,7 +516,7 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo.
 else
 	@echo
-	@echo '                    88'
+	@echo "$(LIGHTBLUE)"'                    88'
 	@echo '                    88'
 	@echo '                    88'
 	@echo '88,dPYba,,adPYba,   88   ,d8   8b,dPPYba,   88,dPYba,,adPYba,'
@@ -463,7 +525,7 @@ else
 	@echo '88      88      88  88`"Yba,   88b,   ,a8"  88      88      88'
 	@echo '88      88      88  88   `Y8a  88`YbbdP"'"'   88      88      88"
 	@echo '                               88'
-	@echo '                               88'
+	@echo '                               88'"$(NOCOLOR)"
 	@echo
 	@echo 'BitSpur Inc (c) Copyright 2021'
 	@echo
@@ -471,95 +533,13 @@ endif
 endif
 endif
 ifneq ($(call ternary,git --version,1),1)
-	@echo mkpm requires git
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	@echo.
-else
-	@echo
-endif
-	@echo you can get git at https://git-scm.com
-	@echo you can get git-lfs at https://git-lfs.github.com
-ifeq ($(FLAVOR),rhel)
-	@echo
-	@echo or you can try to install git and git-lfs with the following command
-	@echo
-	@echo '    sudo yum install -y git git-lfs'
-	@echo
-endif
-ifeq ($(FLAVOR),debian)
-	@echo
-	@echo or you can try to install git and git-lfs with the following command
-	@echo
-	@echo '    sudo apt-get install -y git git-lfs'
-	@echo
-endif
-ifeq ($(FLAVOR),ubuntu)
-	@echo
-	@echo or you can try to install git and git-lfs with the following command
-	@echo
-	@echo '    sudo apt-get install -y git git-lfs'
-	@echo
-endif
-ifeq ($(FLAVOR),alpine)
-	@echo
-	@echo or you can try to install git and git-lfs with the following command
-	@echo
-	@echo '    apk add --no-cache git git-lfs'
-	@echo
-endif
-ifeq ($(PLATFORM),darwin)
-	@echo
-	@echo or you can try to install git and git-lfs with the following command
-	@echo
-	@echo '    brew install git git-lfs'
-	@echo
-endif
-	@$(EXIT) 9009
+	@$(call requires_pkg,git,https://git-scm.com)
 endif
 ifneq ($(call ternary,git lfs --version,1),1)
-	@echo mkpm requires git-lfs
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	@echo.
-else
-	@echo
+	@$(call requires_pkg,git-lfs,https://git-lfs.github.com)
 endif
-	@echo you can get git-lfs at https://git-lfs.github.com
-ifeq ($(FLAVOR),rhel)
-	@echo
-	@echo or you can try to install git-lfs with the following command
-	@echo
-	@echo '    sudo yum install -y git-lfs'
-	@echo
-endif
-ifeq ($(FLAVOR),debian)
-	@echo
-	@echo or you can try to install git-lfs with the following command
-	@echo
-	@echo '    sudo apt-get install -y git-lfs'
-	@echo
-endif
-ifeq ($(FLAVOR),ubuntu)
-	@echo
-	@echo or you can try to install git-lfs with the following command
-	@echo
-	@echo '    sudo apt-get install -y git-lfs'
-	@echo
-endif
-ifeq ($(FLAVOR),alpine)
-	@echo
-	@echo or you can try to install git-lfs with the following command
-	@echo
-	@echo '    apk add --no-cache git-lfs'
-	@echo
-endif
-ifeq ($(PLATFORM),darwin)
-	@echo
-	@echo or you can try to install git-lfs with the following command
-	@echo
-	@echo '    brew install git-lfs'
-	@echo
-endif
-	@$(EXIT) 9009
+ifeq (,$(BC))
+	@$(call requires_pkg,bc,https://www.gnu.org/software/bc)
 endif
 	@$(call mkdir_p,$(HOME)/.mkpm/bin)
 	@$(call touch,$(HOME)/.mkpm/sources.list)
@@ -600,16 +580,10 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 					mkdir !pkgpath:/=\! 2>nul && \
 					echo MKPM: installing !pkg! && \
 					$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! 1>$(NULL) && \
-					echo _MKPM_READY ?= 0 > "$(MKPM)/!pkgname!" && \
-					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/!pkgname!" && \
-					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk >> "$(MKPM)/!pkgname!" && \
-					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/!pkgname!" && \
-					echo _MKPM_READY ?= 0 > "$(MKPM)/-!pkgname!" && \
-					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/-!pkgname!" && \
-					echo .PHONY: !pkgname!-%% >> "$(MKPM)/-!pkgname!" && \
+					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk > "$(MKPM)/!pkgname!" && \
+					echo .PHONY: !pkgname!-%% > "$(MKPM)/-!pkgname!" && \
 					echo !pkgname!-%%: >> "$(MKPM)/-!pkgname!" && \
-					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" && \
-					echo _MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc) >> "$(MKPM)/-!pkgname!" \
+					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" \
 				)) \
 			" \
 		$(call for_end)
@@ -623,15 +597,15 @@ else
 			echo MKPM: installing $$PKG && \
 			$(MKPM_BINARY) install $$PKG --prefix $$PKGPATH 1>$(NULL) && \
 			echo '_MKPM_READY ?= 0' >  "$(MKPM)/$$PKGNAME" && \
-			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/$$PKGNAME" && \
+			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | $$(BC))' >>  "$(MKPM)/$$PKGNAME" && \
 			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" >> "$(MKPM)/$$PKGNAME" && \
-			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/$$PKGNAME" && \
+			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | $$(BC))' >>  "$(MKPM)/$$PKGNAME" && \
 			echo '_MKPM_READY ?= 0' >  "$(MKPM)/-$$PKGNAME" && \
-			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/-$$PKGNAME" && \
+			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | $$(BC))' >>  "$(MKPM)/-$$PKGNAME" && \
 			echo ".PHONY: $$PKGNAME-%" >> "$(MKPM)/-$$PKGNAME" && \
 			echo "$$PKGNAME-%:" >> "$(MKPM)/-$$PKGNAME" && \
 			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/'"$$PKGNAME/main.mk "'$$(subst '"$$PKGNAME-,,$$"'@)' >> "$(MKPM)/-$$PKGNAME" && \
-			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | bc)' >>  "$(MKPM)/-$$PKGNAME" \
+			echo '_MKPM_READY := $$(shell echo $$(_MKPM_READY)+1 | $$(BC))' >>  "$(MKPM)/-$$PKGNAME" \
 		$(call for_end)
 endif
 endif
@@ -640,9 +614,13 @@ endif
 	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
 	@$(call touch_m,"$@")
 
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+MKPM_READY := 1
+else
 define MKPM_READY
-$(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | bc)" = "0" ] && echo 1 || true)
+$(shell [ "$(shell [ "$(_MKPM_READY)" = "" ] && echo || echo $(_MKPM_READY)%2 | $(BC))" = "0" ] && echo 1 || true)
 endef
+endif
 
 HELP_PREFIX ?=
 HELP_SPACING ?= 32
@@ -670,6 +648,9 @@ sudo:
 else
 sudo: ;
 endif
+
+.PHONY: mkpm
+mkpm: ;
 
 export GLOBAL_MK := $(wildcard $(call join_path,$(PROJECT_ROOT),global.mk))
 export LOCAL_MK := $(wildcard $(call join_path,$(CURDIR),local.mk))
