@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 04-12-2021 08:19:25
+# Last Modified: 11-12-2021 03:05:57
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -480,7 +480,7 @@ endef
 endif
 
 ifneq ($(PROJECT_ROOT),$(CURDIR))
-ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)))
+ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)/.bootstrap))
 _COPY_MKPM := 1
 endif
 endif

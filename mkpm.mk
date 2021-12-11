@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 20-11-2021 14:47:37
+# Last Modified: 11-12-2021 03:05:43
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -29,14 +29,15 @@ MKPM_REPOS := \
 
 ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
 MKPM_BOOTSTRAP := https://bitspur.gitlab.io/community/mkpm/bootstrap.mk
+export PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 NULL := /dev/null
 TRUE := true
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	NULL = nul
 	TRUE = type nul
 endif
--include .mkpm/.bootstrap.mk
-.mkpm/.bootstrap.mk: bootstrap.mk
+-include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
+$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk
 	@mkdir .mkpm 2>$(NULL) || $(TRUE)
 ifeq ($(OS),Windows_NT)
 	@type $< > $@
