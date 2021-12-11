@@ -66,3 +66,23 @@ https://gitlab.com/bitspur/community/mkpm-example
 
    endif
    ```
+
+## Troubleshooting
+
+### OpenSSL Error
+
+If you are getting an error like the following when running the mkpm binary, it
+probably means you are missing the correct version of openssl on OSX.
+
+```
+dyld: Library not loaded: /usr/local/opt/openssl@1.1/lib/libssl.1.1.dylib
+  Referenced from: mkpm
+  Reason: image not found
+```
+
+You can fix the error on OSX by running the following command to install
+openssl 1.1.
+
+```sh
+brew install openssl@1.1
+```
