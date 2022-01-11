@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 11-12-2021 03:05:57
+# Last Modified: 11-01-2022 02:34:03
 # Modified By: Clay Risser
 # -----
 # BitSpur Inc (c) Copyright 2021
@@ -651,7 +651,7 @@ ifeq ($(findstring .mkpm/.bootstrap,$(.DEFAULT_GOAL)),.mkpm/.bootstrap)
 .DEFAULT_GOAL = $(HELP)
 endif
 
-export SUDO ?= $(call ternary,$(WHICH) sudo,sudo,)
+export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,)
 .PHONY: sudo
 ifneq (,$(SUDO))
 sudo:
