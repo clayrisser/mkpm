@@ -6,7 +6,7 @@
 # Last Modified: 11-01-2022 02:34:03
 # Modified By: Clay Risser
 # -----
-# BitSpur Inc (c) Copyright 2021
+# Risser Labs LLC (c) Copyright 2021
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -492,13 +492,13 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo.
 	@echo MKPM
 	@echo.
-	@echo BitSpur Inc (c) Copyright 2021
+	@echo Risser Labs LLC (c) Copyright 2022
 	@echo.
 else
 	@echo
 	@echo "$(LIGHTBLUE)MKPM$(NOCOLOR)"
 	@echo
-	@echo 'BitSpur Inc (c) Copyright 2021'
+	@echo 'Risser Labs LLC (c) Copyright 2022'
 	@echo
 endif
 else
@@ -515,7 +515,7 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo                                88
 	@echo                                88
 	@echo.
-	@echo BitSpur Inc (c) Copyright 2021
+	@echo Risser Labs LLC (c) Copyright 2022
 	@echo.
 else
 	@echo
@@ -530,7 +530,7 @@ else
 	@echo '                               88'
 	@echo '                               88'"$(NOCOLOR)"
 	@echo
-	@echo 'BitSpur Inc (c) Copyright 2021'
+	@echo 'Risser Labs LLC (c) Copyright 2022'
 	@echo
 endif
 endif
