@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 11-01-2022 02:34:03
+# Last Modified: 20-02-2022 22:27:50
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -334,7 +334,7 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 else
 	export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",1)
 endif
-export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget --content-on-error -O)
+export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget -O)
 
 ifneq ($(NIX_ENV),1)
 	ifeq ($(PLATFORM),darwin)
