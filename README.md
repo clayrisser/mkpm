@@ -36,7 +36,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
    	@mkdir $(@D) 2>$(NULL) || $(TRUE)
    	@$(shell curl --version >$(NULL) 2>$(NULL) && \
    			echo curl -L -o || \
-   			echo wget --content-on-error -O) \
+   			echo wget -O) \
    		$@ $(MKPM_BOOTSTRAP) >$(NULL)
    ############## MKPM BOOTSTRAP SCRIPT END ##############
    ```
