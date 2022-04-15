@@ -651,7 +651,7 @@ ifeq ($(findstring .mkpm/.bootstrap,$(.DEFAULT_GOAL)),.mkpm/.bootstrap)
 .DEFAULT_GOAL = $(HELP)
 endif
 
-export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,$(TRUE))
+export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,)
 .PHONY: sudo
 ifneq (,$(SUDO))
 sudo:
