@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 20-02-2022 22:27:50
+# Last Modified: 22-05-2022 15:03:40
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -344,6 +344,7 @@ ifneq ($(NIX_ENV),1)
 endif
 export GREP ?= grep
 export SED ?= sed
+export TAR ?= $(call ternary,$(WHICH) tar,$(shell $(WHICH) tar 2>$(NULL)),$(TRUE))
 
 export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
@@ -485,7 +486,30 @@ _COPY_MKPM := 1
 endif
 endif
 -include $(MKPM)/.bootstrap
+ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+ifneq ($(TRUE),$(TAR))
+-include $(MKPM)/.cache
+$(MKPM)/.cache: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
+	@[ -f $(MKPM)/.cache ] && $(call rm_rf,$(call join_path,$(MKPM),.cache.tar.gz)) || true
+	@echo 'ifneq (,$$(wildcard $$(MKPM)/.cache.tar.gz))' > $(MKPM)/.cache
+	@echo 'export _LOAD_MKPM_FROM_CACHE := 1' >> $(MKPM)/.cache
+	@echo 'else' >> $(MKPM)/.cache
+	@echo 'export _LOAD_MKPM_FROM_CACHE := 0' >> $(MKPM)/.cache
+	@echo 'endif' >> $(MKPM)/.cache
+endif
+endif
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
+ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
+	@[ -f $(MKPM)/.cache.tar.gz ] && true || exit 1
+endif
+ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+ifneq ($(TRUE),$(TAR))
+	@if [ $(MKPM)/.cache -nt $(MKPM)/.cache.tar.gz ]; then \
+		$(call touch_m,$(MKPM)/.cache.tar.gz) && \
+		exit 1; \
+	fi
+endif
+endif
 ifeq ($(MAKELEVEL),0)
 ifeq ($(call columns,lt,62),1)
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
@@ -551,6 +575,7 @@ ifneq (,$(MKPM_BINARY_DOWNLOAD))
 	)
 endif
 # TODO: add lock here
+ifneq (1,$(_LOAD_MKPM_FROM_CACHE))
 ifneq (,$(MKPM_REPOS))
 ifeq (,$(_COPY_MKPM))
 	@$(call cat,$(HOME)/.mkpm/sources.list) > $(HOME)/.mkpm/sources.list.backup
@@ -559,6 +584,7 @@ ifeq (,$(_COPY_MKPM))
 		$(call for_end)
 	@$(ECHO) MKPM: updating mkpm repos
 	@$(CD) $(PROJECT_ROOT) && $(MKPM_BINARY) update 1>$(NULL)
+endif
 endif
 endif
 ifneq (,$(MKPM_PACKAGES))
@@ -588,6 +614,11 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 			" \
 		$(call for_end)
 else
+ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
+	@$(CD) $(MKPM) && \
+		$(TAR) -xzf .cache.tar.gz .
+	@$(ECHO) MKPM: loaded from cache
+else
 	@cd $(PROJECT_ROOT) && $(call for,i,$(MKPM_PACKAGES)) \
 			export PKG=$(call for_i,i) && \
 			export PKGNAME="$$(echo $$PKG | $(SED) 's|=.*$$||g')" && \
@@ -604,8 +635,22 @@ else
 endif
 endif
 endif
+endif
 	@$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
 	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
+ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+ifneq ($(TRUE),$(TAR))
+ifneq (1,$(_LOAD_MKPM_FROM_CACHE))
+	@$(CD) $(MKPM) && \
+		$(TAR) -czf .cache.tar.gz \
+			--exclude '.tmp' \
+			--exclude '.bootstrap' \
+			--exclude '.bootstrap.mk' \
+			--exclude '.cache.tar.gz' \
+			. $(NOFAIL)
+endif
+endif
+endif
 	@$(call touch_m,"$@")
 
 NODE ?= node
