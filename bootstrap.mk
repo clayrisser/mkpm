@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 22-05-2022 15:06:38
+# Last Modified: 22-05-2022 15:26:25
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -344,6 +344,7 @@ ifneq ($(NIX_ENV),1)
 endif
 export GREP ?= grep
 export SED ?= sed
+export GIT ?= git
 export TAR ?= $(call ternary,$(WHICH) tar,$(shell $(WHICH) tar 2>$(NULL)),$(TRUE))
 
 export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
@@ -485,6 +486,11 @@ ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)/.bootstrap))
 _COPY_MKPM := 1
 endif
 endif
+ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+ifneq ($(TRUE),$(TAR))
+MKPM_CACHE_SUPPORTED := 1
+endif
+endif
 -include $(MKPM)/.bootstrap
 ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 ifneq ($(TRUE),$(TAR))
@@ -499,15 +505,27 @@ $(MKPM)/.cache: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 endif
 endif
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
-ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
-	@[ -f $(MKPM)/.cache.tar.gz ] && true || exit 1
-endif
 ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-ifneq ($(TRUE),$(TAR))
+	$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
+		$(ECHO) '.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
+endif
+ifeq (1,$(MKPM_CACHE_SUPPORTED))
+ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
+	@[ ! -f $(MKPM)/.cache.tar.gz ] && exit 1 || true
+endif
 	@if [ $(MKPM)/.cache -nt $(MKPM)/.cache.tar.gz ]; then \
 		$(call touch_m,$(MKPM)/.cache.tar.gz) && \
 		exit 1; \
 	fi
+	@$(GIT) lfs track '.mkpm/.cache' '.mkpm/.bootstrap.mk' >$(NULL)
+	$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^!\/\.mkpm/\.cache\.tar\.gz$$' $(NOOUT) && $(TRUE) || \
+		$(ECHO) '!/.mkpm/.cache.tar.gz' >> $(PROJECT_ROOT)/.gitignore
+	$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^!\/\.mkpm/\.bootstrap\.mk$$' $(NOOUT) && $(TRUE) || \
+		$(ECHO) '!/.mkpm/.bootstrap.mk' >> $(PROJECT_ROOT)/.gitignore
+else
+	@$(ECHO) caching not supported on windows 1>&2
+	@exit 1
 endif
 endif
 ifeq ($(MAKELEVEL),0)
