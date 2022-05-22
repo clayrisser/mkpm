@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 22-05-2022 15:03:40
+# Last Modified: 22-05-2022 15:06:38
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -23,7 +23,7 @@
 .POSIX:
 .SILENT:
 
-export MKPM_BOOTSTRAP_VERSION := 0.0.2
+export MKPM_BOOTSTRAP_VERSION := 0.1.0
 export MKPM_BINARY_VERSION := 0.0.2
 export MKPM_DIR := .mkpm
 export MKPM_PACKAGES ?=
