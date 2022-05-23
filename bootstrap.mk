@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 23-05-2022 13:40:15
+# Last Modified: 23-05-2022 13:44:23
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -508,7 +508,7 @@ endif
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\.mkpm/$$' $(NOOUT) && \
-		$(SED) -i 's|^\.mkpm\/$||g' $(PROJECT_ROOT)/.gitignore || \
+		$(SED) -i '/^\.mkpm\/$$/d' $(PROJECT_ROOT)/.gitignore || \
 		$(TRUE)
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
