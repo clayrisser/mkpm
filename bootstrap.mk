@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 22-05-2022 15:26:25
+# Last Modified: 23-05-2022 11:41:13
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -496,6 +496,7 @@ ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 ifneq ($(TRUE),$(TAR))
 -include $(MKPM)/.cache
 $(MKPM)/.cache: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
+	@$(call mkdir_p,$(MKPM))
 	@[ -f $(MKPM)/.cache ] && $(call rm_rf,$(call join_path,$(MKPM),.cache.tar.gz)) || true
 	@echo 'ifneq (,$$(wildcard $$(MKPM)/.cache.tar.gz))' > $(MKPM)/.cache
 	@echo 'export _LOAD_MKPM_FROM_CACHE := 1' >> $(MKPM)/.cache
