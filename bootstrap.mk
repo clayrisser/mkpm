@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 23-05-2022 13:59:52
+# Last Modified: 24-05-2022 09:51:16
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -512,6 +512,8 @@ ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 		$(TRUE)
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
+	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\*\*\/\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
+		$(ECHO) '**/.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
 endif
 ifeq (1,$(MKPM_CACHE_SUPPORTED))
 ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
