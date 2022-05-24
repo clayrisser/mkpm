@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 24-05-2022 09:51:16
+# Last Modified: 24-05-2022 11:29:01
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -507,6 +507,7 @@ endif
 endif
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+ifeq ($(CURDIR),$(PROJECT_ROOT))
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\.mkpm/$$' $(NOOUT) && \
 		$(SED) -i '/^\.mkpm\/$$/d' $(PROJECT_ROOT)/.gitignore || \
 		$(TRUE)
@@ -514,6 +515,7 @@ ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 		$(ECHO) '.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\*\*\/\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '**/.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
+endif
 endif
 ifeq (1,$(MKPM_CACHE_SUPPORTED))
 ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
@@ -524,11 +526,13 @@ endif
 		$(call touch_m,$(MKPM)/.cache.tar.gz) && \
 		exit 1; \
 	fi
+ifeq ($(CURDIR),$(PROJECT_ROOT))
 	@$(GIT) lfs track '.mkpm/.cache.tar.gz' '.mkpm/.bootstrap.mk' >$(NULL)
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^!\/\.mkpm/\.cache\.tar\.gz$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '!/.mkpm/.cache.tar.gz' >> $(PROJECT_ROOT)/.gitignore
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^!\/\.mkpm/\.bootstrap\.mk$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '!/.mkpm/.bootstrap.mk' >> $(PROJECT_ROOT)/.gitignore
+endif
 else
 	@$(ECHO) caching not supported on windows 1>&2
 	@exit 1
