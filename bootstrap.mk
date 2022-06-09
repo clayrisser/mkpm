@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 24-05-2022 11:29:01
+# Last Modified: 09-06-2022 14:32:47
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -508,6 +508,7 @@ endif
 $(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 ifeq ($(CURDIR),$(PROJECT_ROOT))
+	@$(call touch,$(PROJECT_ROOT)/.gitignore)
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\.mkpm/$$' $(NOOUT) && \
 		$(SED) -i '/^\.mkpm\/$$/d' $(PROJECT_ROOT)/.gitignore || \
 		$(TRUE)
@@ -528,6 +529,7 @@ endif
 	fi
 ifeq ($(CURDIR),$(PROJECT_ROOT))
 	@$(GIT) lfs track '.mkpm/.cache.tar.gz' '.mkpm/.bootstrap.mk' >$(NULL)
+	@$(call touch,$(PROJECT_ROOT)/.gitignore)
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^!\/\.mkpm/\.cache\.tar\.gz$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '!/.mkpm/.cache.tar.gz' >> $(PROJECT_ROOT)/.gitignore
 	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^!\/\.mkpm/\.bootstrap\.mk$$' $(NOOUT) && $(TRUE) || \
