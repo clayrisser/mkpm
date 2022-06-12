@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 09-06-2022 14:32:47
+# Last Modified: 12-06-2022 10:23:50
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -23,7 +23,7 @@
 .POSIX:
 .SILENT:
 
-export MKPM_BOOTSTRAP_VERSION := 0.1.0
+export MKPM_BOOTSTRAP_VERSION := 0.1.1
 export MKPM_BINARY_VERSION := 0.0.2
 export MKPM_DIR := .mkpm
 export MKPM_PACKAGES ?=
@@ -497,7 +497,7 @@ ifneq ($(TRUE),$(TAR))
 -include $(MKPM)/.cache
 $(MKPM)/.cache: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
 	@$(call mkdir_p,$(MKPM))
-	@[ -f $(MKPM)/.cache ] && $(call rm_rf,$(call join_path,$(MKPM),.cache.tar.gz)) || true
+	@([ -f $(MKPM)/.cache ] && [ "$(_LOAD_MKPM_FROM_CACHE)" = "" ]) && $(call rm_rf,$(call join_path,$(MKPM),.cache.tar.gz)) || true
 	@echo 'ifneq (,$$(wildcard $$(MKPM)/.cache.tar.gz))' > $(MKPM)/.cache
 	@echo 'export _LOAD_MKPM_FROM_CACHE := 1' >> $(MKPM)/.cache
 	@echo 'else' >> $(MKPM)/.cache
