@@ -10,36 +10,34 @@ export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then
-        _install $_PARAM
+        _install $_PARAM $_REPO
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM
     elif [ "$_COMMAND" = "dependencies" ]; then
         _dependencies $_PARAM
-    elif [ "$_COMMAND" = "available" ]; then
-        _available
-    elif [ "$_COMMAND" = "repo-add" ]; then
-        _repo_add $_PARAM
-    elif [ "$_COMMAND" = "repo-remove" ]; then
-        _repo_remove $_PARAM
-    elif [ "$_COMMAND" = "repo-list" ]; then
-        _repo_list
     fi
 }
 
 _install() {
-    _update_repos
-    for r in $(ls $_REPOS_PATH); do
-        cd $_REPOS_PATH/$r
-        git checkout $(echo $1 | cut -d'=' -f2) 2>/dev/null
-        git lfs pull
-        if [ "$?" != "0" ]; then
-            continue
-        fi
-        _NAME=$(echo $1 | cut -d'=' -f1)
-        mkdir -p $_CWD/.mkpm/.pkgs/$_NAME
-        tar -xzvf $_NAME/$_NAME.tar.gz -C $_CWD/.mkpm/.pkgs/$_NAME
-    done
-    echo install $1
+    _PACKAGE=$1
+    _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
+    _PACKAGE_VERSION=$(echo $_PACKAGE | cut -d'=' -f2)
+    _REPO=$2
+    _REPO_PATH=$(_repo_path $_REPO)
+    _update_repo $_REPO $_REPO_PATH
+    _run cd "$_REPO_PATH"
+    _DEFAULT_BRANCH=$(cd "$_REPO_PATH" && git branch --show-current)
+    _run_s git add .
+    _run_s git reset --hard
+    _run_s git checkout $_DEFAULT_BRANCH 2>/dev/null
+    _run_s git config advice.detachedHead false
+    _run_s git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION 2>/dev/null
+    _run git lfs pull
+    _run rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
+    _run mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
+    _run_s tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
+    _run_s git checkout $_DEFAULT_BRANCH 2>/dev/null
+    _echo installed $1
 }
 
 _remove() {
@@ -47,38 +45,8 @@ _remove() {
 }
 
 _dependencies() {
-    _update_repos
+    _update_repo
     echo dependencies $1
-}
-
-_available() {
-    _update_repos
-    echo available
-}
-
-_repo_add() {
-    if [ ! -f "$_REPOS_LIST_PATH" ]; then
-        touch $_REPOS_LIST_PATH
-    fi
-    echo "$(_repo_list)
-$1" | sort | uniq > $_REPOS_LIST_PATH.tmp
-    mv $_REPOS_LIST_PATH.tmp $_REPOS_LIST_PATH
-    echo added repo $1
-    _update_repos
-}
-
-_repo_remove() {
-    for r in $(_repo_list); do
-        if [ "$r" != "$1" ]; then
-            echo $r
-        fi
-    done | sort | uniq > $_REPOS_LIST_PATH.tmp
-    mv $_REPOS_LIST_PATH.tmp $_REPOS_LIST_PATH
-    echo removed repo $1
-}
-
-_repo_list() {
-    cat $_REPOS_LIST_PATH | sed '/^$/d' | sort | uniq
 }
 
 _prepare() {
@@ -87,20 +55,71 @@ _prepare() {
     fi
 }
 
-_update_repos() {
-    for r in $(cat $_REPOS_LIST_PATH); do
-        _REPO_PATH="$(_repo_path $r)"
-        if [ -d "$_REPO_PATH" ]; then
-            cd "$_REPO_PATH" && git pull
-        else
-            git clone $r "$_REPO_PATH"
-        fi
-    done
+_update_repo() {
+    _REPO=$1
+    _REPO_PATH=$2
+    if [ -d "$_REPO_PATH" ]; then
+        _run cd "$_REPO_PATH"
+        _run_s git pull
+    else
+        _run_s git clone $1 "$_REPO_PATH"
+    fi
 }
 
 _repo_path() {
     echo $_REPOS_PATH/$(echo $1 | md5sum | cut -d ' ' -f1)
 }
+
+_run() {
+    if [ "$_DRY" = "1" ]; then
+        echo $@
+    else
+        $@
+    fi
+}
+
+_run_s() {
+    if [ "$_DRY" = "1" ]; then
+        echo $@
+    else
+        $@ >/dev/null
+    fi
+}
+
+_echo() {
+    if [ "$_SILENT" != "1" ]; then
+        echo $@
+    fi
+}
+
+_get_default_branch() {
+    git branch -r --points-at refs/remotes/origin/HEAD | grep '\->' | cut -d' ' -f5 | cut -d/ -f2
+}
+
+# _repo_add() {
+#     if [ ! -f "$_REPOS_LIST_PATH" ]; then
+#         touch $_REPOS_LIST_PATH
+#     fi
+#     echo "$(_repo_list)
+# $1" | sort | uniq > $_REPOS_LIST_PATH.tmp
+#     mv $_REPOS_LIST_PATH.tmp $_REPOS_LIST_PATH
+#     echo added repo $1
+#     _update_repo
+# }
+
+# _repo_remove() {
+#     for r in $(_repo_list); do
+#         if [ "$r" != "$1" ]; then
+#             echo $r
+#         fi
+#     done | sort | uniq > $_REPOS_LIST_PATH.tmp
+#     mv $_REPOS_LIST_PATH.tmp $_REPOS_LIST_PATH
+#     echo removed repo $1
+# }
+
+# _repo_list() {
+#     cat $_REPOS_LIST_PATH | sed '/^$/d' | sort | uniq
+# }
 
 if ! test $# -gt 0; then
     set -- "-h"
@@ -114,17 +133,23 @@ while test $# -gt 0; do
             echo "mkpm [options] command <PACKAGE>"
             echo " "
             echo "options:"
-            echo "    -h, --help                  show brief help"
+            echo "    -h, --help                    show brief help"
+            echo "    -s, --silent                  silent output"
             echo " "
             echo "commands:"
-            echo "    i install <PACKAGE>         install a package"
-            echo "    r remove <PACKAGE>          remove a package"
-            echo "    d dependencies <PACKAGE>    dependencies required by package"
-            echo "    a available                 list available packages"
-            echo "    ra repo-add <REPO>          add a repo"
-            echo "    rr remove-repo <REPO>       remove a repo"
-            echo "    rl repo-list                list repos"
+            echo "    i install <PACKAGE> <REPO>    install a package from git repo"
+            echo "    r remove <PACKAGE>            remove a package"
+            echo "    d dependencies <PACKAGE>      dependencies required by package"
             exit 0
+        ;;
+        -d|--dry)
+            export _DRY=1
+            export _SILENT=1
+            shift
+        ;;
+        -s|--silent)
+            export _SILENT=1
+            shift
         ;;
         -*)
             echo "invalid option $1" 1>&2
@@ -142,8 +167,18 @@ case "$1" in
         export _COMMAND=install
         if test $# -gt 0; then
             export _PARAM=$1
-            shift
+        else
+            echo "no package specified" 1>&2
+            exit 1
         fi
+        shift
+        if test $# -gt 0; then
+            export _REPO=$1
+        else
+            echo "no repo specified" 1>&2
+            exit 1
+        fi
+        shift
     ;;
     r|remove)
         shift
@@ -166,38 +201,6 @@ case "$1" in
             exit 1
         fi
         shift
-    ;;
-    a|available)
-        shift
-        export _COMMAND=available
-    ;;
-    ra|repo-add)
-        shift
-        if test $# -gt 0; then
-            export _COMMAND=repo-add
-            export _PARAM=$1
-        else
-            echo "no repo specified" 1>&2
-            exit 1
-        fi
-    ;;
-    rr|repo-remove)
-        shift
-        if test $# -gt 0; then
-            export _COMMAND=repo-remove
-            export _PARAM=$1
-        else
-            echo "no repo specified" 1>&2
-            exit 1
-        fi
-    ;;
-    rl|repo-list)
-        shift
-        export _COMMAND=repo-list
-    ;;
-    update) # DEPRICATED: remove in the future
-        shift
-        exit 0
     ;;
     *)
         echo "invalid command $1" 1>&2
