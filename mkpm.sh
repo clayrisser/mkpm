@@ -42,8 +42,16 @@ _install() {
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | sed "s|${_PACKAGE_NAME}/||g" | tail -n1)
     fi
+    if [ "$_PACKAGE_VERSION" = "" ]; then
+        echo "package $_PACKAGE_NAME does not exist" 1>&2
+        exit 1
+    fi
     git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION >/dev/null 2>/dev/null
     git lfs pull
+    if [ ! -f "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" ]; then
+        echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
+        exit 1
+    fi
     rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
@@ -53,7 +61,7 @@ _install() {
         _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep 'MKPM_PACKAGES := \\' | grep -oE '[0-9]+') + 1)
         sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
     fi
-    _echo installed $1
+    echo installed $1
 }
 
 _remove() {
@@ -84,12 +92,6 @@ _update_repo() {
 
 _repo_path() {
     echo $_REPOS_PATH/$(echo $1 | md5sum | cut -d ' ' -f1)
-}
-
-_echo() {
-    if [ "$_SILENT" != "1" ]; then
-        echo $@
-    fi
 }
 
 _get_default_branch() {
