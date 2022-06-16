@@ -14,7 +14,11 @@ main() {
             _LINE_NUMBER=$(expr $(cat -n mkpm.mk | grep 'MKPM_REPOS := \\' | grep -oE '[0-9]+') + 1)
             _REPO=$(cat -n "$_CWD/mkpm.mk" | grep "$_LINE_NUMBER" | sed "s|\s*${_LINE_NUMBER}\s*||")
         fi
-        echo _install $_PARAM $_REPO
+        if [ "$_REPO" = "" ]; then
+            echo repo not defined 1>&2
+            exit 1
+        fi
+        _install $_PARAM $_REPO
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM
     elif [ "$_COMMAND" = "dependencies" ]; then
@@ -25,16 +29,19 @@ main() {
 _install() {
     _PACKAGE=$1
     _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
-    _PACKAGE_VERSION=$(echo $_PACKAGE | cut -d'=' -f2)
+    _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]\+\=\?||g')
     _REPO=$2
     _REPO_PATH=$(_repo_path $_REPO)
     _update_repo $_REPO $_REPO_PATH
-    cd "$_REPO_PATH"
+    cd "$_REPO_PATH" || exit 1
     _DEFAULT_BRANCH=$(cd "$_REPO_PATH" && git branch --show-current)
     git add . >/dev/null
     git reset --hard >/dev/null
     git checkout $_DEFAULT_BRANCH >/dev/null 2>/dev/null
     git config advice.detachedHead false >/dev/null
+    if [ "$_PACKAGE_VERSION" = "" ]; then
+        _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | sed "s|${_PACKAGE_NAME}/||g" | tail -n1)
+    fi
     git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION >/dev/null 2>/dev/null
     git lfs pull
     rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
@@ -42,7 +49,9 @@ _install() {
     tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
     git checkout $_DEFAULT_BRANCH >/dev/null 2>/dev/null
     if [ "$MKPM" = "" ]; then
-        _LINE_NUMBER=$(cat -n mkpm.mk | grep 'MKPM_PACKAGES := \\' | grep -oE '[0-9]+')
+        sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
+        _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep 'MKPM_PACKAGES := \\' | grep -oE '[0-9]+') + 1)
+        sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
     fi
     _echo installed $1
 }
