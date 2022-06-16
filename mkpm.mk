@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 22-05-2022 15:29:08
+# Last Modified: 16-06-2022 11:38:35
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -21,8 +21,8 @@
 # limitations under the License.
 
 MKPM_PACKAGES := \
+	hello=0.0.5 \
 	gnu=0.0.3 \
-	hello=0.0.5
 
 MKPM_REPOS := \
 	https://gitlab.com/risserlabs/community/mkpm-stable.git
