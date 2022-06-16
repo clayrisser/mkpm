@@ -10,6 +10,9 @@ export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then
+        if [ "$_REPO" = "" ]; then
+            _LINE_NUMBER=$(cat -n mkpm.mk | grep 'MKPM_REPOS := \\' | grep -oE '[0-9]+')
+        fi
         _install $_PARAM $_REPO
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM
@@ -25,18 +28,21 @@ _install() {
     _REPO=$2
     _REPO_PATH=$(_repo_path $_REPO)
     _update_repo $_REPO $_REPO_PATH
-    _run cd "$_REPO_PATH"
+    cd "$_REPO_PATH"
     _DEFAULT_BRANCH=$(cd "$_REPO_PATH" && git branch --show-current)
     git add . >/dev/null
     git reset --hard >/dev/null
     git checkout $_DEFAULT_BRANCH >/dev/null 2>/dev/null
     git config advice.detachedHead false >/dev/null
     git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION >/dev/null 2>/dev/null
-    _run git lfs pull
-    _run rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
-    _run mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
+    git lfs pull
+    rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
+    mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
     git checkout $_DEFAULT_BRANCH >/dev/null 2>/dev/null
+    if [ "$MKPM" = "" ]; then
+        _LINE_NUMBER=$(cat -n mkpm.mk | grep 'MKPM_PACKAGES := \\' | grep -oE '[0-9]+')
+    fi
     _echo installed $1
 }
 
@@ -59,7 +65,7 @@ _update_repo() {
     _REPO=$1
     _REPO_PATH=$2
     if [ -d "$_REPO_PATH" ]; then
-        _run cd "$_REPO_PATH"
+        cd "$_REPO_PATH"
         git pull >/dev/null
     else
         git clone $1 "$_REPO_PATH" >/dev/null
