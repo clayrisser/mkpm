@@ -11,7 +11,7 @@ main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then
         if [ "$_REPO" = "" ]; then
-            _LINE_NUMBER=$(expr $(cat -n mkpm.mk | grep 'MKPM_REPOS := \\' | grep -oE '[0-9]+') + 1)
+            _LINE_NUMBER=$(expr $(cat -n mkpm.mk | grep 'MKPM_REPO := \\' | grep -oE '[0-9]+') + 1)
             _REPO=$(cat -n "$_CWD/mkpm.mk" | grep "$_LINE_NUMBER" | sed "s|\s*${_LINE_NUMBER}\s*||")
         fi
         if [ "$_REPO" = "" ]; then
@@ -34,10 +34,8 @@ _install() {
     _REPO_PATH=$(_repo_path $_REPO)
     _update_repo $_REPO $_REPO_PATH
     cd "$_REPO_PATH" || exit 1
-    _DEFAULT_BRANCH=$(cd "$_REPO_PATH" && git branch --show-current)
     git add . >/dev/null
     git reset --hard >/dev/null
-    git checkout $_DEFAULT_BRANCH >/dev/null 2>/dev/null
     git config advice.detachedHead false >/dev/null
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | sed "s|${_PACKAGE_NAME}/||g" | tail -n1)
@@ -46,7 +44,10 @@ _install() {
         echo "package $_PACKAGE_NAME does not exist" 1>&2
         exit 1
     fi
-    git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION >/dev/null 2>/dev/null
+    if ! git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION >/dev/null 2>/dev/null; then
+        echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
+        exit 1
+    fi
     git lfs pull
     if [ ! -f "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" ]; then
         echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
@@ -55,13 +56,12 @@ _install() {
     rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
-    git checkout $_DEFAULT_BRANCH >/dev/null 2>/dev/null
     if [ "$MKPM" = "" ]; then
         sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
         _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep 'MKPM_PACKAGES := \\' | grep -oE '[0-9]+') + 1)
         sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
     fi
-    echo installed $1
+    echo installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}
 }
 
 _remove() {
@@ -84,7 +84,7 @@ _update_repo() {
     _REPO_PATH=$2
     if [ -d "$_REPO_PATH" ]; then
         cd "$_REPO_PATH"
-        git pull >/dev/null
+        git fetch --all >/dev/null
     else
         git clone $1 "$_REPO_PATH" >/dev/null
     fi

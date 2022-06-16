@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 12-06-2022 10:23:50
+# Last Modified: 16-06-2022 12:12:18
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -27,7 +27,7 @@ export MKPM_BOOTSTRAP_VERSION := 0.1.1
 export MKPM_BINARY_VERSION := 0.0.2
 export MKPM_DIR := .mkpm
 export MKPM_PACKAGES ?=
-export MKPM_REPOS ?=
+export MKPM_REPO ?=
 export MKPM := $(abspath $(CURDIR)/$(MKPM_DIR))
 
 export NOCOLOR=\033[0m
@@ -606,13 +606,13 @@ ifneq (,$(MKPM_BINARY_DOWNLOAD))
 endif
 # TODO: add lock here
 ifneq (1,$(_LOAD_MKPM_FROM_CACHE))
-ifneq (,$(MKPM_REPOS))
+ifneq (,$(MKPM_REPO))
 ifeq (,$(_COPY_MKPM))
 	@$(call cat,$(HOME)/.mkpm/sources.list) > $(HOME)/.mkpm/sources.list.backup
-	@$(call for,i,$(MKPM_REPOS)) \
+	@$(call for,i,$(MKPM_REPO)) \
 			$(ECHO) $(call for_i,i) >> $(HOME)/.mkpm/sources.list \
 		$(call for_end)
-	@$(ECHO) MKPM: updating mkpm repos
+	@$(ECHO) MKPM: updating mkpm repo
 	@$(CD) $(PROJECT_ROOT) && $(MKPM_BINARY) update 1>$(NULL)
 endif
 endif
