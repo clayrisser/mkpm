@@ -11,9 +11,10 @@ main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then
         if [ "$_REPO" = "" ]; then
-            _LINE_NUMBER=$(cat -n mkpm.mk | grep 'MKPM_REPOS := \\' | grep -oE '[0-9]+')
+            _LINE_NUMBER=$(expr $(cat -n mkpm.mk | grep 'MKPM_REPOS := \\' | grep -oE '[0-9]+') + 1)
+            _REPO=$(cat -n "$_CWD/mkpm.mk" | grep "$_LINE_NUMBER" | sed "s|\s*${_LINE_NUMBER}\s*||")
         fi
-        _install $_PARAM $_REPO
+        echo _install $_PARAM $_REPO
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM
     elif [ "$_COMMAND" = "dependencies" ]; then
