@@ -27,16 +27,16 @@ _install() {
     _update_repo $_REPO $_REPO_PATH
     _run cd "$_REPO_PATH"
     _DEFAULT_BRANCH=$(cd "$_REPO_PATH" && git branch --show-current)
-    _run_s git add .
-    _run_s git reset --hard
-    _run_s git checkout $_DEFAULT_BRANCH 2>/dev/null
-    _run_s git config advice.detachedHead false
-    _run_s git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION 2>/dev/null
+    git add . >/dev/null
+    git reset --hard >/dev/null
+    git checkout $_DEFAULT_BRANCH >/dev/null 2>/dev/null
+    git config advice.detachedHead false >/dev/null
+    git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION >/dev/null 2>/dev/null
     _run git lfs pull
     _run rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     _run mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
-    _run_s tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
-    _run_s git checkout $_DEFAULT_BRANCH 2>/dev/null
+    tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
+    git checkout $_DEFAULT_BRANCH >/dev/null 2>/dev/null
     _echo installed $1
 }
 
@@ -60,30 +60,14 @@ _update_repo() {
     _REPO_PATH=$2
     if [ -d "$_REPO_PATH" ]; then
         _run cd "$_REPO_PATH"
-        _run_s git pull
+        git pull >/dev/null
     else
-        _run_s git clone $1 "$_REPO_PATH"
+        git clone $1 "$_REPO_PATH" >/dev/null
     fi
 }
 
 _repo_path() {
     echo $_REPOS_PATH/$(echo $1 | md5sum | cut -d ' ' -f1)
-}
-
-_run() {
-    if [ "$_DRY" = "1" ]; then
-        echo $@
-    else
-        $@
-    fi
-}
-
-_run_s() {
-    if [ "$_DRY" = "1" ]; then
-        echo $@
-    else
-        $@ >/dev/null
-    fi
 }
 
 _echo() {
@@ -142,11 +126,6 @@ while test $# -gt 0; do
             echo "    d dependencies <PACKAGE>      dependencies required by package"
             exit 0
         ;;
-        -d|--dry)
-            export _DRY=1
-            export _SILENT=1
-            shift
-        ;;
         -s|--silent)
             export _SILENT=1
             shift
@@ -167,40 +146,37 @@ case "$1" in
         export _COMMAND=install
         if test $# -gt 0; then
             export _PARAM=$1
+            shift
         else
             echo "no package specified" 1>&2
             exit 1
         fi
-        shift
         if test $# -gt 0; then
             export _REPO=$1
-        else
-            echo "no repo specified" 1>&2
-            exit 1
+            shift
         fi
-        shift
     ;;
     r|remove)
         shift
         if test $# -gt 0; then
             export _COMMAND=remove
             export _PARAM=$1
+            shift
         else
             echo "no package specified" 1>&2
             exit 1
         fi
-        shift
     ;;
     d|dependencies)
         shift
         if test $# -gt 0; then
             export _COMMAND=dependencies
             export _PARAM=$1
+            shift
         else
             echo "no package specified" 1>&2
             exit 1
         fi
-        shift
     ;;
     *)
         echo "invalid command $1" 1>&2
