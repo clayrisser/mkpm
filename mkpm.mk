@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 16-06-2022 12:12:58
+# Last Modified: 18-06-2022 14:07:22
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -20,11 +20,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MKPM_PACKAGES := \
+MKPM_PACKAGES_DEFAULT := \
 	hello=0.0.4 \
 	gnu=0.0.3 \
 
-MKPM_REPO := \
+MKPM_REPO_DEFAULT := \
 	https://gitlab.com/risserlabs/community/mkpm-stable.git
 
 ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
