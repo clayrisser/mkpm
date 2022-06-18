@@ -15,7 +15,10 @@ main() {
             echo "repo $_REPO is not valid"
             exit 1
         fi
-        echo _install $_PARAM $_REPO_URI
+        if ! _is_repo_uri "$_REPO"; then
+            local _REPO_NAME="$(echo $_REPO | tr '[:lower:]' '[:upper:]')"
+        fi
+        _install $_PARAM $_REPO_URI $_REPO_NAME
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM
     elif [ "$_COMMAND" = "dependencies" ]; then
@@ -24,11 +27,12 @@ main() {
 }
 
 _install() {
-    _PACKAGE=$1
-    _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
-    _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]\+\=\?||g')
-    _REPO=$2
-    _REPO_PATH=$(_repo_path $_REPO)
+    local _PACKAGE=$1
+    local _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
+    local _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]\+\=\?||g')
+    local _REPO=$2
+    local _REPO_PATH=$(_repo_path $_REPO)
+    local _REPO_NAME=$3
     _update_repo $_REPO $_REPO_PATH
     cd "$_REPO_PATH" || exit 1
     git add . >/dev/null
@@ -53,9 +57,9 @@ _install() {
     rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
-    if [ "$MKPM" = "" ]; then
+    if [ "$MKPM" = "" ] && [ "$_REPO_NAME" != "" ]; then
         sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
-        _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep 'MKPM_PACKAGES := \\' | grep -oE '[0-9]+') + 1)
+        _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep "MKPM_PACKAGES_${_REPO_NAME} := \\\\" | grep -oE '[0-9]+') + 1)
         sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
     fi
     echo installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}
@@ -73,7 +77,7 @@ _lookup_repo_uri() {
     local _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | tr '[:lower:]' '[:upper:]'))
     if [ "$_REPO_URI" = "" ] && [ -f "$_CWD/mkpm.mk" ]; then
         local _LINE=$(cat -n "$_CWD/mkpm.mk" | \
-            grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')")
+            grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')\s")
         if echo $_LINE | grep -E '\\\s*$' >/dev/null 2>/dev/null; then
             local _LINE_NUMBER="$(expr $(echo $_LINE | \
                 grep -oE '[0-9]+') + 1)"
