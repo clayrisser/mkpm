@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 16-06-2022 12:12:18
+# Last Modified: 17-06-2022 11:31:50
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -751,4 +751,11 @@ endif
 ifneq (,$(LOCAL_MK))
 -include $(LOCAL_MK)
 endif
+endif
+
+ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+include cmd.exe
+cmd.exe:
+	@echo cmd.exe not supported 1>&2
+	@exit 1
 endif

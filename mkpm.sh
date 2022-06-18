@@ -10,15 +10,12 @@ export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then
-        if [ "$_REPO" = "" ]; then
-            _LINE_NUMBER=$(expr $(cat -n mkpm.mk | grep 'MKPM_REPO := \\' | grep -oE '[0-9]+') + 1)
-            _REPO=$(cat -n "$_CWD/mkpm.mk" | grep "$_LINE_NUMBER" | sed "s|\s*${_LINE_NUMBER}\s*||")
-        fi
-        if [ "$_REPO" = "" ]; then
-            echo repo not defined 1>&2
+        local _REPO_URI=$(_lookup_repo_uri $_REPO)
+        if [ "$_REPO_URI" = "" ]; then
+            echo "repo $_REPO is not valid"
             exit 1
         fi
-        _install $_PARAM $_REPO
+        echo _install $_PARAM $_REPO_URI
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM
     elif [ "$_COMMAND" = "dependencies" ]; then
@@ -62,6 +59,38 @@ _install() {
         sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
     fi
     echo installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}
+}
+
+_is_repo_uri() {
+    echo "$1" | grep -E '^(\w+://.+)|(git@.+:.+)$' >/dev/null 2>/dev/null
+}
+
+_lookup_repo_uri() {
+    if _is_repo_uri "$_REPO"; then
+        echo $_REPO
+        return
+    fi
+    local _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | tr '[:lower:]' '[:upper:]'))
+    if [ "$_REPO_URI" = "" ] && [ -f "$_CWD/mkpm.mk" ]; then
+        local _LINE=$(cat -n "$_CWD/mkpm.mk" | \
+            grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')")
+        if echo $_LINE | grep -E '\\\s*$' >/dev/null 2>/dev/null; then
+            local _LINE_NUMBER="$(expr $(echo $_LINE | \
+                grep -oE '[0-9]+') + 1)"
+            _REPO_URI=$(cat -n "$_CWD/mkpm.mk" | grep -E "^\s+$_LINE_NUMBER\s+" | \
+                sed "s|^\s*[0-9]\+\s\+||g")
+        else
+            _REPO_URI=$(echo $_LINE | \
+                sed "s|^\s*[0-9]\+\s\+MKPM_REPO_\w\+\s\+:=\s\+||g")
+        fi
+    fi
+    if _is_repo_uri "$_REPO_URI"; then
+        echo "$_REPO_URI"
+    fi
+}
+
+_lookup_repos() {
+    env | cut -d'=' -f1 | grep -E 'MKPM_REPO_\w+'
 }
 
 _remove() {
@@ -139,7 +168,7 @@ while test $# -gt 0; do
             echo "    -s, --silent                  silent output"
             echo " "
             echo "commands:"
-            echo "    i install <PACKAGE> <REPO>    install a package from git repo"
+            echo "    i install <REPO> <PACKAGE>    install a package from git repo"
             echo "    r remove <PACKAGE>            remove a package"
             echo "    d dependencies <PACKAGE>      dependencies required by package"
             exit 0
@@ -163,15 +192,18 @@ case "$1" in
         shift
         export _COMMAND=install
         if test $# -gt 0; then
+            export _REPO=$1
+            shift
+        else
+            echo "no repo specified" 1>&2
+            exit 1
+        fi
+        if test $# -gt 0; then
             export _PARAM=$1
             shift
         else
             echo "no package specified" 1>&2
             exit 1
-        fi
-        if test $# -gt 0; then
-            export _REPO=$1
-            shift
         fi
     ;;
     r|remove)
