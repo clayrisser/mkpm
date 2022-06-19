@@ -74,6 +74,7 @@ _is_repo_uri() {
 }
 
 _lookup_repo_uri() {
+    local _REPO=$1
     if _is_repo_uri "$_REPO"; then
         echo $_REPO
         return
@@ -81,7 +82,7 @@ _lookup_repo_uri() {
     local _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | tr '[:lower:]' '[:upper:]'))
     if [ "$_REPO_URI" = "" ] && [ -f "$_CWD/mkpm.mk" ]; then
         local _LINE=$(cat -n "$_CWD/mkpm.mk" | \
-            grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')\s")
+            grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')\s" | head -n1)
         if echo $_LINE | grep -E '\\\s*$' >/dev/null 2>/dev/null; then
             local _LINE_NUMBER="$(expr $(echo $_LINE | \
                 grep -oE '[0-9]+') + 1)"
@@ -142,6 +143,10 @@ _repo_add() {
     fi
     local _REPO_NAME=$1
     local _REPO_URI=$2
+    if [ "$(_lookup_repo_uri $_REPO_NAME)" != "" ]; then
+        echo "repo $_REPO_NAME already exists" 1>&2
+        exit 1
+    fi
     if ! _is_repo_uri "$_REPO_URI"; then
         echo "invalid repo uri $_REPO_URI" 1>&2
         exit 1
@@ -153,7 +158,7 @@ _repo_add() {
     else
         sed -i "${_LINE_NUMBER}i\\${_BODY}\n" "$_CWD/mkpm.mk"
     fi
-    echo repo-add $_REPO_NAME $_REPO_URI
+    echo "added repo $_REPO_NAME"
 }
 
 _repo_remove() {
@@ -164,31 +169,6 @@ _repo_remove() {
     local _REPO_NAME=$1
     echo repo-remove $_REPO_NAME
 }
-
-# _repo_add() {
-#     if [ ! -f "$_REPOS_LIST_PATH" ]; then
-#         touch $_REPOS_LIST_PATH
-#     fi
-#     echo "$(_repo_list)
-# $1" | sort | uniq > $_REPOS_LIST_PATH.tmp
-#     mv $_REPOS_LIST_PATH.tmp $_REPOS_LIST_PATH
-#     echo added repo $1
-#     _update_repo
-# }
-
-# _repo_remove() {
-#     for r in $(_repo_list); do
-#         if [ "$r" != "$1" ]; then
-#             echo $r
-#         fi
-#     done | sort | uniq > $_REPOS_LIST_PATH.tmp
-#     mv $_REPOS_LIST_PATH.tmp $_REPOS_LIST_PATH
-#     echo removed repo $1
-# }
-
-# _repo_list() {
-#     cat $_REPOS_LIST_PATH | sed '/^$/d' | sort | uniq
-# }
 
 if ! test $# -gt 0; then
     set -- "-h"
@@ -210,7 +190,7 @@ while test $# -gt 0; do
             echo "    r remove <PACKAGE>                    remove a package"
             echo "    d dependencies <PACKAGE>              dependencies required by package"
             echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
-            echo "    rr repo-remove <REPO_NAME>            remove repo"
+            # echo "    rr repo-remove <REPO_NAME>            remove repo"
             exit 0
         ;;
         -s|--silent)
@@ -286,17 +266,17 @@ case "$1" in
             exit 1
         fi
     ;;
-    rr|repo-remove)
-        shift
-        if test $# -gt 0; then
-            export _COMMAND=repo-remove
-            export _REPO_NAME=$1
-            shift
-        else
-            echo "no repo name specified" 1>&2
-            exit 1
-        fi
-    ;;
+    # rr|repo-remove)
+    #     shift
+    #     if test $# -gt 0; then
+    #         export _COMMAND=repo-remove
+    #         export _REPO_NAME=$1
+    #         shift
+    #     else
+    #         echo "no repo name specified" 1>&2
+    #         exit 1
+    #     fi
+    # ;;
     *)
         echo "invalid command $1" 1>&2
         exit 1

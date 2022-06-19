@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 19-06-2022 03:41:15
+# Last Modified: 19-06-2022 08:33:17
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -26,6 +26,11 @@ MKPM_PACKAGES_DEFAULT := \
 
 MKPM_REPO_DEFAULT := \
 	https://gitlab.com/risserlabs/community/mkpm-stable.git
+
+MKPM_PACKAGES_ADSF := \
+
+MKPM_REPO_ADSF := \
+	git@gitlab.com:promanager/quickcam-react.git
 
 ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
 MKPM_BOOTSTRAP := https://risserlabs.gitlab.io/community/mkpm/bootstrap.mk
