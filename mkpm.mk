@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 19-06-2022 12:57:07
+# Last Modified: 19-06-2022 13:05:09
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -36,7 +36,7 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	NULL = nul
 	TRUE = type nul
 endif
--include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
+include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
 $(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk .mkpm/.bin/mkpm
 ifeq ($(OS),Windows_NT)
 	@type $< > $@
