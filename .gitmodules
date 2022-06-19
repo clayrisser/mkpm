@@ -1,4 +1,0 @@
-[submodule "gpm"]
-	path = gpm
-	url = https://github.com/aerys/gpm.git
-	branch = version/0.18
