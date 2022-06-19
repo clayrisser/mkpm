@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 17-06-2022 11:31:50
+# Last Modified: 19-06-2022 12:46:14
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -24,11 +24,16 @@
 .SILENT:
 
 export MKPM_BOOTSTRAP_VERSION := 0.1.1
-export MKPM_BINARY_VERSION := 0.0.2
+export MKPM_CLI_VERSION := 0.2.0
 export MKPM_DIR := .mkpm
-export MKPM_PACKAGES ?=
-export MKPM_REPO ?=
+export MKPM_CLI_URI := \
+	https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_CLI_VERSION)/mkpm.sh
+
+export MAKESHELL ?= $(SHELL)
 export MKPM := $(abspath $(CURDIR)/$(MKPM_DIR))
+export MKPM_CLI := $(MKPM)/.bin/mkpm
+export MKPM_TMP := $(MKPM)/.tmp
+export _MKPM_CLI_VERSION := $(MKPM_CLI_VERSION)
 
 export NOCOLOR=\033[0m
 export RED=\033[0;31m
@@ -47,87 +52,28 @@ export LIGHTPURPLE=\033[1;35m
 export LIGHTCYAN=\033[1;36m
 export WHITE=\033[1;37m
 
-export AWK ?= awk
-export CUT ?= cut
-export SORT ?= sort
-export TR ?= tr
-export UNIQ ?= uniq
-
 export BANG := \!
+export NOFAIL := 2>$(NULL) || $(TRUE)
+export NOOUT := >$(NULL) 2>$(NULL)
+export NULL := /dev/null
+
+export CAT := cat
 export CD := cd
-export CP_R := cp -r
+export CHMOD := chmod
+export CP := cp
+export CUT := cut
 export ECHO := echo
 export EXIT := exit
 export EXPORT := export
 export FALSE := false
-export MAKESHELL ?= $(SHELL)
-export NULL := /dev/null
-export RM_RF := rm -rf
-export STATUS := $$?
+export MKDIR := mkdir
+export RM := rm
+export SORT := sort
+export TOUCH := touch
+export TR := tr
 export TRUE := true
+export UNIQ := uniq
 export WHICH := command -v
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL)) # CMD SHIM
-	export .SHELLFLAGS = /q /v /c
-	BANG = !
-	CP_R = xcopy /e /k /h /i
-	EXPORT = set
-	FALSE = cmd /c "exit /b 1"
-	NULL = nul
-	STATUS = %errorlevel%
-	TRUE = type nul
-	WHICH = where
-define cat
-cmd.exe /q /v /c "set p=$1 & type !p:/=\!"
-endef
-define rm_rf
-cmd.exe /q /v /c "rmdir /s /q $1 2>nul || set p=$1 & del !p:/=\! 2>nul || echo >nul"
-endef
-define mkdir_p
-cmd.exe /q /v /c "set p=$1 & mkdir !p:/=\! 2>nul || echo >nul"
-endef
-define mv
-cmd.exe /q /v /c "set a=$1 & set b=$2 & move !a:/=\! !b:/=\! >/nul"
-endef
-define mv_f
-cmd.exe /q /v /c "set a=$1 & set b=$2 & move /y !a:/=\! !b:/=\! >/nul"
-endef
-define touch
-if exist $1 ( type nul ) else ( type nul > $1 )
-endef
-define touch_m
-if exist $1 ( \
-	$(call mkdir_p,"%TEMP%\__mkpm") && \
-	$(call cat,$1) > "%TEMP%\__mkpm\touch_m" && \
-	$(call cat,"%TEMP%\__mkpm\touch_m") > $1 && \
-	$(call rm_rf,%TEMP%\__mkpm\touch_m) \
-) else ( type nul > $1 )
-endef
-else
-define cat
-cat $1
-endef
-define rm_rf
-rm -rf $1
-endef
-define mkdir_p
-mkdir -p $1
-endef
-define touch_m
-touch -m $1
-endef
-define mv
-mv $1 $2
-endef
-define mv_f
-mv -f $1 $2
-endef
-define touch
-touch $1
-endef
-endif
-export NOFAIL := 2>$(NULL) || $(TRUE)
-export NOOUT := >$(NULL) 2>$(NULL)
-export MKPM_TMP := $(MKPM)/.tmp
 
 export ARCH := unknown
 export FLAVOR := unknown
@@ -224,28 +170,6 @@ else
 	endif
 endif
 
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-define for
-(for %%$1 in ($2) do (
-endef
-define for_i
-%%$1
-endef
-define for_end
-))
-endef
-else
-define for
-for $1 in $2; do
-endef
-define for_i
-$$$1
-endef
-define for_end
-; done
-endef
-endif
-
 define ternary
 $(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
 endef
@@ -254,62 +178,10 @@ ifeq ($(PKG_MANAGER),unknown)
 	PKG_MANAGER = $(call ternary,apt-get,apt-get,$(call ternary,apk,apk,$(call ternary,yum,yum,$(call ternary,brew,brew,unknown))))
 endif
 
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-define join_path
-$(shell cmd.exe /q /v /c " \
-	(if "$1"=="" ( \
-		set "one=/" \
-	) else ( \
-		set "one=$1" \
-	)) && \
-	(if "$2"=="" ( \
-		set "two=!one!" \
-	) else ( \
-		set "two=$2" \
-	)) && \
-	set "one=!one: =!" && \
-	set "two=!two: =!" && \
-	set "one=!one:\=/!" && \
-	set "two=!two:\=/!" && \
-	(if "!one:~-1!"=="/" ( \
-		(if "!one!"!==!"/" ( \
-			set "one=!one:~0,-1!" \
-		)) \
-	)) && \
-	(if "!one:~0,1!"=="/" ( \
-		set "one=C:!one!" \
-	)) && \
-	(if "!two:~0,1!"=="/" ( \
-		echo C:!two! \
-	) else ( \
-		(if "!two:~1,2!"==":/" ( \
-			echo !two! \
-		) else ( \
-			(if "!one:~-1!"=="/" ( \
-				echo !one!!two! \
-			) else ( \
-				echo !one!/!two! \
-			)) \
-		)) \
-	)) \
-")
-endef
-else
-define join_path
-$(shell [ "$$(echo "$2" | $(CUT) -c 1-1)" = "/" ] && true || \
-	(echo $1 | $(SED) 's|\/$$||g'))$(shell \
-	[ "$$(echo "$2" | $(CUT) -c 1-1)" = "/" ] && true || echo "/")$(shell \
-	[ "$2" = "" ] && true || echo "$2")
-endef
-endif
-
-export COLUMNS := 0
-ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	COLUMNS = $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && echo $$COLUMNS))
+export COLUMNS := $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && echo $$COLUMNS))
 define columns
 $(call ternary,[ "$(COLUMNS)" -$1 "$2" ],1)
 endef
-endif
 
 define git_clean_flags
 -e $(BANG)$1 \
@@ -326,59 +198,26 @@ endef
 export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_DIR))
 export MKPM_CLEANED := $(MKPM)/.cleaned
 define MKPM_CLEAN
-$(call touch_m,$(MKPM)/.cleaned)
+$(TOUCH) -m $(MKPM)/.cleaned
 endef
 
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	export NIX_ENV :=
-else
-	export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",1)
-endif
+export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",1)
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget -O)
 
 ifneq ($(NIX_ENV),1)
 	ifeq ($(PLATFORM),darwin)
+		export AWK ?= $(call ternary,gawk --version,gawk,awk)
 		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
 		export SED ?= $(call ternary,gsed --version,gsed,sed)
 	endif
 endif
+export AWK ?= awk
+export GIT ?= git
 export GREP ?= grep
 export SED ?= sed
-export GIT ?= git
 export TAR ?= $(call ternary,$(WHICH) tar,$(shell $(WHICH) tar 2>$(NULL)),$(TRUE))
 
 export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-export PROJECT_ROOT ?= $(strip $(shell cmd.exe /q /v /c " \
-	set "paths=$(shell cmd.exe /q /v /c " \
-		set "root=$(ROOT)" && \
-		set "root=!root:/= !" && \
-		set "p= " && \
-		set "paths= " && \
-		(for %%i in (!root!) do ( \
-			(if "!p!"==" " ( \
-				set "p=%%i" \
-			) else ( \
-				set "p=!p!/%%i" \
-			)) && \
-			(if "!paths!"==" " ( \
-				set "paths=!p!" \
-			) else ( \
-				set "paths=!p! !paths!" \
-			)) \
-		)) && \
-		echo !paths! \
-	")" && \
-	set "root=/" && \
-	(for %%j in (!paths!) do set "root=%%j") && \
-	(for %%i in (!paths!) do ( \
-		(if exist %%i/mkpm.mk ( \
-			set "root=%%i" \
-		)) \
-	)) && \
-	echo !root! \
-"))
-else
 export PROJECT_ROOT ?= $(shell \
 	project_root() { \
 		root=$$1 && \
@@ -396,7 +235,6 @@ export PROJECT_ROOT ?= $(shell \
 	} && \
 	echo $$(project_root $(ROOT)) \
 )
-endif
 export SUBPROC :=
 ifneq ($(ROOT),$(CURDIR))
 	SUBPROC = 1
@@ -415,27 +253,6 @@ ifeq ($(PLATFORM),darwin)
 endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
-
-ifeq (,$(MKPM_BINARY))
-	ifneq ($(call ternary,mkpm -V,1),1)
-		ifeq ($(PLATFORM),linux)
-			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
-		endif
-		ifeq ($(PLATFORM),darwin)
-			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH)
-		endif
-		ifneq (,$(MKPM_BINARY_DOWNLOAD))
-			HOME_MKPM_BINARY := $(HOME)/.mkpm/bin/mkpm
-			export MKPM_BINARY := $(HOME_MKPM_BINARY)
-		endif
-		ifeq ($(PLATFORM),win32)
-			MKPM_BINARY_DOWNLOAD ?= https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_BINARY_VERSION)/mkpm-$(MKPM_BINARY_VERSION)-$(PLATFORM)-$(ARCH).exe
-			HOME_MKPM_BINARY := $(HOME)\.mkpm\bin\mkpm.exe
-			export MKPM_BINARY := $(HOME_MKPM_BINARY)
-		endif
-	endif
-endif
-export MKPM_BINARY ?= mkpm
 
 ifeq ($(PKG_MANAGER),yum)
 define pkg_manager_install
@@ -463,11 +280,6 @@ choco install /y $1
 endef
 endif
 
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-define requires_pkg
-echo.
-endef
-else
 define requires_pkg
 echo "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
 	echo && \
@@ -479,98 +291,65 @@ echo "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
 	echo && \
 	$(EXIT) 9009
 endef
-endif
 
 ifneq ($(PROJECT_ROOT),$(CURDIR))
 ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)/.bootstrap))
 _COPY_MKPM := 1
 endif
 endif
-ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 ifneq ($(TRUE),$(TAR))
-MKPM_CACHE_SUPPORTED := 1
-endif
+_MKPM_CACHE_SUPPORTED := 1
 endif
 -include $(MKPM)/.bootstrap
-ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 ifneq ($(TRUE),$(TAR))
 -include $(MKPM)/.cache
-$(MKPM)/.cache: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
-	@$(call mkdir_p,$(MKPM))
-	@([ -f $(MKPM)/.cache ] && [ "$(_LOAD_MKPM_FROM_CACHE)" = "" ]) && $(call rm_rf,$(call join_path,$(MKPM),.cache.tar.gz)) || true
+$(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
+	@$(MKDIR) -p $(MKPM)
+	@([ -f $(MKPM)/.cache ] && [ "$(_LOAD_MKPM_FROM_CACHE)" = "" ]) && $(RM) -rf $(MKPM)/.cache.tar.gz || true
 	@echo 'ifneq (,$$(wildcard $$(MKPM)/.cache.tar.gz))' > $(MKPM)/.cache
 	@echo 'export _LOAD_MKPM_FROM_CACHE := 1' >> $(MKPM)/.cache
 	@echo 'else' >> $(MKPM)/.cache
 	@echo 'export _LOAD_MKPM_FROM_CACHE := 0' >> $(MKPM)/.cache
 	@echo 'endif' >> $(MKPM)/.cache
 endif
-endif
-$(MKPM)/.bootstrap: $(call join_path,$(PROJECT_ROOT),mkpm.mk)
-ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+$(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk $(MKPM_CLI)
 ifeq ($(CURDIR),$(PROJECT_ROOT))
-	@$(call touch,$(PROJECT_ROOT)/.gitignore)
-	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\.mkpm/$$' $(NOOUT) && \
+	@$(TOUCH) -m $(PROJECT_ROOT)/.gitignore
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\.mkpm/$$' $(NOOUT) && \
 		$(SED) -i '/^\.mkpm\/$$/d' $(PROJECT_ROOT)/.gitignore || \
 		$(TRUE)
-	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
-	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^\*\*\/\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\*\*\/\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '**/.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
 endif
-endif
-ifeq (1,$(MKPM_CACHE_SUPPORTED))
-ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+ifeq (1,$(_MKPM_CACHE_SUPPORTED))
 ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
 	@[ ! -f $(MKPM)/.cache.tar.gz ] && exit 1 || true
 endif
 	@if [ $(MKPM)/.cache -nt $(MKPM)/.cache.tar.gz ]; then \
-		$(call touch_m,$(MKPM)/.cache.tar.gz) && \
+		$(TOUCH) -m $(MKPM)/.cache.tar.gz && \
 		exit 1; \
 	fi
 ifeq ($(CURDIR),$(PROJECT_ROOT))
 	@$(GIT) lfs track '.mkpm/.cache.tar.gz' '.mkpm/.bootstrap.mk' >$(NULL)
-	@$(call touch,$(PROJECT_ROOT)/.gitignore)
-	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^!\/\.mkpm/\.cache\.tar\.gz$$' $(NOOUT) && $(TRUE) || \
+	@$(TOUCH) $(PROJECT_ROOT)/.gitignore
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^!\/\.mkpm/\.cache\.tar\.gz$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '!/.mkpm/.cache.tar.gz' >> $(PROJECT_ROOT)/.gitignore
-	@$(call cat,$(PROJECT_ROOT)/.gitignore) | $(GREP) -E '^!\/\.mkpm/\.bootstrap\.mk$$' $(NOOUT) && $(TRUE) || \
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^!\/\.mkpm/\.bootstrap\.mk$$' $(NOOUT) && $(TRUE) || \
 		$(ECHO) '!/.mkpm/.bootstrap.mk' >> $(PROJECT_ROOT)/.gitignore
 endif
 else
 	@$(ECHO) caching not supported on windows 1>&2
 	@exit 1
 endif
-endif
 ifeq ($(MAKELEVEL),0)
 ifeq ($(call columns,lt,62),1)
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	@echo.
-	@echo MKPM
-	@echo.
-	@echo Risser Labs LLC (c) Copyright 2022
-	@echo.
-else
 	@echo
 	@echo "$(LIGHTBLUE)MKPM$(NOCOLOR)"
 	@echo
 	@echo 'Risser Labs LLC (c) Copyright 2022'
 	@echo
-endif
-else
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	@echo.
-	@echo                     88
-	@echo                     88
-	@echo                     88
-	@echo 88,dPYba,,adPYba,   88   ,d8   8b,dPPYba,   88,dPYba,,adPYba,
-	@echo 88P'   "88"    "8a  88 ,a8"    88P'    "8a  88P'   "88"    "8a
-	@echo 88      88      88  8888[      88       d8  88      88      88
-	@echo 88      88      88  88`"Yba,   88b,   ,a8"  88      88      88
-	@echo 88      88      88  88   `Y8a  88`YbbdP"'   88      88      88
-	@echo                                88
-	@echo                                88
-	@echo.
-	@echo Risser Labs LLC (c) Copyright 2022
-	@echo.
 else
 	@echo
 	@echo "$(LIGHTBLUE)"'                    88'
@@ -588,88 +367,25 @@ else
 	@echo
 endif
 endif
-endif
 ifneq ($(call ternary,git --version,1),1)
 	@$(call requires_pkg,git,https://git-scm.com)
 endif
 ifneq ($(call ternary,git lfs --version,1),1)
 	@$(call requires_pkg,git-lfs,https://git-lfs.github.com)
 endif
-	@$(call mkdir_p,$(HOME)/.mkpm/bin)
-	@$(call touch,$(HOME)/.mkpm/sources.list)
-	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
-ifneq (,$(MKPM_BINARY_DOWNLOAD))
-	@$(MKPM_BINARY) -V $(NOOUT) || ( \
-		$(DOWNLOAD) $(MKPM_BINARY) $(MKPM_BINARY_DOWNLOAD) && \
-		chmod +x $(MKPM_BINARY) $(NOFAIL) \
-	)
-endif
-# TODO: add lock here
-ifneq (1,$(_LOAD_MKPM_FROM_CACHE))
-ifneq (,$(MKPM_REPO))
-ifeq (,$(_COPY_MKPM))
-	@$(call cat,$(HOME)/.mkpm/sources.list) > $(HOME)/.mkpm/sources.list.backup
-	@$(call for,i,$(MKPM_REPO)) \
-			$(ECHO) $(call for_i,i) >> $(HOME)/.mkpm/sources.list \
-		$(call for_end)
-	@$(ECHO) MKPM: updating mkpm repo
-	@$(CD) $(PROJECT_ROOT) && $(MKPM_BINARY) update 1>$(NULL)
-endif
-endif
-endif
-ifneq (,$(MKPM_PACKAGES))
 ifneq (,$(_COPY_MKPM))
-	@$(call rm_rf,$(MKPM)) $(NOFAIL)
-	@$(CP_R) $(PROJECT_ROOT)/$(MKPM_DIR) $(MKPM)
-	@$(call rm_rf,$(MKPM_TMP)) $(NOFAIL)
-else
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	@cd $(PROJECT_ROOT) && $(call for,i,$(subst =,:,$(MKPM_PACKAGES))) \
-			cmd.exe /q /v /c " \
-				set "pkg=$(call for_i,i)" && \
-				set "pkgname=!pkg::= !" && \
-				set "pkg=!pkg::==!" && \
-				(for /f "usebackq tokens=1" %%j in (`echo !pkgname!`) do ( \
-					set "pkgname=%%j" && \
-					set "pkgpath="$(MKPM)/.pkgs/!pkgname!"" && \
-					(rmdir /s /q !pkgpath! 2>nul || echo 1>nul) && \
-					mkdir !pkgpath:/=\! 2>nul && \
-					echo MKPM: installing !pkg! && \
-					$(MKPM_BINARY) install !pkg! --prefix !pkgpath:/=\! 1>$(NULL) && \
-					echo include $$^(MKPM^)/.pkgs/!pkgname!/main.mk > "$(MKPM)/!pkgname!" && \
-					echo .PHONY: !pkgname!-%% > "$(MKPM)/-!pkgname!" && \
-					echo !pkgname!-%%: >> "$(MKPM)/-!pkgname!" && \
-					echo 	@$$^(MAKE^) -s -f $$^(MKPM^)/.pkgs/!pkgname!/main.mk $$^(subst !pkgname!-,,$$@^) >> "$(MKPM)/-!pkgname!" \
-				)) \
-			" \
-		$(call for_end)
+	@$(RM) -rf $(MKPM) $(NOFAIL)
+	@$(CP) -r $(PROJECT_ROOT)/$(MKPM_DIR) $(MKPM)
+	@$(RM) -rf $(MKPM_TMP) $(NOFAIL)
 else
 ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
 	@$(CD) $(MKPM) && \
 		$(TAR) -xzf .cache.tar.gz .
 	@$(ECHO) MKPM: loaded from cache
 else
-	@cd $(PROJECT_ROOT) && $(call for,i,$(MKPM_PACKAGES)) \
-			export PKG=$(call for_i,i) && \
-			export PKGNAME="$$(echo $$PKG | $(SED) 's|=.*$$||g')" && \
-			export PKGPATH="$(MKPM)/.pkgs/$$PKGNAME" && \
-			$(call rm_rf,$$PKGPATH) $(NOFAIL) && \
-			$(call mkdir_p,$$PKGPATH) && \
-			echo MKPM: installing $$PKG && \
-			$(MKPM_BINARY) install $$PKG --prefix $$PKGPATH 1>$(NULL) && \
-			echo 'include $$(MKPM)'"/.pkgs/$$PKGNAME/main.mk" > "$(MKPM)/$$PKGNAME" && \
-			echo ".PHONY: $$PKGNAME-%" > "$(MKPM)/-$$PKGNAME" && \
-			echo "$$PKGNAME-%:" >> "$(MKPM)/-$$PKGNAME" && \
-			echo '	@$$(MAKE) -s -f $$(MKPM)/.pkgs/'"$$PKGNAME/main.mk "'$$(subst '"$$PKGNAME-,,$$"'@)' >> "$(MKPM)/-$$PKGNAME" \
-		$(call for_end)
+	@$(MKPM_CLI) _install
 endif
 endif
-endif
-endif
-	@$(call rm_rf,$(HOME)/.mkpm/sources.list) $(NOFAIL)
-	@$(call mv_f,$(HOME)/.mkpm/sources.list.backup,$(HOME)/.mkpm/sources.list) $(NOFAIL)
-ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-ifneq ($(TRUE),$(TAR))
 ifneq (1,$(_LOAD_MKPM_FROM_CACHE))
 	@$(CD) $(MKPM) && \
 		$(TAR) -czf .cache.tar.gz \
@@ -679,9 +395,7 @@ ifneq (1,$(_LOAD_MKPM_FROM_CACHE))
 			--exclude '.cache.tar.gz' \
 			. $(NOFAIL)
 endif
-endif
-endif
-	@$(call touch_m,"$@")
+	@$(TOUCH) -m "$@"
 
 NODE ?= node
 PRETTIER ?= $(call ternary,prettier -v,prettier,$(call ternary,$(PROJECT_ROOT)/node_modules/.bin/prettier -v,$(PROJECT_ROOT)/node_modules/.bin/prettier,$(call ternary,node_modules/.bin/prettier -v,node_modules/.bin/prettier,)))
@@ -691,32 +405,24 @@ HELP_SPACING ?= 32
 export MKPM_HELP ?= _mkpm_help
 export HELP ?= $(MKPM_HELP)
 $(MKPM_HELP):
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	@echo $@ only works on unix
-else
-	@$(call cat,$(CURDIR)/Makefile) | \
+	@$(CAT) $(CURDIR)/Makefile | \
 		$(GREP) -E '^[a-zA-Z0-9][^ 	%*]*:.*##' | \
 		$(SORT) | \
 		$(AWK) 'BEGIN {FS = ":[^#]*([ 	]+##[ 	]*)?"}; {printf "\033[36m%-$(HELP_SPACING)s  \033[0m%s\n", "$(HELP_PREFIX)"$$1, $$2}' | \
 		$(UNIQ)
-endif
 .PHONY: help-generate-table
 help-generate-table:
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	@echo $@ only works on unix
-else
 ifeq (,$(PRETTIER))
 	@$(call requires_pkg,prettier,https://prettier.io,npm install -g prettier)
 else
 ifneq ($(HELP),help-generate-table)
 	@$(MAKE) -s $(HELP)
 endif
-	@$(call mkdir_p,$(MKPM_TMP))
+	@$(MKDIR) -p $(MKPM_TMP)
 	@$(EXPORT) HELP_TABLE=$(MKPM_TMP)/help-table.md && \
 		$(MAKE) -s $(HELP) | \
 		$(HELP_GENERATE_TABLE) > $$HELP_TABLE && \
 		$(PRETTIER) $$HELP_TABLE
-endif
 endif
 
 ifeq (,$(.DEFAULT_GOAL))
@@ -742,8 +448,8 @@ define MKPM_READY
 $(wildcard $(MKPM)/.bootstrap)
 endef
 
-export GLOBAL_MK := $(wildcard $(call join_path,$(PROJECT_ROOT),global.mk))
-export LOCAL_MK := $(wildcard $(call join_path,$(CURDIR),local.mk))
+export GLOBAL_MK := $(wildcard $(PROJECT_ROOT)/global.mk)
+export LOCAL_MK := $(wildcard $(CURDIR)/local.mk)
 ifneq (,$(MKPM_READY))
 ifneq (,$(GLOBAL_MK))
 -include $(GLOBAL_MK)
@@ -753,9 +459,14 @@ ifneq (,$(LOCAL_MK))
 endif
 endif
 
-ifeq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+$(MKPM_CLI):
+	@$(MKDIR) -p $(@D)
+	@$(DOWNLOAD) $@ $(MKPM_CLI_URI)
+	@$(CHMOD) +x $@
+
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 include cmd.exe
 cmd.exe:
-	@echo cmd.exe not supported 1>&2
+	@$(ECHO) cmd.exe not supported 1>&2
 	@exit 1
 endif

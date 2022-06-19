@@ -1,5 +1,6 @@
 #!/bin/sh
 
+export MKPM_CLI_VERSION=0.2.0
 export _CWD=$(pwd)
 export _USER_ID=$(id -u $USER)
 export _TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && echo "/run/user/$_USER_ID" || echo ${TMP:-${TEMP:-/tmp}})}/mkpm/$$"
@@ -10,6 +11,10 @@ export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then
+        if [ "$_PARAM" = "" ] && [ "$_REPO" = "" ]; then
+            _install
+            return
+        fi
         local _REPO_URI=$(_lookup_repo_uri $_REPO)
         if [ "$_REPO_URI" = "" ]; then
             echo "repo $_REPO is not valid"
@@ -31,6 +36,15 @@ main() {
 }
 
 _install() {
+    if [ "$1" = "" ]; then
+        for r in $(_lookup_repos); do
+            for p in $(eval $(echo "echo \$MKPM_PACKAGES_$(echo $r | tr '[:lower:]' '[:upper:]')")); do
+                _install $p $(_lookup_repo_uri $r) $r
+            done
+        done
+        exit 1
+        return
+    fi
     local _PACKAGE=$1
     local _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
     local _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]\+\=\?||g')
@@ -99,7 +113,11 @@ _lookup_repo_uri() {
 }
 
 _lookup_repos() {
-    env | cut -d'=' -f1 | grep -E 'MKPM_REPO_\w+'
+    env | \
+        cut -d'=' -f1 | \
+        grep -E 'MKPM_REPO_\w+' | \
+        sed 's|^MKPM_REPO_||g' | \
+        tr '[:upper:]' '[:lower:]'
 }
 
 _remove() {
@@ -208,9 +226,13 @@ while test $# -gt 0; do
 done
 
 case "$1" in
-    i|install)
-        shift
+    _install)
         export _COMMAND=install
+        shift
+    ;;
+    i|install)
+        export _COMMAND=install
+        shift
         if test $# -gt 0; then
             export _REPO=$1
             shift
@@ -227,9 +249,9 @@ case "$1" in
         fi
     ;;
     r|remove)
+        export _COMMAND=remove
         shift
         if test $# -gt 0; then
-            export _COMMAND=remove
             export _PARAM=$1
             shift
         else
@@ -238,9 +260,9 @@ case "$1" in
         fi
     ;;
     d|dependencies)
+        export _COMMAND=dependencies
         shift
         if test $# -gt 0; then
-            export _COMMAND=dependencies
             export _PARAM=$1
             shift
         else
@@ -249,9 +271,9 @@ case "$1" in
         fi
     ;;
     ra|repo-add)
+        export _COMMAND=repo-add
         shift
         if test $# -gt 0; then
-            export _COMMAND=repo-add
             export _REPO_NAME=$1
             shift
         else
@@ -267,9 +289,9 @@ case "$1" in
         fi
     ;;
     # rr|repo-remove)
+    #     export _COMMAND=repo-remove
     #     shift
     #     if test $# -gt 0; then
-    #         export _COMMAND=repo-remove
     #         export _REPO_NAME=$1
     #         shift
     #     else

@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 19-06-2022 08:33:17
+# Last Modified: 19-06-2022 12:57:07
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -20,17 +20,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MKPM_PACKAGES_DEFAULT := \
-	hello=0.0.5 \
+export MKPM_PACKAGES_DEFAULT := \
+	hello=0.0.4 \
 	gnu=0.0.3 \
 
-MKPM_REPO_DEFAULT := \
+export MKPM_REPO_DEFAULT := \
 	https://gitlab.com/risserlabs/community/mkpm-stable.git
-
-MKPM_PACKAGES_ADSF := \
-
-MKPM_REPO_ADSF := \
-	git@gitlab.com:promanager/quickcam-react.git
 
 ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
 MKPM_BOOTSTRAP := https://risserlabs.gitlab.io/community/mkpm/bootstrap.mk
@@ -42,11 +37,14 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	TRUE = type nul
 endif
 -include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
-$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk
-	@mkdir .mkpm 2>$(NULL) || $(TRUE)
+$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk .mkpm/.bin/mkpm
 ifeq ($(OS),Windows_NT)
 	@type $< > $@
 else
 	@cp $< $@
 endif
+.mkpm/.bin/mkpm: mkpm.sh
+	@mkdir -p .mkpm/.bin 2>$(NULL) || $(TRUE)
+	@cp $< $@
+	@chmod +x $@
 ############## MKPM BOOTSTRAP SCRIPT END ##############
