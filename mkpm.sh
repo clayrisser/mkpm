@@ -23,6 +23,10 @@ main() {
         _remove $_PARAM
     elif [ "$_COMMAND" = "dependencies" ]; then
         _dependencies $_PARAM
+    elif [ "$_COMMAND" = "repo-add" ]; then
+        _repo_add $_REPO_NAME $_REPO_URI
+    elif [ "$_COMMAND" = "repo-remove" ]; then
+        _repo_remove $_REPO_NAME
     fi
 }
 
@@ -131,6 +135,36 @@ _get_default_branch() {
     git branch -r --points-at refs/remotes/origin/HEAD | grep '\->' | cut -d' ' -f5 | cut -d/ -f2
 }
 
+_repo_add() {
+    if [ "$MKPM" != "" ]; then
+        echo repo-add cannot be run from mkpm 1>&2
+        exit 1
+    fi
+    local _REPO_NAME=$1
+    local _REPO_URI=$2
+    if ! _is_repo_uri "$_REPO_URI"; then
+        echo "invalid repo uri $_REPO_URI" 1>&2
+        exit 1
+    fi
+    local _BODY="MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n\nMKPM_REPO_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n	${_REPO_URI}"
+    local _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | grep "#\+ MKPM BOOTSTRAP SCRIPT BEGIN" | grep -oE '[0-9]+')
+    if [ "$_LINE_NUMBER" != "" ]; then
+        sed -i -e "\$a\\\\n${_BODY}" "$_CWD/mkpm.mk"
+    else
+        sed -i "${_LINE_NUMBER}i\\${_BODY}\n" "$_CWD/mkpm.mk"
+    fi
+    echo repo-add $_REPO_NAME $_REPO_URI
+}
+
+_repo_remove() {
+    if [ "$MKPM" != "" ]; then
+        echo repo-remove cannot be run from mkpm 1>&2
+        exit 1
+    fi
+    local _REPO_NAME=$1
+    echo repo-remove $_REPO_NAME
+}
+
 # _repo_add() {
 #     if [ ! -f "$_REPOS_LIST_PATH" ]; then
 #         touch $_REPOS_LIST_PATH
@@ -172,9 +206,11 @@ while test $# -gt 0; do
             echo "    -s, --silent                  silent output"
             echo " "
             echo "commands:"
-            echo "    i install <REPO> <PACKAGE>    install a package from git repo"
-            echo "    r remove <PACKAGE>            remove a package"
-            echo "    d dependencies <PACKAGE>      dependencies required by package"
+            echo "    i install <REPO> <PACKAGE>            install a package from git repo"
+            echo "    r remove <PACKAGE>                    remove a package"
+            echo "    d dependencies <PACKAGE>              dependencies required by package"
+            echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
+            echo "    rr repo-remove <REPO_NAME>            remove repo"
             exit 0
         ;;
         -s|--silent)
@@ -229,6 +265,35 @@ case "$1" in
             shift
         else
             echo "no package specified" 1>&2
+            exit 1
+        fi
+    ;;
+    ra|repo-add)
+        shift
+        if test $# -gt 0; then
+            export _COMMAND=repo-add
+            export _REPO_NAME=$1
+            shift
+        else
+            echo "no repo name specified" 1>&2
+            exit 1
+        fi
+        if test $# -gt 0; then
+            export _REPO_URI=$1
+            shift
+        else
+            echo "no repo uri specified" 1>&2
+            exit 1
+        fi
+    ;;
+    rr|repo-remove)
+        shift
+        if test $# -gt 0; then
+            export _COMMAND=repo-remove
+            export _REPO_NAME=$1
+            shift
+        else
+            echo "no repo name specified" 1>&2
             exit 1
         fi
     ;;
