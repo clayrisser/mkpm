@@ -23,7 +23,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
    	https://gitlab.com/risserlabs/community/mkpm-stable.git
 
    ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-   MKPM_BOOTSTRAP := https://risserlabs.gitlab.io/community/mkpm/bootstrap.mk
+   MKPM_BOOTSTRAP := https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.2.0/bootstrap.mk
    export PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
    NULL := /dev/null
    TRUE := true
@@ -31,7 +31,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
    	NULL = nul
    	TRUE = type nul
    endif
-   -include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
+   include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
    $(PROJECT_ROOT)/.mkpm/.bootstrap.mk:
    	@mkdir $(@D) 2>$(NULL) || $(TRUE)
    	@$(shell curl --version >$(NULL) 2>$(NULL) && \
@@ -66,23 +66,3 @@ https://gitlab.com/risserlabs/community/mkpm-example
 
    endif
    ```
-
-## Troubleshooting
-
-### OpenSSL Error
-
-If you are getting an error like the following when running the mkpm binary, it
-probably means you are missing the correct version of openssl on OSX.
-
-```
-dyld: Library not loaded: /usr/local/opt/openssl@1.1/lib/libssl.1.1.dylib
-  Referenced from: mkpm
-  Reason: image not found
-```
-
-You can fix the error on OSX by running the following command to install
-openssl 1.1.
-
-```sh
-brew install openssl@1.1
-```
