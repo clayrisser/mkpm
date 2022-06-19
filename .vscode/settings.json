@@ -1,5 +1,6 @@
 {
   "cSpell.words": [
+    "abspath",
     "aerys",
     "armv",
     "autotag",
@@ -29,6 +30,7 @@
     "ifneq",
     "indicatif",
     "joseluisq",
+    "lastword",
     "libc",
     "linux",
     "mkdir",
