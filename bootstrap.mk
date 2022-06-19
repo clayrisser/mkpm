@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 19-06-2022 12:46:14
+# Last Modified: 19-06-2022 13:36:10
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -129,7 +129,7 @@ else
 				ifneq (,$(wildcard /etc/debian_version))
 					FLAVOR = debian
 				endif
-				ifeq ($(shell cat /etc/os-release 2>$(NULL) | grep -qE "^ID=alpine$$"),ID=alpine)
+				ifeq ($(shell cat /etc/os-release 2>$(NULL) | grep -E "^ID=alpine$$"),ID=alpine)
 					FLAVOR = alpine
 				endif
 			endif
