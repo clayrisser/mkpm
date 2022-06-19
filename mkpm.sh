@@ -148,7 +148,7 @@ _repo_add() {
     fi
     local _BODY="MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n\nMKPM_REPO_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n	${_REPO_URI}"
     local _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | grep "#\+ MKPM BOOTSTRAP SCRIPT BEGIN" | grep -oE '[0-9]+')
-    if [ "$_LINE_NUMBER" != "" ]; then
+    if [ "$_LINE_NUMBER" = "" ]; then
         sed -i -e "\$a\\\\n${_BODY}" "$_CWD/mkpm.mk"
     else
         sed -i "${_LINE_NUMBER}i\\${_BODY}\n" "$_CWD/mkpm.mk"
