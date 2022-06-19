@@ -1,90 +1,22 @@
 stages:
-  - build
   - upload
   - publish
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  DARWIN_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64'
-  LINUX_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64'
-  WIN32_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-win32-amd64.exe'
-  PACKAGE_REGISTRY_URL: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mkpm/${CI_COMMIT_TAG}'
-
-build:darwin:
-  stage: build
-  tags:
-    - macos-amd64
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - cd gpm
-    - git reset --hard
-    - git apply ../gpm.patch
-    - cargo build --release
-    - du -sh target/release/mkpm
-    - mkdir ../bin
-    - mv target/release/mkpm ../bin/${DARWIN_AMD64_BINARY}
-  artifacts:
-    paths:
-      - bin
-    expire_in: 1 hour
-
-build:linux:
-  stage: build
-  image: joseluisq/rust-linux-darwin-builder:1.55.0
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - cd gpm
-    - git reset --hard
-    - git apply ../gpm.patch
-    - cargo build --release --target x86_64-unknown-linux-musl
-    - du -sh target/x86_64-unknown-linux-musl/release/mkpm
-    - mkdir ../bin
-    - mv target/x86_64-unknown-linux-musl/release/mkpm ../bin/${LINUX_AMD64_BINARY}
-  artifacts:
-    paths:
-      - bin
-    expire_in: 1 hour
-
-build:win32:
-  stage: build
-  tags:
-    - win32-amd64
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - cd gpm
-    - git reset --hard
-    - git apply ../gpm.patch
-    - cargo build --release
-    - dir target/release/mkpm.exe
-    - mkdir ../bin
-    - mv target/release/mkpm.exe ../bin/${WIN32_AMD64_BINARY}
-  artifacts:
-    paths:
-      - bin
-    expire_in: 1 hour
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}/${CI_COMMIT_TAG}"
 
 upload:
   stage: upload
   image: curlimages/curl:latest
   rules:
     - if: $CI_COMMIT_TAG
-  needs:
-    - build:darwin
-    - build:linux
-    - build:win32
   script:
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${DARWIN_AMD64_BINARY} \
-        ${PACKAGE_REGISTRY_URL}/${DARWIN_AMD64_BINARY}
-    - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${LINUX_AMD64_BINARY} \
-        ${PACKAGE_REGISTRY_URL}/${LINUX_AMD64_BINARY}
-    - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${WIN32_AMD64_BINARY} \
-        ${PACKAGE_REGISTRY_URL}/${WIN32_AMD64_BINARY}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file mkpm.sh \
+        ${PACKAGE_REGISTRY_URL}/mkpm.sh
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bootstrap.mk \
+        ${PACKAGE_REGISTRY_URL}/bootstrap.mk
 
 release:
   stage: publish
@@ -96,9 +28,8 @@ release:
   script:
     - |
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
-        --assets-link "{\"name\":\"${DARWIN_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DARWIN_AMD64_BINARY}\"}" \
-        --assets-link "{\"name\":\"${LINUX_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${LINUX_AMD64_BINARY}\"}" \
-        --assets-link "{\"name\":\"${WIN32_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${WIN32_AMD64_BINARY}\"}"
+        --assets-link "{\"name\":\"mkpm.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.sh\"}" \
+        --assets-link "{\"name\":\"bootstrap.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/bootstrap.mk\"}"
 
 pages:
   stage: publish
