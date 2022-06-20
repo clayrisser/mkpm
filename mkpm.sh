@@ -3,7 +3,8 @@
 export MKPM_CLI_VERSION=0.2.0
 export _CWD=$(pwd)
 export _USER_ID=$(id -u $USER)
-export _TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && echo "/run/user/$_USER_ID" || echo ${TMP:-${TEMP:-/tmp}})}/mkpm/$$"
+export _TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && \
+    echo "/run/user/$_USER_ID" || echo ${TMP:-${TEMP:-/tmp}})}/mkpm/$$"
 export _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 export _REPOS_PATH="$_STATE_PATH/repos"
 export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
@@ -83,10 +84,12 @@ _install() {
         "$_CWD/.mkpm/$_PACKAGE_NAME" \
         "$_CWD/.mkpm/-$_PACKAGE_NAME" \
         "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" 2>/dev/null || true
-    echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > "$_CWD/.mkpm/$_PACKAGE_NAME"
+    echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > \
+        "$_CWD/.mkpm/$_PACKAGE_NAME"
     echo ".PHONY: $_PACKAGE_NAME-%" > "$_CWD/.mkpm/-$_PACKAGE_NAME"
     echo "$_PACKAGE_NAME-%:" >> "$_CWD/.mkpm/-$_PACKAGE_NAME"
-    echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> "$_CWD/.mkpm/-$_PACKAGE_NAME"
+    echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> \
+        "$_CWD/.mkpm/-$_PACKAGE_NAME"
     mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
     if [ "$MKPM" = "" ] && [ "$_REPO_NAME" != "" ]; then
@@ -108,10 +111,12 @@ _lookup_repo_uri() {
         echo $_REPO
         return
     fi
-    local _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | tr '[:lower:]' '[:upper:]'))
+    local _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | \
+        tr '[:lower:]' '[:upper:]'))
     if [ "$_REPO_URI" = "" ] && [ -f "$_CWD/mkpm.mk" ]; then
         local _LINE=$(cat -n "$_CWD/mkpm.mk" | \
-            grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')\s" | head -n1)
+            grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')\s" | \
+            head -n1)
         if echo $_LINE | grep -E '\\\s*$' >/dev/null 2>/dev/null; then
             local _LINE_NUMBER="$(expr $(echo $_LINE | \
                 grep -oE '[0-9]+') + 1)"
@@ -166,7 +171,8 @@ _repo_path() {
 }
 
 _get_default_branch() {
-    git branch -r --points-at refs/remotes/origin/HEAD | grep '\->' | cut -d' ' -f5 | cut -d/ -f2
+    git branch -r --points-at refs/remotes/origin/HEAD | grep '\->' | \
+        cut -d' ' -f5 | cut -d/ -f2
 }
 
 _repo_add() {
@@ -184,8 +190,13 @@ _repo_add() {
         echo "invalid repo uri $_REPO_URI" 1>&2
         exit 1
     fi
-    local _BODY="export MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n\nexport MKPM_REPO_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n	${_REPO_URI}"
-    local _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | grep "#\+ MKPM BOOTSTRAP SCRIPT BEGIN" | grep -oE '[0-9]+')
+    local _BODY="export MKPM_PACKAGES_$( \
+        echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
+    ) := \\\\\n\nexport MKPM_REPO_$( \
+        echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
+    ) := \\\\\n	${_REPO_URI}"
+    local _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | \
+        grep "#\+ MKPM BOOTSTRAP SCRIPT BEGIN" | grep -oE '[0-9]+')
     if [ "$_LINE_NUMBER" = "" ]; then
         sed -i -e "\$a\\\\n${_BODY}" "$_CWD/mkpm.mk"
     else
