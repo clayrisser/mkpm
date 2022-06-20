@@ -75,7 +75,7 @@ _install() {
         echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
     fi
-    git lfs pull
+    git lfs pull --include "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
     if [ ! -f "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" ]; then
         echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
