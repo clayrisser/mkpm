@@ -12,6 +12,10 @@ main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then
         if [ "$_PARAM1" = "" ] && [ "$_PARAM2" = "" ]; then
+            if [ "$MKPM" = "" ]; then
+                echo _install must be called from mkpm makefile 1>&2
+                exit 1
+            fi
             _install
             return
         fi
@@ -46,7 +50,6 @@ _install() {
                 _install $p $(_lookup_repo_uri $r) $r
             done
         done
-        exit 1
         return
     fi
     local _PACKAGE=$1
@@ -76,7 +79,14 @@ _install() {
         echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
     fi
-    rm -rf "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
+    rm -rf \
+        "$_CWD/.mkpm/$_PACKAGE_NAME" \
+        "$_CWD/.mkpm/-$_PACKAGE_NAME" \
+        "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" 2>/dev/null || true
+    echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > "$_CWD/.mkpm/$_PACKAGE_NAME"
+    echo ".PHONY: $_PACKAGE_NAME-%" > "$_CWD/.mkpm/-$_PACKAGE_NAME"
+    echo "$_PACKAGE_NAME-%:" >> "$_CWD/.mkpm/-$_PACKAGE_NAME"
+    echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> "$_CWD/.mkpm/-$_PACKAGE_NAME"
     mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
     if [ "$MKPM" = "" ] && [ "$_REPO_NAME" != "" ]; then
@@ -182,6 +192,7 @@ _repo_add() {
         sed -i "${_LINE_NUMBER}i\\${_BODY}\n" "$_CWD/mkpm.mk"
     fi
     _trim_mkpm_file
+    _reset
     echo "added repo $_REPO_NAME"
 }
 
@@ -200,7 +211,16 @@ _repo_remove() {
             echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
         )"'[ \t]\+:=[ \t]*\\[ \t]*\n[ \t]*[^\n]\+\s*|\n\n|' "$_CWD/mkpm.mk"
     _trim_mkpm_file
+    _reset
     echo "removed repo $_REPO_NAME"
+}
+
+_reset() {
+    rm -rf $(find "$_CWD/.mkpm" \
+        -not -path "$_CWD/.mkpm" \
+        -not -path "$_CWD/.mkpm/.bootstrap.mk" \
+        -not -path "$_CWD/.mkpm/.bin" \
+        -not -path "$_CWD/.mkpm/.bin/**")
 }
 
 _trim_mkpm_file() {

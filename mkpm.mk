@@ -21,8 +21,7 @@
 # limitations under the License.
 
 export MKPM_PACKAGES_DEFAULT := \
-	hello=0.0.2 \
-	mkchain=0.0.4
+	hello=0.0.4
 
 export MKPM_REPO_DEFAULT := \
 	https://gitlab.com/risserlabs/community/mkpm-stable.git
