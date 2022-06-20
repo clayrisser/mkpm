@@ -169,7 +169,7 @@ _repo_add() {
         echo "invalid repo uri $_REPO_URI" 1>&2
         exit 1
     fi
-    local _BODY="MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n\nMKPM_REPO_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n	${_REPO_URI}"
+    local _BODY="export MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n\nexport MKPM_REPO_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]') := \\\\\n	${_REPO_URI}"
     local _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | grep "#\+ MKPM BOOTSTRAP SCRIPT BEGIN" | grep -oE '[0-9]+')
     if [ "$_LINE_NUMBER" = "" ]; then
         sed -i -e "\$a\\\\n${_BODY}" "$_CWD/mkpm.mk"
@@ -185,11 +185,15 @@ _repo_remove() {
         exit 1
     fi
     local _REPO_NAME=$1
-    echo repo-remove $_REPO_NAME
-    sed -z "s|export[ ]\+MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
+    if [ "$(_lookup_repo_uri $_REPO_NAME)" = "" ]; then
+        echo "repo $_REPO_NAME does not exist" 1>&2
+        exit 1
+    fi
+    sed -i -z "s|\s*export[ ]\+MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
         )"'[ \t]\+:=[ \t]*\\[ \t]*\(\n[ \t]*[^ \t\n=]\+=[^ \t\n]\+\([ \t]\+\\\)\?[ \t]*\)*\s*export[ ]\+MKPM_REPO_'"$( \
             echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
-        )"'[ \t]\+:=[ \t]*\\[ \t]*\n[ \t]*[^\n]\+\n||' "$_CWD/mkpm.mk"
+        )"'[ \t]\+:=[ \t]*\\[ \t]*\n[ \t]*[^\n]\+\s*|\n\n|' "$_CWD/mkpm.mk"
+    echo "removed repo $_REPO_NAME"
 }
 
 if ! test $# -gt 0; then
