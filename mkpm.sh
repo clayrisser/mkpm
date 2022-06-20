@@ -186,6 +186,10 @@ _repo_remove() {
     fi
     local _REPO_NAME=$1
     echo repo-remove $_REPO_NAME
+    sed -z "s|export[ ]\+MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
+        )"'[ \t]\+:=[ \t]*\\[ \t]*\(\n[ \t]*[^ \t\n=]\+=[^ \t\n]\+\([ \t]\+\\\)\?[ \t]*\)*\s*export[ ]\+MKPM_REPO_'"$( \
+            echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
+        )"'[ \t]\+:=[ \t]*\\[ \t]*\n[ \t]*[^\n]\+\n||' "$_CWD/mkpm.mk"
 }
 
 if ! test $# -gt 0; then
@@ -288,17 +292,17 @@ case "$1" in
             exit 1
         fi
     ;;
-    # rr|repo-remove)
-    #     export _COMMAND=repo-remove
-    #     shift
-    #     if test $# -gt 0; then
-    #         export _REPO_NAME=$1
-    #         shift
-    #     else
-    #         echo "no repo name specified" 1>&2
-    #         exit 1
-    #     fi
-    # ;;
+    rr|repo-remove)
+        export _COMMAND=repo-remove
+        shift
+        if test $# -gt 0; then
+            export _REPO_NAME=$1
+            shift
+        else
+            echo "no repo name specified" 1>&2
+            exit 1
+        fi
+    ;;
     *)
         echo "invalid command $1" 1>&2
         exit 1
