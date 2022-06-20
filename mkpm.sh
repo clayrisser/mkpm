@@ -11,10 +11,12 @@ export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then
-        if [ "$_PARAM" = "" ] && [ "$_REPO" = "" ]; then
+        if [ "$_PARAM1" = "" ] && [ "$_PARAM2" = "" ]; then
             _install
             return
         fi
+        local _REPO=$_PARAM1
+        local _PACKAGE=$_PARAM2
         local _REPO_URI=$(_lookup_repo_uri $_REPO)
         if [ "$_REPO_URI" = "" ]; then
             echo "repo $_REPO is not valid"
@@ -23,15 +25,17 @@ main() {
         if ! _is_repo_uri "$_REPO"; then
             local _REPO_NAME="$(echo $_REPO | tr '[:lower:]' '[:upper:]')"
         fi
-        _install $_PARAM $_REPO_URI $_REPO_NAME
+        _install $_PACKAGE $_REPO_URI $_REPO_NAME
     elif [ "$_COMMAND" = "remove" ]; then
-        _remove $_PARAM
+        _remove $_PARAM1
     elif [ "$_COMMAND" = "dependencies" ]; then
-        _dependencies $_PARAM
+        _dependencies $_PARAM1
     elif [ "$_COMMAND" = "repo-add" ]; then
+        local _REPO_NAME=$_PARAM1
+        local _REPO_URI=$_PARAM2
         _repo_add $_REPO_NAME $_REPO_URI
     elif [ "$_COMMAND" = "repo-remove" ]; then
-        _repo_remove $_REPO_NAME
+        _repo_remove $_PARAM1
     fi
 }
 
@@ -79,6 +83,7 @@ _install() {
         sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
         _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep "MKPM_PACKAGES_${_REPO_NAME} := \\\\" | grep -oE '[0-9]+') + 1)
         sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
+        _trim_mkpm_file
     fi
     echo installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}
 }
@@ -176,6 +181,7 @@ _repo_add() {
     else
         sed -i "${_LINE_NUMBER}i\\${_BODY}\n" "$_CWD/mkpm.mk"
     fi
+    _trim_mkpm_file
     echo "added repo $_REPO_NAME"
 }
 
@@ -193,7 +199,12 @@ _repo_remove() {
         )"'[ \t]\+:=[ \t]*\\[ \t]*\(\n[ \t]*[^ \t\n=]\+=[^ \t\n]\+\([ \t]\+\\\)\?[ \t]*\)*\s*export[ ]\+MKPM_REPO_'"$( \
             echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
         )"'[ \t]\+:=[ \t]*\\[ \t]*\n[ \t]*[^\n]\+\s*|\n\n|' "$_CWD/mkpm.mk"
+    _trim_mkpm_file
     echo "removed repo $_REPO_NAME"
+}
+
+_trim_mkpm_file() {
+    sed -i -z 's|\t\([^ \t\n=]\+=[^ \t\n]\+\)[ \t]\+\\[ \t]*\n\([ \t]*\n[ \t]*\)\+|\t\1\n\n|g' "$_CWD/mkpm.mk"
 }
 
 if ! test $# -gt 0; then
@@ -216,7 +227,7 @@ while test $# -gt 0; do
             echo "    r remove <PACKAGE>                    remove a package"
             echo "    d dependencies <PACKAGE>              dependencies required by package"
             echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
-            # echo "    rr repo-remove <REPO_NAME>            remove repo"
+            echo "    rr repo-remove <REPO_NAME>            remove repo"
             exit 0
         ;;
         -s|--silent)
@@ -242,14 +253,14 @@ case "$1" in
         export _COMMAND=install
         shift
         if test $# -gt 0; then
-            export _REPO=$1
+            export _PARAM1=$1
             shift
         else
             echo "no repo specified" 1>&2
             exit 1
         fi
         if test $# -gt 0; then
-            export _PARAM=$1
+            export _PARAM2=$1
             shift
         else
             echo "no package specified" 1>&2
@@ -260,7 +271,7 @@ case "$1" in
         export _COMMAND=remove
         shift
         if test $# -gt 0; then
-            export _PARAM=$1
+            export _PARAM1=$1
             shift
         else
             echo "no package specified" 1>&2
@@ -271,7 +282,7 @@ case "$1" in
         export _COMMAND=dependencies
         shift
         if test $# -gt 0; then
-            export _PARAM=$1
+            export _PARAM1=$1
             shift
         else
             echo "no package specified" 1>&2
@@ -282,14 +293,14 @@ case "$1" in
         export _COMMAND=repo-add
         shift
         if test $# -gt 0; then
-            export _REPO_NAME=$1
+            export _PARAM1=$1
             shift
         else
             echo "no repo name specified" 1>&2
             exit 1
         fi
         if test $# -gt 0; then
-            export _REPO_URI=$1
+            export _PARAM2=$1
             shift
         else
             echo "no repo uri specified" 1>&2
@@ -300,7 +311,7 @@ case "$1" in
         export _COMMAND=repo-remove
         shift
         if test $# -gt 0; then
-            export _REPO_NAME=$1
+            export _PARAM1=$1
             shift
         else
             echo "no repo name specified" 1>&2
