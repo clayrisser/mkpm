@@ -8,6 +8,7 @@ export _TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && \
 export _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 export _REPOS_PATH="$_STATE_PATH/repos"
 export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
+export GIT_LFS_SKIP_SMUDGE=1
 
 main() {
     _prepare
@@ -23,6 +24,7 @@ main() {
         local _REPO=$_PARAM1
         local _PACKAGE=$_PARAM2
         local _REPO_URI=$(_lookup_repo_uri $_REPO)
+        local _REPO_PATH=$(_repo_path $_REPO_URI)
         if [ "$_REPO_URI" = "" ]; then
             echo "repo $_REPO is not valid"
             exit 1
@@ -30,6 +32,7 @@ main() {
         if ! _is_repo_uri "$_REPO"; then
             local _REPO_NAME="$(echo $_REPO | tr '[:lower:]' '[:upper:]')"
         fi
+        _update_repo $_REPO_URI $_REPO_PATH
         _install $_PACKAGE $_REPO_URI $_REPO_NAME
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM1
@@ -47,22 +50,23 @@ main() {
 _install() {
     if [ "$1" = "" ]; then
         for r in $(_lookup_repos); do
+            local _REPO_URI=$(_lookup_repo_uri $r)
+            local _REPO_PATH=$(_repo_path $_REPO_URI)
+            _update_repo "$_REPO_URI" "$_REPO_PATH"
             for p in $(eval $(echo "echo \$MKPM_PACKAGES_$(echo $r | tr '[:lower:]' '[:upper:]')")); do
-                _install $p $(_lookup_repo_uri $r) $r
+                _install $p "$_REPO_URI" $r
             done
         done
+        _create_cache
         return
     fi
     local _PACKAGE=$1
     local _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
     local _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]\+\=\?||g')
-    local _REPO=$2
-    local _REPO_PATH=$(_repo_path $_REPO)
+    local _REPO_URI=$2
+    local _REPO_PATH=$(_repo_path $_REPO_URI)
     local _REPO_NAME=$3
-    _update_repo $_REPO $_REPO_PATH
     cd "$_REPO_PATH" || exit 1
-    git add . >/dev/null
-    git reset --hard >/dev/null
     git config advice.detachedHead false >/dev/null
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | sed "s|${_PACKAGE_NAME}/||g" | tail -n1)
@@ -71,7 +75,7 @@ _install() {
         echo "package $_PACKAGE_NAME does not exist" 1>&2
         exit 1
     fi
-    if ! git checkout $_PACKAGE_NAME/$_PACKAGE_VERSION >/dev/null 2>/dev/null; then
+    if ! git checkout -f "$_PACKAGE_NAME/$_PACKAGE_VERSION" >/dev/null 2>/dev/null; then
         echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
     fi
@@ -98,6 +102,7 @@ _install() {
         sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
         _trim_mkpm_file
     fi
+    _create_cache
     echo installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}
 }
 
@@ -156,14 +161,14 @@ _prepare() {
 }
 
 _update_repo() {
-    _REPO=$1
-    _REPO_PATH=$2
-    if [ -d "$_REPO_PATH" ]; then
-        cd "$_REPO_PATH"
-        git fetch --all >/dev/null
-    else
-        git clone $1 "$_REPO_PATH" >/dev/null
+    local _REPO_URI=$1
+    local _REPO_PATH=$2
+    echo "updating repo $_REPO_URI"
+    if [ ! -d "$_REPO_PATH" ]; then
+        git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH"
     fi
+    cd "$_REPO_PATH"
+    git fetch -q --depth 1 --tags
 }
 
 _repo_path() {
@@ -232,6 +237,17 @@ _reset() {
         -not -path "$_CWD/.mkpm/.bootstrap.mk" \
         -not -path "$_CWD/.mkpm/.bin" \
         -not -path "$_CWD/.mkpm/.bin/**")
+}
+
+_create_cache() {
+    cd "$_CWD/.mkpm"
+    touch .cache.tar.gz
+    tar -czf .cache.tar.gz \
+        --exclude '.tmp' \
+        --exclude '.bootstrap' \
+        --exclude '.bootstrap.mk' \
+        --exclude '.cache.tar.gz' \
+        .
 }
 
 _trim_mkpm_file() {
