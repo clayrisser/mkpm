@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 21-06-2022 11:38:13
+# Last Modified: 21-06-2022 12:02:25
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -37,14 +37,14 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	TRUE = type nul
 endif
 include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
-$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk .mkpm/.bin/mkpm
+$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk mkpm.mk
 ifeq ($(OS),Windows_NT)
+	@mkdir .mkpm
 	@type $< > $@
 else
+	@mkdir -p .mkpm/.bin
 	@cp $< $@
+	@cp mkpm.sh .mkpm/.bin/mkpm
+	@chmod +x .mkpm/.bin/mkpm
 endif
-.mkpm/.bin/mkpm: mkpm.sh
-	@mkdir -p .mkpm/.bin 2>$(NULL) || $(TRUE)
-	@cp $< $@
-	@chmod +x $@
 ############## MKPM BOOTSTRAP SCRIPT END ##############

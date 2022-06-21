@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 21-06-2022 11:47:50
+# Last Modified: 21-06-2022 12:45:28
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -24,7 +24,7 @@
 .SILENT:
 
 export MKPM_BOOTSTRAP_VERSION := 0.1.1
-export MKPM_CLI_VERSION := 0.2.0
+export EXPECTED_MKPM_CLI_VERSION := 0.2.0
 export MKPM_DIR := .mkpm
 export MKPM_CLI_URI := \
 	https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(MKPM_CLI_VERSION)/mkpm.sh
@@ -33,7 +33,6 @@ export MAKESHELL ?= $(SHELL)
 export MKPM := $(abspath $(CURDIR)/$(MKPM_DIR))
 export MKPM_CLI := $(MKPM)/.bin/mkpm
 export MKPM_TMP := $(MKPM)/.tmp
-export _MKPM_CLI_VERSION := $(MKPM_CLI_VERSION)
 
 export NOCOLOR=\033[0m
 export RED=\033[0;31m
@@ -292,11 +291,16 @@ $(ECHO) "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
 	$(EXIT) 9009
 endef
 
+define _mkpm_failed
+($(TOUCH) $(MKPM)/.failed && $(EXIT) 1)
+endef
+
 ifneq ($(PROJECT_ROOT),$(CURDIR))
 ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)/.bootstrap))
 _COPY_MKPM := 1
 endif
 endif
+include $(MKPM)/.ready
 -include $(MKPM)/.bootstrap
 ifneq ($(TRUE),$(TAR))
 -include $(MKPM)/.cache
@@ -309,7 +313,11 @@ $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
 	@$(ECHO) 'export _LOAD_MKPM_FROM_CACHE := 0' >> $(MKPM)/.cache
 	@$(ECHO) 'endif' >> $(MKPM)/.cache
 endif
+$(MKPM)/.ready:
+	@[ -f $(MKPM)/.failed ] && $(EXIT) 1 || $(TRUE)
+	@$(TOUCH) $@
 $(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk $(MKPM_CLI)
+	@$(RM) -f $(MKPM)/.failed
 	@if [ $(MKPM)/.cache -nt $(MKPM)/.cache.tar.gz ]; then \
 		$(TOUCH) -m $(MKPM)/.cache.tar.gz && \
 		$(EXIT) 1; \
@@ -369,10 +377,10 @@ ifneq (,$(_COPY_MKPM))
 else
 ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
 	@$(CD) $(MKPM) && \
-		$(TAR) -xzf .cache.tar.gz .
+		$(TAR) -xzf .cache.tar.gz . || $(call _mkpm_failed)
 	@$(ECHO) MKPM: loaded from cache
 else
-	@$(MKPM_CLI) _install 2>&1 | $(SED) 's|\(.*\)|MKPM: \1|g'
+	@$(MKPM_CLI) _install || $(call _mkpm_failed)
 endif
 endif
 	@$(TOUCH) -m "$@"
