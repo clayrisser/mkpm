@@ -1,6 +1,7 @@
 #!/bin/sh
 
 export MKPM_CLI_VERSION=0.2.0
+
 export _CWD=$(pwd)
 export _USER_ID=$(id -u $USER)
 export _TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && \
@@ -15,7 +16,7 @@ main() {
     if [ "$_COMMAND" = "install" ]; then
         if [ "$_PARAM1" = "" ] && [ "$_PARAM2" = "" ]; then
             if [ "$MKPM" = "" ]; then
-                echo _install must be called from mkpm makefile 1>&2
+                _echo "_install must be called from mkpm makefile" 1>&2
                 exit 1
             fi
             _install
@@ -26,7 +27,7 @@ main() {
         local _REPO_URI=$(_lookup_repo_uri $_REPO)
         local _REPO_PATH=$(_repo_path $_REPO_URI)
         if [ "$_REPO_URI" = "" ]; then
-            echo "repo $_REPO is not valid"
+            _echo "repo $_REPO is not valid" 1>&2
             exit 1
         fi
         if ! _is_repo_uri "$_REPO"; then
@@ -72,16 +73,16 @@ _install() {
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | sed "s|${_PACKAGE_NAME}/||g" | tail -n1)
     fi
     if [ "$_PACKAGE_VERSION" = "" ]; then
-        echo "package $_PACKAGE_NAME does not exist" 1>&2
+        _echo "package $_PACKAGE_NAME does not exist" 1>&2
         exit 1
     fi
     if ! git checkout -f "$_PACKAGE_NAME/$_PACKAGE_VERSION" >/dev/null 2>/dev/null; then
-        echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
+        _echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
     fi
     git lfs pull --include "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
     if [ ! -f "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" ]; then
-        echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
+        _echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
     fi
     rm -rf \
@@ -103,7 +104,7 @@ _install() {
         _trim_mkpm_file
     fi
     _create_cache
-    echo installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}
+    _echo "installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}"
 }
 
 _is_repo_uri() {
@@ -146,7 +147,7 @@ _lookup_repos() {
 }
 
 _remove() {
-    echo remove $1
+    _echo "remove $1"
 }
 
 _dependencies() {
@@ -155,6 +156,10 @@ _dependencies() {
 }
 
 _prepare() {
+    if [ "$MKPM" != "" ] && [ "$EXPECTED_MKPM_CLI_VERSION" != "$MKPM_CLI_VERSION" ]; then
+        _echo "mkpm cli version $MKPM_CLI_VERSION does not match expected version $EXPECTED_MKPM_CLI_VERSION" 1>&2
+        exit 1
+    fi
     if [ ! -f "$_REPOS_PATH" ]; then
         mkdir -p "$_REPOS_PATH"
     fi
@@ -163,12 +168,12 @@ _prepare() {
 _update_repo() {
     local _REPO_URI=$1
     local _REPO_PATH=$2
-    echo "updating repo $_REPO_URI"
+    _echo "updating repo $_REPO_URI"
     if [ ! -d "$_REPO_PATH" ]; then
-        git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH"
+        git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || exit 1
     fi
     cd "$_REPO_PATH"
-    git fetch -q --depth 1 --tags
+    git fetch -q --depth 1 --tags || exit 1
 }
 
 _repo_path() {
@@ -182,17 +187,17 @@ _get_default_branch() {
 
 _repo_add() {
     if [ "$MKPM" != "" ]; then
-        echo repo-add cannot be run from mkpm 1>&2
+        _echo "repo-add cannot be run from mkpm" 1>&2
         exit 1
     fi
     local _REPO_NAME=$1
     local _REPO_URI=$2
     if [ "$(_lookup_repo_uri $_REPO_NAME)" != "" ]; then
-        echo "repo $_REPO_NAME already exists" 1>&2
+        _echo "repo $_REPO_NAME already exists" 1>&2
         exit 1
     fi
     if ! _is_repo_uri "$_REPO_URI"; then
-        echo "invalid repo uri $_REPO_URI" 1>&2
+        _echo "invalid repo uri $_REPO_URI" 1>&2
         exit 1
     fi
     local _BODY="export MKPM_PACKAGES_$( \
@@ -209,17 +214,17 @@ _repo_add() {
     fi
     _trim_mkpm_file
     _reset
-    echo "added repo $_REPO_NAME"
+    _echo "added repo $_REPO_NAME"
 }
 
 _repo_remove() {
     if [ "$MKPM" != "" ]; then
-        echo repo-remove cannot be run from mkpm 1>&2
+        _echo "repo-remove cannot be run from mkpm" 1>&2
         exit 1
     fi
     local _REPO_NAME=$1
     if [ "$(_lookup_repo_uri $_REPO_NAME)" = "" ]; then
-        echo "repo $_REPO_NAME does not exist" 1>&2
+        _echo "repo $_REPO_NAME does not exist" 1>&2
         exit 1
     fi
     sed -i -z "s|\s*export[ ]\+MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
@@ -228,7 +233,7 @@ _repo_remove() {
         )"'[ \t]\+:=[ \t]*\\[ \t]*\n[ \t]*[^\n]\+\s*|\n\n|' "$_CWD/mkpm.mk"
     _trim_mkpm_file
     _reset
-    echo "removed repo $_REPO_NAME"
+    _echo "removed repo $_REPO_NAME"
 }
 
 _reset() {
@@ -245,6 +250,7 @@ _create_cache() {
     tar -czf .cache.tar.gz \
         --exclude '.tmp' \
         --exclude '.bootstrap' \
+        --exclude '.ready' \
         --exclude '.bootstrap.mk' \
         --exclude '.cache.tar.gz' \
         .
@@ -252,6 +258,14 @@ _create_cache() {
 
 _trim_mkpm_file() {
     sed -i -z 's|\t\([^ \t\n=]\+=[^ \t\n]\+\)[ \t]\+\\[ \t]*\n\([ \t]*\n[ \t]*\)\+|\t\1\n\n|g' "$_CWD/mkpm.mk"
+}
+
+_echo() {
+    if [ "$MKPM" = "" ]; then
+        echo $@
+    else
+        echo "MKPM: $@"
+    fi
 }
 
 if ! test $# -gt 0; then
@@ -303,14 +317,14 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            echo "no repo specified" 1>&2
+            _echo "no repo specified" 1>&2
             exit 1
         fi
         if test $# -gt 0; then
             export _PARAM2=$1
             shift
         else
-            echo "no package specified" 1>&2
+            _echo "no package specified" 1>&2
             exit 1
         fi
     ;;
@@ -321,7 +335,7 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            echo "no package specified" 1>&2
+            _echo "no package specified" 1>&2
             exit 1
         fi
     ;;
@@ -332,7 +346,7 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            echo "no package specified" 1>&2
+            _echo "no package specified" 1>&2
             exit 1
         fi
     ;;
@@ -343,14 +357,14 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            echo "no repo name specified" 1>&2
+            _echo "no repo name specified" 1>&2
             exit 1
         fi
         if test $# -gt 0; then
             export _PARAM2=$1
             shift
         else
-            echo "no repo uri specified" 1>&2
+            _echo "no repo uri specified" 1>&2
             exit 1
         fi
     ;;
@@ -361,12 +375,12 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            echo "no repo name specified" 1>&2
+            _echo "no repo name specified" 1>&2
             exit 1
         fi
     ;;
     *)
-        echo "invalid command $1" 1>&2
+        _echo "invalid command $1" 1>&2
         exit 1
     ;;
 esac
