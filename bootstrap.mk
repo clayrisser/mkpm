@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 19-06-2022 13:36:10
+# Last Modified: 21-06-2022 11:47:50
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -178,7 +178,7 @@ ifeq ($(PKG_MANAGER),unknown)
 	PKG_MANAGER = $(call ternary,apt-get,apt-get,$(call ternary,apk,apk,$(call ternary,yum,yum,$(call ternary,brew,brew,unknown))))
 endif
 
-export COLUMNS := $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && echo $$COLUMNS))
+export COLUMNS := $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && $(ECHO) $$COLUMNS))
 define columns
 $(call ternary,[ "$(COLUMNS)" -$1 "$2" ],1)
 endef
@@ -201,7 +201,7 @@ define MKPM_CLEAN
 $(TOUCH) -m $(MKPM)/.cleaned
 endef
 
-export NIX_ENV := $(call ternary,echo '$(PATH)' | grep -q ":/nix/store",1)
+export NIX_ENV := $(call ternary,$(ECHO) '$(PATH)' | grep -q ":/nix/store",1)
 export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget -O)
 
 ifneq ($(NIX_ENV),1)
@@ -222,18 +222,18 @@ export PROJECT_ROOT ?= $(shell \
 	project_root() { \
 		root=$$1 && \
 		if [ -f "$$root/mkpm.mk" ]; then \
-			echo $$root && \
+			$(ECHO) $$root && \
 			return 0; \
 		fi && \
-		parent=$$(echo $$root | $(SED) 's|\/[^\/]\+$$||g') && \
+		parent=$$($(ECHO) $$root | $(SED) 's|\/[^\/]\+$$||g') && \
 		if ([ "$$parent" = "" ] || [ "$$parent" = "/" ]); then \
-			echo "/" && \
+			$(ECHO) "/" && \
 			return 0; \
 		fi && \
-		echo $$(project_root $$parent) && \
+		$(ECHO) $$(project_root $$parent) && \
 		return 0; \
 	} && \
-	echo $$(project_root $(ROOT)) \
+	$(ECHO) $$(project_root $(ROOT)) \
 )
 export SUBPROC :=
 ifneq ($(ROOT),$(CURDIR))
@@ -246,10 +246,10 @@ endif
 
 export NPROC := 1
 ifeq ($(PLATFORM),linux)
-	NPROC = $(shell nproc $(NOOUT) && nproc || $(GREP) -c -E "^processor" /proc/cpuinfo 2>$(NULL) || echo 1)
+	NPROC = $(shell nproc $(NOOUT) && nproc || $(GREP) -c -E "^processor" /proc/cpuinfo 2>$(NULL) || $(ECHO) 1)
 endif
 ifeq ($(PLATFORM),darwin)
-	NPROC = $(shell sysctl hw.ncpu | $(CUT) -d " " -f 2 2>$(NULL) || echo 1)
+	NPROC = $(shell sysctl hw.ncpu | $(CUT) -d " " -f 2 2>$(NULL) || $(ECHO) 1)
 endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
@@ -281,14 +281,14 @@ endef
 endif
 
 define requires_pkg
-echo "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
-	echo && \
-	echo "you can get \e[1m$1\e[0m at $2" && \
-	echo && \
-	echo or you can try to install $1 with the following command && \
-	echo && \
-	([ "$3" != "" ] && echo "$(GREEN)    $3$(NOCOLOR)" || echo "$(GREEN)    $(call pkg_manager_install,$1)$(NOCOLOR)") && \
-	echo && \
+$(ECHO) "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
+	$(ECHO) && \
+	$(ECHO) "you can get \e[1m$1\e[0m at $2" && \
+	$(ECHO) && \
+	$(ECHO) or you can try to install $1 with the following command && \
+	$(ECHO) && \
+	([ "$3" != "" ] && $(ECHO) "$(GREEN)    $3$(NOCOLOR)" || $(ECHO) "$(GREEN)    $(call pkg_manager_install,$1)$(NOCOLOR)") && \
+	$(ECHO) && \
 	$(EXIT) 9009
 endef
 
@@ -297,74 +297,45 @@ ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)/.bootstrap))
 _COPY_MKPM := 1
 endif
 endif
-ifneq ($(TRUE),$(TAR))
-_MKPM_CACHE_SUPPORTED := 1
-endif
 -include $(MKPM)/.bootstrap
 ifneq ($(TRUE),$(TAR))
 -include $(MKPM)/.cache
 $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
 	@$(MKDIR) -p $(MKPM)
-	@([ -f $(MKPM)/.cache ] && [ "$(_LOAD_MKPM_FROM_CACHE)" = "" ]) && $(RM) -rf $(MKPM)/.cache.tar.gz || true
-	@echo 'ifneq (,$$(wildcard $$(MKPM)/.cache.tar.gz))' > $(MKPM)/.cache
-	@echo 'export _LOAD_MKPM_FROM_CACHE := 1' >> $(MKPM)/.cache
-	@echo 'else' >> $(MKPM)/.cache
-	@echo 'export _LOAD_MKPM_FROM_CACHE := 0' >> $(MKPM)/.cache
-	@echo 'endif' >> $(MKPM)/.cache
+	@([ -f $(MKPM)/.cache ] && [ "$(_LOAD_MKPM_FROM_CACHE)" = "" ]) && $(RM) -rf $(MKPM)/.cache.tar.gz || $(TRUE)
+	@$(ECHO) 'ifneq (,$$(wildcard $$(MKPM)/.cache.tar.gz))' > $(MKPM)/.cache
+	@$(ECHO) 'export _LOAD_MKPM_FROM_CACHE := 1' >> $(MKPM)/.cache
+	@$(ECHO) 'else' >> $(MKPM)/.cache
+	@$(ECHO) 'export _LOAD_MKPM_FROM_CACHE := 0' >> $(MKPM)/.cache
+	@$(ECHO) 'endif' >> $(MKPM)/.cache
 endif
 $(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk $(MKPM_CLI)
-ifeq ($(CURDIR),$(PROJECT_ROOT))
-	@$(TOUCH) -m $(PROJECT_ROOT)/.gitignore
-	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\.mkpm/$$' $(NOOUT) && \
-		$(SED) -i '/^\.mkpm\/$$/d' $(PROJECT_ROOT)/.gitignore || \
-		$(TRUE)
-	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
-		$(ECHO) '.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
-	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\*\*\/\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
-		$(ECHO) '**/.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
-endif
-ifeq (1,$(_MKPM_CACHE_SUPPORTED))
-ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
-	@[ ! -f $(MKPM)/.cache.tar.gz ] && exit 1 || true
-endif
 	@if [ $(MKPM)/.cache -nt $(MKPM)/.cache.tar.gz ]; then \
 		$(TOUCH) -m $(MKPM)/.cache.tar.gz && \
-		exit 1; \
+		$(EXIT) 1; \
 	fi
-ifeq ($(CURDIR),$(PROJECT_ROOT))
-	@$(GIT) lfs track '.mkpm/.cache.tar.gz' '.mkpm/.bootstrap.mk' >$(NULL)
-	@$(TOUCH) $(PROJECT_ROOT)/.gitignore
-	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^!\/\.mkpm/\.cache\.tar\.gz$$' $(NOOUT) && $(TRUE) || \
-		$(ECHO) '!/.mkpm/.cache.tar.gz' >> $(PROJECT_ROOT)/.gitignore
-	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^!\/\.mkpm/\.bootstrap\.mk$$' $(NOOUT) && $(TRUE) || \
-		$(ECHO) '!/.mkpm/.bootstrap.mk' >> $(PROJECT_ROOT)/.gitignore
-endif
-else
-	@$(ECHO) caching not supported on windows 1>&2
-	@exit 1
-endif
 ifeq ($(MAKELEVEL),0)
 ifeq ($(call columns,lt,62),1)
-	@echo
-	@echo "$(LIGHTBLUE)MKPM$(NOCOLOR)"
-	@echo
-	@echo 'Risser Labs LLC (c) Copyright 2022'
-	@echo
+	@$(ECHO)
+	@$(ECHO) "$(LIGHTBLUE)MKPM$(NOCOLOR)"
+	@$(ECHO)
+	@$(ECHO) 'Risser Labs LLC (c) Copyright 2022'
+	@$(ECHO)
 else
-	@echo
-	@echo "$(LIGHTBLUE)"'                    88'
-	@echo '                    88'
-	@echo '                    88'
-	@echo '88,dPYba,,adPYba,   88   ,d8   8b,dPPYba,   88,dPYba,,adPYba,'
-	@echo "88P'   "'"88"    "8a  88 ,a8"    88P'"'    "'"8a  88P'"'   "'"88"    "8a'
-	@echo '88      88      88  8888[      88       d8  88      88      88'
-	@echo '88      88      88  88`"Yba,   88b,   ,a8"  88      88      88'
-	@echo '88      88      88  88   `Y8a  88`YbbdP"'"'   88      88      88"
-	@echo '                               88'
-	@echo '                               88'"$(NOCOLOR)"
-	@echo
-	@echo 'Risser Labs LLC (c) Copyright 2022'
-	@echo
+	@$(ECHO)
+	@$(ECHO) "$(LIGHTBLUE)"'                    88'
+	@$(ECHO) '                    88'
+	@$(ECHO) '                    88'
+	@$(ECHO) '88,dPYba,,adPYba,   88   ,d8   8b,dPPYba,   88,dPYba,,adPYba,'
+	@$(ECHO) "88P'   "'"88"    "8a  88 ,a8"    88P'"'    "'"8a  88P'"'   "'"88"    "8a'
+	@$(ECHO) '88      88      88  8888[      88       d8  88      88      88'
+	@$(ECHO) '88      88      88  88`"Yba,   88b,   ,a8"  88      88      88'
+	@$(ECHO) '88      88      88  88   `Y8a  88`YbbdP"'"'   88      88      88"
+	@$(ECHO) '                               88'
+	@$(ECHO) '                               88'"$(NOCOLOR)"
+	@$(ECHO)
+	@$(ECHO) 'Risser Labs LLC (c) Copyright 2022'
+	@$(ECHO)
 endif
 endif
 ifneq ($(call ternary,git --version,1),1)
@@ -372,6 +343,24 @@ ifneq ($(call ternary,git --version,1),1)
 endif
 ifneq ($(call ternary,git lfs --version,1),1)
 	@$(call requires_pkg,git-lfs,https://git-lfs.github.com)
+endif
+ifneq ($(call ternary,tar --version,1),1)
+	@$(call requires_pkg,tar,https://www.gnu.org/software/tar)
+endif
+ifeq ($(CURDIR),$(PROJECT_ROOT))
+	@[ -f $(PROJECT_ROOT)/.gitignore ] || $(TOUCH) $(PROJECT_ROOT)/.gitignore
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\.mkpm/$$' $(NOOUT) && \
+		$(SED) -i '/^\.mkpm\/$$/d' $(PROJECT_ROOT)/.gitignore || \
+		$(TRUE)
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
+		$(ECHO) '.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\*\*\/\.mkpm/\*$$' $(NOOUT) && $(TRUE) || \
+		$(ECHO) '**/.mkpm/*' >> $(PROJECT_ROOT)/.gitignore
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^!\/\.mkpm/\.cache\.tar\.gz$$' $(NOOUT) && $(TRUE) || \
+		$(ECHO) '!/.mkpm/.cache.tar.gz' >> $(PROJECT_ROOT)/.gitignore
+	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^!\/\.mkpm/\.bootstrap\.mk$$' $(NOOUT) && $(TRUE) || \
+		$(ECHO) '!/.mkpm/.bootstrap.mk' >> $(PROJECT_ROOT)/.gitignore
+	@$(GIT) lfs track '.mkpm/.cache.tar.gz' '.mkpm/.bootstrap.mk' >$(NULL)
 endif
 ifneq (,$(_COPY_MKPM))
 	@$(RM) -rf $(MKPM) $(NOFAIL)
@@ -383,17 +372,8 @@ ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
 		$(TAR) -xzf .cache.tar.gz .
 	@$(ECHO) MKPM: loaded from cache
 else
-	@$(MKPM_CLI) _install
+	@$(MKPM_CLI) _install 2>&1 | $(SED) 's|\(.*\)|MKPM: \1|g'
 endif
-endif
-ifneq (1,$(_LOAD_MKPM_FROM_CACHE))
-	@$(CD) $(MKPM) && \
-		$(TAR) -czf .cache.tar.gz \
-			--exclude '.tmp' \
-			--exclude '.bootstrap' \
-			--exclude '.bootstrap.mk' \
-			--exclude '.cache.tar.gz' \
-			. $(NOFAIL)
 endif
 	@$(TOUCH) -m "$@"
 
@@ -429,6 +409,9 @@ ifeq (,$(.DEFAULT_GOAL))
 .DEFAULT_GOAL = $(HELP)
 endif
 ifeq ($(findstring .mkpm/.bootstrap,$(.DEFAULT_GOAL)),.mkpm/.bootstrap)
+.DEFAULT_GOAL = $(HELP)
+endif
+ifeq ($(findstring .mkpm/.cache,$(.DEFAULT_GOAL)),.mkpm/.cache)
 .DEFAULT_GOAL = $(HELP)
 endif
 
@@ -468,5 +451,5 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 include cmd.exe
 cmd.exe:
 	@$(ECHO) cmd.exe not supported 1>&2
-	@exit 1
+	@$(EXIT) 1
 endif
