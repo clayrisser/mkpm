@@ -51,7 +51,10 @@ main() {
 _install() {
     if [ "$1" = "" ]; then
         for r in $(_lookup_repos); do
-            local _REPO_URI=$(_lookup_repo_uri $r)
+            local _REPO_URI="$(_lookup_repo_uri $r)"
+            if [ "$_REPO_URI" = "" ]; then
+                continue
+            fi
             local _REPO_PATH=$(_repo_path $_REPO_URI)
             _update_repo "$_REPO_URI" "$_REPO_PATH"
             for p in $(eval $(echo "echo \$MKPM_PACKAGES_$(echo $r | tr '[:lower:]' '[:upper:]')")); do
