@@ -71,7 +71,6 @@ _install() {
     local _REPO_PATH=$(_repo_path $_REPO_URI)
     local _REPO_NAME=$3
     cd "$_REPO_PATH" || exit 1
-    git config advice.detachedHead false >/dev/null
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | sed "s|${_PACKAGE_NAME}/||g" | tail -n1)
     fi
@@ -176,6 +175,8 @@ _update_repo() {
         git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || exit 1
     fi
     cd "$_REPO_PATH"
+    git config advice.detachedHead false >/dev/null
+    git config lfs.locksverify true >/dev/null
     git fetch -q --depth 1 --tags || exit 1
 }
 
