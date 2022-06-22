@@ -16,10 +16,10 @@ https://gitlab.com/risserlabs/community/mkpm-example
    _mkpm.mk_
 
    ```makefile
-   MKPM_PACKAGES := \
-   	hello=0.0.5
+   export MKPM_PACKAGES_DEFAULT := \
+   	hello=0.0.4
 
-   MKPM_REPOS := \
+   export MKPM_REPO_DEFAULT := \
    	https://gitlab.com/risserlabs/community/mkpm-stable.git
 
    ############# MKPM BOOTSTRAP SCRIPT BEGIN #############

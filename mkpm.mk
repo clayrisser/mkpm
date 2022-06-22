@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 21-06-2022 12:02:25
+# Last Modified: 22-06-2022 15:27:38
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -21,14 +21,13 @@
 # limitations under the License.
 
 export MKPM_PACKAGES_DEFAULT := \
-	gnu=0.0.3 \
-	hello=0.0.4
+	hello=0.0.5 \
+	gnu=0.0.3
 
 export MKPM_REPO_DEFAULT := \
 	https://gitlab.com/risserlabs/community/mkpm-stable.git
 
 ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-MKPM_BOOTSTRAP := https://risserlabs.gitlab.io/community/mkpm/bootstrap.mk
 export PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 NULL := /dev/null
 TRUE := true
