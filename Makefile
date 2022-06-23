@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 21-06-2022 11:49:52
+# Last Modified: 23-06-2022 11:19:18
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -24,6 +24,14 @@
 ifneq (,$(MKPM_READY))
 include $(MKPM)/gnu
 include $(MKPM)/hello
+include $(MKPM)/mkchain
+
+export USER ?= nobody
+export EMAIL ?= clayrisser@gmail.com
+PKG_NAME ?= mkpm
+PKG_VERSION ?= 0.0.1
+PKG_STRICT ?= 0
+include $(MKPM)/pkg
 
 .PHONY: test-bootstrap
 test-bootstrap: ##
@@ -43,6 +51,13 @@ test-bootstrap: ##
 	@echo SHELL: $(SHELL)
 	@echo WHICH: $(WHICH)
 
+ACTIONS += build ##
+$(ACTION)/build: $(call git_deps,.)
+	@$(MKDIR) -p build
+	@$(CP) mkpm.sh build/mkpm
+	@$(CHMOD) +x build/mkpm
+	@$(call done,build)
+
 .PHONY: clean
 clean: ##
 	@$(GIT) clean -fXd \
@@ -51,5 +66,7 @@ clean: ##
 .PHONY: purge
 purge: clean ##
 	@$(GIT) clean -fXd
+
+-include $(call actions)
 
 endif
