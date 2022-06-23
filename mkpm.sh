@@ -1,6 +1,8 @@
 #!/bin/sh
 
-export MKPM_CLI_VERSION=0.2.0
+export MKPM_CLI_VERSION="0.2.0"
+export DEFAULT_MKPM_BOOTSTRAP="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.2.0/bootstrap.mk"
+export DEFAULT_MKPM_REPO="https://gitlab.com/risserlabs/community/mkpm-stable.git"
 
 export _CWD=$(pwd)
 export _USER_ID=$(id -u $USER)
@@ -37,6 +39,7 @@ main() {
         _install $_PACKAGE $_REPO_URI $_REPO_NAME
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM1
+        _echo "removed $_PARAM1"
     elif [ "$_COMMAND" = "dependencies" ]; then
         _dependencies $_PARAM1
     elif [ "$_COMMAND" = "repo-add" ]; then
@@ -45,6 +48,8 @@ main() {
         _repo_add $_REPO_NAME $_REPO_URI
     elif [ "$_COMMAND" = "repo-remove" ]; then
         _repo_remove $_PARAM1
+    elif [ "$_COMMAND" = "init" ]; then
+        _init
     fi
 }
 
@@ -87,10 +92,10 @@ _install() {
         _echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
     fi
-    rm -rf \
-        "$_CWD/.mkpm/$_PACKAGE_NAME" \
-        "$_CWD/.mkpm/-$_PACKAGE_NAME" \
-        "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" 2>/dev/null || true
+    if [ ! -d "$_CWD/.mkpm" ]; then
+        mkdir -p "$_CWD/.mkpm"
+    fi
+    _remove $_PACKAGE_NAME
     echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > \
         "$_CWD/.mkpm/$_PACKAGE_NAME"
     echo ".PHONY: $_PACKAGE_NAME-%" > "$_CWD/.mkpm/-$_PACKAGE_NAME"
@@ -100,7 +105,6 @@ _install() {
     mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
     tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
     if [ "$MKPM" = "" ] && [ "$_REPO_NAME" != "" ]; then
-        sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
         _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep "MKPM_PACKAGES_${_REPO_NAME} := \\\\" | grep -oE '[0-9]+') + 1)
         sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
         _trim_mkpm_file
@@ -149,7 +153,50 @@ _lookup_repos() {
 }
 
 _remove() {
-    _echo "remove $1"
+    local _PACKAGE_NAME=$1
+    rm -rf \
+        "$_CWD/.mkpm/$_PACKAGE_NAME" \
+        "$_CWD/.mkpm/-$_PACKAGE_NAME" \
+        "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" 2>/dev/null || true
+    if [ "$MKPM" = "" ]; then
+        sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
+        _trim_mkpm_file
+    fi
+}
+
+_init() {
+    if [ "$MKPM" != "" ]; then
+        _echo "init cannot be run from makefile" 1>&2
+        exit 1
+    fi
+    if [ ! -f "$_CWD/.git/HEAD" ]; then
+        _echo "init must be run from the root of a git project" 1>&2
+        exit 1
+    fi
+    if [ -f "$_CWD/mkpm.mk" ]; then
+        _echo "mkpm already initialized" 1>&2
+        exit 1
+    fi
+    rm -rf "$_CWD/.mkpm"
+    cat <<EOF > "$_CWD/mkpm.mk"
+############# MKPM BOOTSTRAP SCRIPT BEGIN #############
+MKPM_BOOTSTRAP := $DEFAULT_MKPM_BOOTSTRAP
+export PROJECT_ROOT := \$(abspath \$(dir \$(lastword \$(MAKEFILE_LIST))))
+NULL := /dev/null
+TRUE := true
+ifneq (\$(patsubst %.exe,%,\$(SHELL)),\$(SHELL))
+	NULL = nul
+	TRUE = type nul
+endif
+include \$(PROJECT_ROOT)/.mkpm/.bootstrap.mk
+\$(PROJECT_ROOT)/.mkpm/.bootstrap.mk:
+	@mkdir \$(@D) 2>\$(NULL) || \$(TRUE)
+	@\$(shell curl --version >\$(NULL) 2>\$(NULL) && \\
+		echo curl -Lo || echo wget -O) \\
+		\$@ \$(MKPM_BOOTSTRAP) >\$(NULL)
+############## MKPM BOOTSTRAP SCRIPT END ##############
+EOF
+    _repo_add default "$DEFAULT_MKPM_REPO"
 }
 
 _dependencies() {
@@ -191,7 +238,7 @@ _get_default_branch() {
 
 _repo_add() {
     if [ "$MKPM" != "" ]; then
-        _echo "repo-add cannot be run from mkpm" 1>&2
+        _echo "repo-add cannot be run from makefile" 1>&2
         exit 1
     fi
     local _REPO_NAME=$1
@@ -223,7 +270,7 @@ _repo_add() {
 
 _repo_remove() {
     if [ "$MKPM" != "" ]; then
-        _echo "repo-remove cannot be run from mkpm" 1>&2
+        _echo "repo-remove cannot be run from makefile" 1>&2
         exit 1
     fi
     local _REPO_NAME=$1
@@ -241,11 +288,13 @@ _repo_remove() {
 }
 
 _reset() {
-    rm -rf $(find "$_CWD/.mkpm" \
-        -not -path "$_CWD/.mkpm" \
-        -not -path "$_CWD/.mkpm/.bootstrap.mk" \
-        -not -path "$_CWD/.mkpm/.bin" \
-        -not -path "$_CWD/.mkpm/.bin/**")
+    if [ -d "$_CWD/.mkpm" ]; then
+        rm -rf $(find "$_CWD/.mkpm" \
+            -not -path "$_CWD/.mkpm" \
+            -not -path "$_CWD/.mkpm/.bootstrap.mk" \
+            -not -path "$_CWD/.mkpm/.bin" \
+            -not -path "$_CWD/.mkpm/.bin/**")
+    fi
 }
 
 _create_cache() {
@@ -272,6 +321,11 @@ _echo() {
     fi
 }
 
+if [ -f .mkpm/.bin/mkpm ]; then
+    .mkpm/.bin/mkpm $@
+    exit
+fi
+
 if ! test $# -gt 0; then
     set -- "-h"
 fi
@@ -293,6 +347,7 @@ while test $# -gt 0; do
             echo "    d dependencies <PACKAGE>              dependencies required by package"
             echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
             echo "    rr repo-remove <REPO_NAME>            remove repo"
+            echo "    init                                  initialize mkpm"
             exit 0
         ;;
         -s|--silent)
@@ -382,6 +437,10 @@ case "$1" in
             _echo "no repo name specified" 1>&2
             exit 1
         fi
+    ;;
+    init)
+        export _COMMAND=init
+        shift
     ;;
     *)
         _echo "invalid command $1" 1>&2
