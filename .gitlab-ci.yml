@@ -1,4 +1,5 @@
 stages:
+  - build
   - upload
   - publish
 
@@ -6,17 +7,40 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}/${CI_COMMIT_TAG}"
 
+build:
+  stage: build
+  image: registry.gitlab.com/risserlabs/community/images/debian:0.0.1
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - make pkg-deb
+  artifacts:
+    paths:
+      - "*.deb"
+    expire_in: 1 hour
+
 upload:
   stage: upload
   image: curlimages/curl:latest
   rules:
     - if: $CI_COMMIT_TAG
+  needs:
+    - build
   script:
+    - export DEB=$(ls | grep -E '\.deb$')
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file mkpm.sh \
         ${PACKAGE_REGISTRY_URL}/mkpm.sh
+    - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bootstrap.mk \
         ${PACKAGE_REGISTRY_URL}/bootstrap.mk
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file ${DEB} \
+        ${PACKAGE_REGISTRY_URL}/${DEB}
+  artifacts:
+    paths:
+      - "*.deb"
+    expire_in: 1 hour
 
 release:
   stage: publish
@@ -26,10 +50,12 @@ release:
   needs:
     - upload
   script:
+    - export DEB=$(ls | grep -E '\.deb$')
     - |
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
         --assets-link "{\"name\":\"mkpm.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.sh\"}" \
-        --assets-link "{\"name\":\"bootstrap.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/bootstrap.mk\"}"
+        --assets-link "{\"name\":\"bootstrap.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/bootstrap.mk\"}" \
+        --assets-link "{\"name\":\"${DEB}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DEB}\"}"
 
 pages:
   stage: publish
