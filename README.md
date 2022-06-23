@@ -40,7 +40,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
    ############## MKPM BOOTSTRAP SCRIPT END ##############
    ```
 
-   _you can also the project with the mkpm cli instead_
+   _you can also initialize `mkpm.mk` with the mkpm cli instead_
 
    ```sh
    mkpm init
