@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 23-06-2022 11:39:04
+# Last Modified: 23-06-2022 11:45:08
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -318,12 +318,9 @@ $(MKPM)/.ready:
 	@$(TOUCH) $@
 $(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk $(MKPM_CLI)
 	@$(RM) -f $(MKPM)/.failed
-	@echo start
 ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
-	@echo load from cache but no cache
 	@[ ! -f $(MKPM)/.cache.tar.gz ] && $(EXIT) 1 || $(TRUE)
 endif
-	@echo next
 	@if [ $(MKPM)/.cache -nt $(MKPM)/.cache.tar.gz ]; then \
 		$(TOUCH) -m $(MKPM)/.cache.tar.gz && \
 		$(EXIT) 1; \

@@ -1,12 +1,12 @@
 # File: /mkpm.mk
 # Project: mkpm
-# File Created: 23-06-2022 11:13:15
+# File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 23-06-2022 11:13:23
+# Last Modified: 23-06-2022 11:52:56
 # Modified By: Clay Risser
 # -----
-# Risser Labs LLC (c) Copyright 2021 - 2022
+# Risser Labs LLC (c) Copyright 2021
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,9 +39,14 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	TRUE = type nul
 endif
 include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
-$(PROJECT_ROOT)/.mkpm/.bootstrap.mk:
-	@mkdir $(@D) 2>$(NULL) || $(TRUE)
-	@$(shell curl --version >$(NULL) 2>$(NULL) && \
-		echo curl -Lo || echo wget -O) \
-		$@ $(MKPM_BOOTSTRAP) >$(NULL)
+$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk mkpm.mk
+ifeq ($(OS),Windows_NT)
+	@mkdir .mkpm
+	@type $< > $@
+else
+	@mkdir -p .mkpm/.bin
+	@cp $< $@
+	@cp mkpm.sh .mkpm/.bin/mkpm
+	@chmod +x .mkpm/.bin/mkpm
+endif
 ############## MKPM BOOTSTRAP SCRIPT END ##############

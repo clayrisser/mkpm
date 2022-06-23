@@ -321,8 +321,9 @@ _echo() {
     fi
 }
 
-if [ -f .mkpm/.bin/mkpm ]; then
-    .mkpm/.bin/mkpm $@
+if [ -f "$_CWD/.mkpm/.bin/mkpm" ] && \
+    [ "$(realpath "$0")" != "$(realpath "$_CWD/.mkpm/.bin/mkpm")" ]; then
+    "$_CWD/.mkpm/.bin/mkpm" $@
     exit
 fi
 
