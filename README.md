@@ -49,7 +49,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
 2. Add mkpm packages to the `MKPM_PACKAGES` config. Below is an example.
 
    ```makefile
-   MKPM_PACKAGES := \
+   export MKPM_PACKAGES_DEFAULT := \
    	hello=0.0.5
    ```
 
