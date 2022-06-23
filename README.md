@@ -17,7 +17,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
 
    ```makefile
    export MKPM_PACKAGES_DEFAULT := \
-   	hello=0.0.4
+   	hello=0.1.0
 
    export MKPM_REPO_DEFAULT := \
    	https://gitlab.com/risserlabs/community/mkpm-stable.git
@@ -50,7 +50,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
 
    ```makefile
    export MKPM_PACKAGES_DEFAULT := \
-   	hello=0.0.5
+   	hello=0.1.0
    ```
 
    _you can also add packages with the mkpm cli instead_
