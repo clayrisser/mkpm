@@ -21,9 +21,9 @@
 # limitations under the License.
 
 export MKPM_PACKAGES_DEFAULT := \
+	hello=0.1.0 \
 	gnu=0.0.3 \
 	mkchain=0.1.0 \
-	hello=0.0.5 \
 	pkg=0.0.1
 
 export MKPM_REPO_DEFAULT := \
