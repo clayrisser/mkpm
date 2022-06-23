@@ -40,11 +40,23 @@ https://gitlab.com/risserlabs/community/mkpm-example
    ############## MKPM BOOTSTRAP SCRIPT END ##############
    ```
 
+   _you can also the project with the mkpm cli instead_
+
+   ```sh
+   mkpm init
+   ```
+
 2. Add mkpm packages to the `MKPM_PACKAGES` config. Below is an example.
 
    ```makefile
    MKPM_PACKAGES := \
    	hello=0.0.5
+   ```
+
+   _you can also add packages with the mkpm cli instead_
+
+   ```sh
+   mkpm i default hello
    ```
 
 3. To include packages in a _Makefile_, simply prefix them with the `MKPM`

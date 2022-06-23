@@ -196,6 +196,14 @@ include \$(PROJECT_ROOT)/.mkpm/.bootstrap.mk
 		\$@ \$(MKPM_BOOTSTRAP) >\$(NULL)
 ############## MKPM BOOTSTRAP SCRIPT END ##############
 EOF
+    if [ ! -f "$_CWD/Makefile" ]; then
+        cat <<EOF > "$_CWD/Makefile"
+include mkpm.mk
+ifneq (,\$(MKPM_READY))
+
+endif
+EOF
+    fi
     _repo_add default "$DEFAULT_MKPM_REPO"
 }
 
