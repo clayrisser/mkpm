@@ -24,16 +24,16 @@ main() {
             _install
             return
         fi
-        local _REPO=$_PARAM1
-        local _PACKAGE=$_PARAM2
-        local _REPO_URI=$(_lookup_repo_uri $_REPO)
-        local _REPO_PATH=$(_repo_path $_REPO_URI)
+        _REPO=$_PARAM1
+        _PACKAGE=$_PARAM2
+        _REPO_URI=$(_lookup_repo_uri $_REPO)
+        _REPO_PATH=$(_repo_path $_REPO_URI)
         if [ "$_REPO_URI" = "" ]; then
             _echo "repo $_REPO is not valid" 1>&2
             exit 1
         fi
         if ! _is_repo_uri "$_REPO"; then
-            local _REPO_NAME="$(echo $_REPO | tr '[:lower:]' '[:upper:]')"
+            _REPO_NAME="$(echo $_REPO | tr '[:lower:]' '[:upper:]')"
         fi
         _update_repo $_REPO_URI $_REPO_PATH
         _install $_PACKAGE $_REPO_URI $_REPO_NAME
@@ -43,8 +43,8 @@ main() {
     elif [ "$_COMMAND" = "dependencies" ]; then
         _dependencies $_PARAM1
     elif [ "$_COMMAND" = "repo-add" ]; then
-        local _REPO_NAME=$_PARAM1
-        local _REPO_URI=$_PARAM2
+        _REPO_NAME=$_PARAM1
+        _REPO_URI=$_PARAM2
         _repo_add $_REPO_NAME $_REPO_URI
     elif [ "$_COMMAND" = "repo-remove" ]; then
         _repo_remove $_PARAM1
@@ -56,11 +56,11 @@ main() {
 _install() {
     if [ "$1" = "" ]; then
         for r in $(_lookup_repos); do
-            local _REPO_URI="$(_lookup_repo_uri $r)"
+            _REPO_URI="$(_lookup_repo_uri $r)"
             if [ "$_REPO_URI" = "" ]; then
                 continue
             fi
-            local _REPO_PATH=$(_repo_path $_REPO_URI)
+            _REPO_PATH=$(_repo_path $_REPO_URI)
             _update_repo "$_REPO_URI" "$_REPO_PATH"
             for p in $(eval $(echo "echo \$MKPM_PACKAGES_$(echo $r | tr '[:lower:]' '[:upper:]')")); do
                 _install $p "$_REPO_URI" $r
@@ -69,12 +69,12 @@ _install() {
         _create_cache
         return
     fi
-    local _PACKAGE=$1
-    local _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
-    local _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]\+\=\?||g')
-    local _REPO_URI=$2
-    local _REPO_PATH=$(_repo_path $_REPO_URI)
-    local _REPO_NAME=$3
+    _PACKAGE=$1
+    _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
+    _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]\+\=\?||g')
+    _REPO_URI=$2
+    _REPO_PATH=$(_repo_path $_REPO_URI)
+    _REPO_NAME=$3
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | sed "s|${_PACKAGE_NAME}/||g" | tail -n1)
@@ -118,19 +118,19 @@ _is_repo_uri() {
 }
 
 _lookup_repo_uri() {
-    local _REPO=$1
+    _REPO=$1
     if _is_repo_uri "$_REPO"; then
         echo $_REPO
         return
     fi
-    local _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | \
+    _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | \
         tr '[:lower:]' '[:upper:]'))
     if [ "$_REPO_URI" = "" ] && [ -f "$_CWD/mkpm.mk" ]; then
-        local _LINE=$(cat -n "$_CWD/mkpm.mk" | \
+        _LINE=$(cat -n "$_CWD/mkpm.mk" | \
             grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')\s" | \
             head -n1)
         if echo $_LINE | grep -E '\\\s*$' >/dev/null 2>/dev/null; then
-            local _LINE_NUMBER="$(expr $(echo $_LINE | \
+            _LINE_NUMBER="$(expr $(echo $_LINE | \
                 grep -oE '[0-9]+') + 1)"
             _REPO_URI=$(cat -n "$_CWD/mkpm.mk" | grep -E "^\s+$_LINE_NUMBER\s+" | \
                 sed "s|^\s*[0-9]\+\s\+||g")
@@ -153,7 +153,7 @@ _lookup_repos() {
 }
 
 _remove() {
-    local _PACKAGE_NAME=$1
+    _PACKAGE_NAME=$1
     rm -rf \
         "$_CWD/.mkpm/$_PACKAGE_NAME" \
         "$_CWD/.mkpm/-$_PACKAGE_NAME" \
@@ -223,8 +223,8 @@ _prepare() {
 }
 
 _update_repo() {
-    local _REPO_URI=$1
-    local _REPO_PATH=$2
+    _REPO_URI=$1
+    _REPO_PATH=$2
     _echo "updating repo $_REPO_URI"
     if [ ! -d "$_REPO_PATH" ]; then
         git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || exit 1
@@ -249,8 +249,8 @@ _repo_add() {
         _echo "repo-add cannot be run from makefile" 1>&2
         exit 1
     fi
-    local _REPO_NAME=$1
-    local _REPO_URI=$2
+    _REPO_NAME=$1
+    _REPO_URI=$2
     if [ "$(_lookup_repo_uri $_REPO_NAME)" != "" ]; then
         _echo "repo $_REPO_NAME already exists" 1>&2
         exit 1
@@ -259,12 +259,12 @@ _repo_add() {
         _echo "invalid repo uri $_REPO_URI" 1>&2
         exit 1
     fi
-    local _BODY="export MKPM_PACKAGES_$( \
+    _BODY="export MKPM_PACKAGES_$( \
         echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
     ) := \\\\\n\nexport MKPM_REPO_$( \
         echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
     ) := \\\\\n	${_REPO_URI}"
-    local _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | \
+    _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | \
         grep "#\+ MKPM BOOTSTRAP SCRIPT BEGIN" | grep -oE '[0-9]+')
     if [ "$_LINE_NUMBER" = "" ]; then
         sed -i -e "\$a\\\\n${_BODY}" "$_CWD/mkpm.mk"
@@ -281,7 +281,7 @@ _repo_remove() {
         _echo "repo-remove cannot be run from makefile" 1>&2
         exit 1
     fi
-    local _REPO_NAME=$1
+    _REPO_NAME=$1
     if [ "$(_lookup_repo_uri $_REPO_NAME)" = "" ]; then
         _echo "repo $_REPO_NAME does not exist" 1>&2
         exit 1
