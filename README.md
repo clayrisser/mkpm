@@ -46,7 +46,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
    mkpm init
    ```
 
-2. Add mkpm packages to the `MKPM_PACKAGES` config. Below is an example.
+2. Add mkpm packages to the `MKPM_PACKAGES_DEFAULT` config. Below is an example.
 
    ```makefile
    export MKPM_PACKAGES_DEFAULT := \
