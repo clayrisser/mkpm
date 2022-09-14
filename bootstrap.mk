@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 14-09-2022 19:26:09
+# Last Modified: 14-09-2022 20:26:02
 # Modified By: Jam Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -66,6 +66,7 @@ export ECHO := echo
 export EXIT := exit
 export EXPORT := export
 export FALSE := false
+export HEAD := head
 export MKDIR := mkdir
 export RM := rm
 export SORT := sort
@@ -254,19 +255,41 @@ endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
 
+export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,)
+.PHONY: sudo
+ifneq (,$(SUDO))
+sudo:
+	@$(SUDO) $(TRUE)
+else
+sudo: ;
+endif
+
+ifneq (,$(SUDO))
+_PKG_MANAGER_SUDO := sudo
+endif
 ifeq ($(PKG_MANAGER),yum)
 define pkg_manager_install
-sudo yum install -y $1
+$(_PKG_MANAGER_SUDO)yum install -y $1
+endef
+endif
+ifeq ($(PKG_MANAGER),dnf)
+define pkg_manager_install
+$(_PKG_MANAGER_SUDO)dnf install -y $1
+endef
+endif
+ifeq ($(PKG_MANAGER),microdnf)
+define pkg_manager_install
+$(_PKG_MANAGER_SUDO)microdnf install -y $1
 endef
 endif
 ifeq ($(PKG_MANAGER),apt-get)
 define pkg_manager_install
-sudo apt-get install -y $1
+$(_PKG_MANAGER_SUDO)apt-get install -y $1
 endef
 endif
 ifeq ($(PKG_MANAGER),apk)
 define pkg_manager_install
-apk add --no-cache $1
+$(_PKG_MANAGER_SUDO)apk add --no-cache $1
 endef
 endif
 ifeq ($(PKG_MANAGER),brew)
@@ -280,14 +303,18 @@ choco install /y $1
 endef
 endif
 
+define echo_command
+$(ECHO) "$(GREEN)    $1$(NOCOLOR)"
+endef
+
 define requires_pkg
 $(ECHO) "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
 	$(ECHO) && \
-	$(ECHO) "you can get \e[1m$1\e[0m at $2" && \
+	$(ECHO) "you can get \033[1m$1\033[0m at \033[3m$2\033[0m" && \
 	$(ECHO) && \
 	$(ECHO) or you can try to install $1 with the following command && \
 	$(ECHO) && \
-	([ "$3" != "" ] && $(ECHO) "$(GREEN)    $3$(NOCOLOR)" || $(ECHO) "$(GREEN)    $(call pkg_manager_install,$1)$(NOCOLOR)") && \
+	([ "$3" != "" ] && $(call echo_command,$3) || $(call echo_command,$(call pkg_manager_install,$1))) && \
 	$(ECHO) && \
 	$(EXIT) 9009
 endef
@@ -354,6 +381,19 @@ else
 	@$(ECHO)
 endif
 endif
+ifneq ($(call ternary,$(MAKE) --version | $(HEAD) -n1 | $(GREP) -E 4,1),1)
+	@$(ECHO) "$(YELLOW)"'it appears you are using $(shell $(MAKE) --version | $(HEAD) -n1) but GNU Make 4 is required'"$(NOCOLOR)" && \
+		$(ECHO) && \
+		$(ECHO) "you can get \033[1m"'GNU Make'"\033[0m at \033[3mhttps://www.gnu.org/software/make\033[0m" && \
+		$(ECHO) && \
+		$(ECHO) "or you can try to install \033[1m"'GNU Make'"\033[0m with the following command" && \
+		$(ECHO) && \
+		$(call echo_command,$(call pkg_manager_install,make)) && \
+		[ "$(PLATFORM)" = "darwin" ] && ($(ECHO) && $(ECHO) 'you may need to run \033[3mgmake\033[0m instead of \033[3mmake\033[0m on OSX') || $(TRUE) && \
+		$(ECHO) && \
+		$(EXIT) 9009
+
+endif
 ifneq ($(call ternary,git --version,1),1)
 	@$(call requires_pkg,git,https://git-scm.com)
 endif
@@ -385,7 +425,7 @@ ifneq (,$(_COPY_MKPM))
 else
 ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
 	@$(CD) $(MKPM) && \
-		$(TAR) -xzf .cache.tar.gz . || $(call _mkpm_failed)
+		$(TAR) -xzf .cache.tar.gz || $(call _mkpm_failed)
 	@$(ECHO) MKPM: loaded from cache
 else
 	@$(MKPM_CLI) _install || $(call _mkpm_failed)
@@ -429,15 +469,6 @@ ifeq ($(findstring .mkpm/.bootstrap,$(.DEFAULT_GOAL)),.mkpm/.bootstrap)
 endif
 ifeq ($(findstring .mkpm/.cache,$(.DEFAULT_GOAL)),.mkpm/.cache)
 .DEFAULT_GOAL = $(HELP)
-endif
-
-export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,)
-.PHONY: sudo
-ifneq (,$(SUDO))
-sudo:
-	@$(SUDO) $(TRUE)
-else
-sudo: ;
 endif
 
 .PHONY: mkpm
