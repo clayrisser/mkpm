@@ -13,6 +13,8 @@ export _REPOS_PATH="$_STATE_PATH/repos"
 export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 export GIT_LFS_SKIP_SMUDGE=1
 
+alias gsed="$(gsed --help >/dev/null 2>/dev/null && echo gsed || echo sed)"
+
 main() {
     _prepare
     if [ "$_COMMAND" = "install" ]; then

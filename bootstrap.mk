@@ -3,8 +3,8 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 14-09-2022 23:05:41
-# Modified By: Jam Risser
+# Last Modified: 14-09-2022 12:46:45
+# Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
 #
@@ -378,10 +378,12 @@ endif
 ifneq ($(call ternary,git lfs --version,1),1)
 	@$(call requires_pkg,git-lfs,https://git-lfs.github.com)
 endif
-ifneq ($(call ternary,gsed --version,1),1)
 ifeq ($(PLATFORM),darwin)
+ifneq ($(call ternary,gsed --help,1),1)
 	@$(call requires_pkg,gsed,https://www.gnu.org/software/sed)
+endif
 else
+ifneq ($(call ternary,sed --help,1),1)
 	@$(call requires_pkg,sed,https://www.gnu.org/software/sed)
 endif
 endif
