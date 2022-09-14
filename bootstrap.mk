@@ -3,8 +3,8 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 14-09-2022 07:05:06
-# Modified By: Clay Risser
+# Last Modified: 14-09-2022 19:26:09
+# Modified By: Jam Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
 #
@@ -61,6 +61,7 @@ export CD := cd
 export CHMOD := chmod
 export CP := cp
 export CUT := cut
+export DU := du
 export ECHO := echo
 export EXIT := exit
 export EXPORT := export
@@ -308,7 +309,11 @@ $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
 	@$(MKDIR) -p $(MKPM)
 	@([ -f $(MKPM)/.cache ] && [ "$(_LOAD_MKPM_FROM_CACHE)" = "" ]) && $(RM) -rf $(MKPM)/.cache.tar.gz || $(TRUE)
 	@$(ECHO) 'ifneq (,$$(wildcard $$(MKPM)/.cache.tar.gz))' > $(MKPM)/.cache
+	@$(ECHO) 'ifeq (0,$$(shell $(DU) -k $$(MKPM)/.cache.tar.gz | $(CUT) -f1))' >> $(MKPM)/.cache
+	@$(ECHO) 'export _LOAD_MKPM_FROM_CACHE := 0' >> $(MKPM)/.cache
+	@$(ECHO) 'else' >> $(MKPM)/.cache
 	@$(ECHO) 'export _LOAD_MKPM_FROM_CACHE := 1' >> $(MKPM)/.cache
+	@$(ECHO) 'endif' >> $(MKPM)/.cache
 	@$(ECHO) 'else' >> $(MKPM)/.cache
 	@$(ECHO) 'export _LOAD_MKPM_FROM_CACHE := 0' >> $(MKPM)/.cache
 	@$(ECHO) 'endif' >> $(MKPM)/.cache
