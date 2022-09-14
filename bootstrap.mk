@@ -3,8 +3,8 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 14-09-2022 10:18:22
-# Modified By: Clay Risser
+# Last Modified: 14-09-2022 23:05:41
+# Modified By: Jam Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
 #
@@ -23,8 +23,8 @@
 .POSIX:
 .SILENT:
 
-export MKPM_BOOTSTRAP_VERSION := 0.2.1
-export EXPECTED_MKPM_CLI_VERSION := 0.2.1
+export MKPM_BOOTSTRAP_VERSION := 0.3.0
+export EXPECTED_MKPM_CLI_VERSION := 0.3.0
 export MKPM_DIR := .mkpm
 export MKPM_CLI_URI := \
 	https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(EXPECTED_MKPM_CLI_VERSION)/mkpm.sh
@@ -338,8 +338,11 @@ ifneq (,$(wildcard $(PROJECT_ROOT)/$(MKPM_DIR)/.bootstrap))
 _COPY_MKPM := 1
 endif
 endif
+
 include $(MKPM)/.ready
 -include $(MKPM)/.bootstrap
+include $(MKPM)/.preflight
+
 ifneq ($(TRUE),$(TAR))
 -include $(MKPM)/.cache
 $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
@@ -355,11 +358,42 @@ $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
 	@$(ECHO) 'export _LOAD_MKPM_FROM_CACHE := 0' >> $(MKPM)/.cache
 	@$(ECHO) 'endif' >> $(MKPM)/.cache
 endif
-$(MKPM)/.ready:
-	@[ -f $(MKPM)/.failed ] && $(EXIT) 1 || $(TRUE)
-	@$(TOUCH) $@
+
+$(MKPM)/.preflight:
+ifneq ($(call ternary,$(MAKE) --version | $(HEAD) -n1 | $(GREP) -E 4,1),1)
+	@$(ECHO) "$(YELLOW)"'it appears you are using $(shell $(MAKE) --version | $(HEAD) -n1) but GNU Make 4 is required'"$(NOCOLOR)" && \
+		$(ECHO) && \
+		$(ECHO) "you can get \033[1m"'GNU Make'"\033[0m at \033[3mhttps://www.gnu.org/software/make\033[0m" && \
+		$(ECHO) && \
+		$(ECHO) "or you can try to install \033[1m"'GNU Make'"\033[0m with the following command" && \
+		$(ECHO) && \
+		$(call echo_command,$(call pkg_manager_install,make)) && \
+		[ "$(PLATFORM)" = "darwin" ] && ($(ECHO) && $(ECHO) 'you may need to run \033[3mgmake\033[0m instead of \033[3mmake\033[0m on OSX') || $(TRUE) && \
+		$(ECHO) && \
+		$(call _mkpm_failed)
+endif
+ifneq ($(call ternary,git --version,1),1)
+	@$(call requires_pkg,git,https://git-scm.com)
+endif
+ifneq ($(call ternary,git lfs --version,1),1)
+	@$(call requires_pkg,git-lfs,https://git-lfs.github.com)
+endif
+ifneq ($(call ternary,gsed --version,1),1)
+ifeq ($(PLATFORM),darwin)
+	@$(call requires_pkg,gsed,https://www.gnu.org/software/sed)
+else
+	@$(call requires_pkg,sed,https://www.gnu.org/software/sed)
+endif
+endif
+ifneq ($(call ternary,tar --version,1),1)
+	@$(call requires_pkg,tar,https://www.gnu.org/software/tar)
+endif
+	@$(RM) -f $(MKPM)/.failed
+	@$(TOUCH) -m "$@"
+
 $(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk $(MKPM_CLI)
 	@$(RM) -f $(MKPM)/.failed
+	@[ ! -f $(MKPM)/.preflight ] && $(EXIT) 1 || $(TRUE)
 ifeq (1,$(_LOAD_MKPM_FROM_CACHE))
 	@[ ! -f $(MKPM)/.cache.tar.gz ] && $(EXIT) 1 || $(TRUE)
 endif
@@ -391,27 +425,6 @@ else
 	@$(ECHO)
 endif
 endif
-ifneq ($(call ternary,$(MAKE) --version | $(HEAD) -n1 | $(GREP) -E 4,1),1)
-	@$(ECHO) "$(YELLOW)"'it appears you are using $(shell $(MAKE) --version | $(HEAD) -n1) but GNU Make 4 is required'"$(NOCOLOR)" && \
-		$(ECHO) && \
-		$(ECHO) "you can get \033[1m"'GNU Make'"\033[0m at \033[3mhttps://www.gnu.org/software/make\033[0m" && \
-		$(ECHO) && \
-		$(ECHO) "or you can try to install \033[1m"'GNU Make'"\033[0m with the following command" && \
-		$(ECHO) && \
-		$(call echo_command,$(call pkg_manager_install,make)) && \
-		[ "$(PLATFORM)" = "darwin" ] && ($(ECHO) && $(ECHO) 'you may need to run \033[3mgmake\033[0m instead of \033[3mmake\033[0m on OSX') || $(TRUE) && \
-		$(ECHO) && \
-		$(call _mkpm_failed)
-endif
-ifneq ($(call ternary,git --version,1),1)
-	@$(call requires_pkg,git,https://git-scm.com)
-endif
-ifneq ($(call ternary,git lfs --version,1),1)
-	@$(call requires_pkg,git-lfs,https://git-lfs.github.com)
-endif
-ifneq ($(call ternary,tar --version,1),1)
-	@$(call requires_pkg,tar,https://www.gnu.org/software/tar)
-endif
 ifeq ($(CURDIR),$(PROJECT_ROOT))
 	@[ -f $(PROJECT_ROOT)/.gitignore ] || $(TOUCH) $(PROJECT_ROOT)/.gitignore
 	@$(CAT) $(PROJECT_ROOT)/.gitignore | $(GREP) -E '^\.mkpm/$$' $(NOOUT) && \
@@ -441,6 +454,10 @@ else
 endif
 endif
 	@$(TOUCH) -m "$@"
+
+$(MKPM)/.ready:
+	@[ -f $(MKPM)/.failed ] && $(EXIT) 1 || $(TRUE)
+	@[ -f $(MKPM)/.preflight ] && $(TOUCH) -m "$@" || $(EXIT) 1
 
 NODE ?= node
 PRETTIER ?= $(call ternary,prettier -v,prettier,$(call ternary,$(PROJECT_ROOT)/node_modules/.bin/prettier -v,$(PROJECT_ROOT)/node_modules/.bin/prettier,$(call ternary,node_modules/.bin/prettier -v,node_modules/.bin/prettier,)))
@@ -473,9 +490,13 @@ endif
 .PHONY: mkpm
 mkpm: ;
 
-define MKPM_READY
-$(wildcard $(MKPM)/.bootstrap)
-endef
+ifneq (,$(wildcard $(MKPM)/.preflight))
+ifneq (,$(wildcard $(MKPM)/.ready))
+ifneq (,$(wildcard $(MKPM)/.bootstrap))
+export MKPM_READY := 1
+endif
+endif
+endif
 
 export GLOBAL_MK := $(wildcard $(PROJECT_ROOT)/global.mk)
 export LOCAL_MK := $(wildcard $(CURDIR)/local.mk)

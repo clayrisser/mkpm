@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export MKPM_CLI_VERSION="0.2.1"
+export MKPM_CLI_VERSION="0.3.0"
 export DEFAULT_MKPM_BOOTSTRAP="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.2.0/bootstrap.mk"
 export DEFAULT_MKPM_REPO="https://gitlab.com/risserlabs/community/mkpm-stable.git"
 
@@ -342,11 +342,13 @@ _create_cache() {
     cd "$_CWD/.mkpm"
     touch .cache.tar.gz
     tar -czf .cache.tar.gz \
-        --exclude '.tmp' \
         --exclude '.bootstrap' \
-        --exclude '.ready' \
         --exclude '.bootstrap.mk' \
         --exclude '.cache.tar.gz' \
+        --exclude '.failed' \
+        --exclude '.preflight' \
+        --exclude '.ready' \
+        --exclude '.tmp' \
         .
 }
 
