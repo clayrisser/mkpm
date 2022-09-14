@@ -40,6 +40,8 @@ main() {
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM1
         _echo "removed $_PARAM1"
+    elif [ "$_COMMAND" = "upgrade" ]; then
+        _upgrade $_PARAM1 $_PARAM2
     elif [ "$_COMMAND" = "dependencies" ]; then
         _dependencies $_PARAM1
     elif [ "$_COMMAND" = "repo-add" ]; then
@@ -73,7 +75,7 @@ _install() {
     fi
     _PACKAGE=$1
     _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
-    _PACKAGE_VERSION=$(echo $_PACKAGE | cut -d'=' -f2)
+    _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]*=\?||g')
     _REPO_URI=$2
     _REPO_PATH=$(_repo_path $_REPO_URI)
     _REPO_NAME=$3
@@ -165,6 +167,32 @@ _remove() {
     if [ "$MKPM" = "" ]; then
         sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
         _trim_mkpm_file
+    fi
+}
+
+_upgrade() {
+    _REPO_NAME="$(echo $1 | tr '[:lower:]' '[:upper:]')"
+    _PACKAGE_NAME=$2
+    _REPO_URI=$(_lookup_repo_uri $_REPO_NAME)
+    _REPO_PATH=$(_repo_path $_REPO_URI)
+    if [ "$_REPO_URI" = "" ]; then
+        _echo "repo name $_REPO_NAME is not valid" 1>&2
+        exit 1
+    fi
+    if _is_repo_uri "$_REPO_NAME"; then
+        _echo "repo name $_REPO_NAME is not valid" 1>&2
+        exit 1
+    fi
+    _update_repo $_REPO_URI $_REPO_PATH
+    if [ "$_PACKAGE_NAME" = "" ]; then
+        _REPO_ENV=$(echo export MKPM_PACKAGES_$_REPO_NAME)
+        _PACKAGES=$(awk 'sub(/\\$/,""){printf("%s",$0);next};1' "$_CWD/mkpm.mk" | grep "$_REPO_ENV" | sed 's|^.*:= ||g')
+        for p in $_PACKAGES; do
+            _PACKAGE_NAME=$(echo $p | cut -d'=' -f1)
+            _install $_PACKAGE_NAME $_REPO_URI $_REPO_NAME
+        done
+    else
+        _install $_PACKAGE_NAME $_REPO_URI $_REPO_NAME
     fi
 }
 
@@ -368,6 +396,9 @@ while test $# -gt 0; do
             echo "    i install <REPO> <PACKAGE>            install a package from git repo"
             echo "    r remove <PACKAGE>                    remove a package"
             echo "    d dependencies <PACKAGE>              dependencies required by package"
+            echo "    u upgrade                             upgrade all packages from default git repo"
+            echo "    u upgrade <REPO>                      upgrade all packages from git repo"
+            echo "    u upgrade <REPO> <PACKAGE>            upgrade a package from git repo"
             echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
             echo "    rr repo-remove <REPO_NAME>            remove repo"
             echo "    reinstall                             reinstal all packages"
@@ -431,6 +462,20 @@ case "$1" in
         else
             _echo "no package specified" 1>&2
             exit 1
+        fi
+    ;;
+    u|upgrade)
+        export _COMMAND=upgrade
+        shift
+        if test $# -gt 0; then
+            export _PARAM1=$1
+            shift
+        else
+            export _PARAM1=default
+        fi
+        if test $# -gt 0; then
+            export _PARAM2=$1
+            shift
         fi
     ;;
     ra|repo-add)
