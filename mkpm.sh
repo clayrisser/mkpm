@@ -73,7 +73,7 @@ _install() {
     fi
     _PACKAGE=$1
     _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
-    _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]\+\=\?||g')
+    _PACKAGE_VERSION=$(echo $_PACKAGE | cut -d'=' -f2)
     _REPO_URI=$2
     _REPO_PATH=$(_repo_path $_REPO_URI)
     _REPO_NAME=$3
@@ -107,7 +107,7 @@ _install() {
     echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> \
         "$_CWD/.mkpm/-$_PACKAGE_NAME"
     mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
-    tar -xzvf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
+    tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
     if [ "$MKPM" = "" ] && [ "$_REPO_NAME" != "" ]; then
         _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep "MKPM_PACKAGES_${_REPO_NAME} := \\\\" | grep -oE '[0-9]+') + 1)
         sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
@@ -170,7 +170,11 @@ _remove() {
 
 _reinstall() {
     rm -rf "$_CWD/.mkpm" 2>/dev/null || true
-    make "$(date)	$(date)" 2>/dev/null || true
+    if gmake --version >/dev/null 2>/dev/null; then
+        gmake "$(date)	$(date)" 2>/dev/null || true
+    else
+        make "$(date)	$(date)" 2>/dev/null || true
+    fi
 }
 
 _init() {
