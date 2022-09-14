@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 23-06-2022 11:45:08
+# Last Modified: 14-09-2022 07:05:06
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -23,8 +23,8 @@
 .POSIX:
 .SILENT:
 
-export MKPM_BOOTSTRAP_VERSION := 0.1.1
-export EXPECTED_MKPM_CLI_VERSION := 0.2.0
+export MKPM_BOOTSTRAP_VERSION := 0.2.1
+export EXPECTED_MKPM_CLI_VERSION := 0.2.1
 export MKPM_DIR := .mkpm
 export MKPM_CLI_URI := \
 	https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(EXPECTED_MKPM_CLI_VERSION)/mkpm.sh
@@ -73,6 +73,10 @@ export TR := tr
 export TRUE := true
 export UNIQ := uniq
 export WHICH := command -v
+
+define ternary
+$(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
+endef
 
 export ARCH := unknown
 export FLAVOR := unknown
@@ -133,7 +137,7 @@ else
 				endif
 			endif
 			ifeq ($(FLAVOR),rhel)
-				PKG_MANAGER = yum
+				PKG_MANAGER = $(call ternary,$(WHICH) microdnf,microdnf,$(call ternary,$(WHICH) dnf,dnf,yum))
 			endif
 			ifeq ($(FLAVOR),suse)
 				PKG_MANAGER = zypper
@@ -168,10 +172,6 @@ else
 		PKG_MANAGER = brew
 	endif
 endif
-
-define ternary
-$(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
-endef
 
 ifeq ($(PKG_MANAGER),unknown)
 	PKG_MANAGER = $(call ternary,apt-get,apt-get,$(call ternary,apk,apk,$(call ternary,yum,yum,$(call ternary,brew,brew,unknown))))
@@ -330,7 +330,7 @@ ifeq ($(call columns,lt,62),1)
 	@$(ECHO)
 	@$(ECHO) "$(LIGHTBLUE)MKPM$(NOCOLOR)"
 	@$(ECHO)
-	@$(ECHO) 'Risser Labs LLC (c) Copyright 2022'
+	@$(ECHO) 'Risser Labs LLC (c) Copyright 2021 - 2022'
 	@$(ECHO)
 else
 	@$(ECHO)
@@ -455,12 +455,14 @@ endif
 
 $(MKPM_CLI):
 	@$(MKDIR) -p $(@D)
-	@$(DOWNLOAD) $@ $(MKPM_CLI_URI)
-	@$(CHMOD) +x $@
+	@[ ! -f $(MKPM)/.cache.tar.gz ] && \
+		($(DOWNLOAD) $@ $(MKPM_CLI_URI) && $(CHMOD) +x $@) || $(TRUE)
 
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 include cmd.exe
 cmd.exe:
 	@$(ECHO) cmd.exe not supported 1>&2
+	@$(ECHO) if you are on Windows, please use WSL (Windows Subsystem for Linux) 1>&2
+	@$(ECHO) https://docs.microsoft.com/windows/wsl
 	@$(EXIT) 1
 endif
