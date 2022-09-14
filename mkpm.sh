@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export MKPM_CLI_VERSION="0.2.0"
+export MKPM_CLI_VERSION="0.2.1"
 export DEFAULT_MKPM_BOOTSTRAP="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.2.0/bootstrap.mk"
 export DEFAULT_MKPM_REPO="https://gitlab.com/risserlabs/community/mkpm-stable.git"
 
@@ -48,6 +48,8 @@ main() {
         _repo_add $_REPO_NAME $_REPO_URI
     elif [ "$_COMMAND" = "repo-remove" ]; then
         _repo_remove $_PARAM1
+    elif [ "$_COMMAND" = "reinstall" ]; then
+        _reinstall
     elif [ "$_COMMAND" = "init" ]; then
         _init
     fi
@@ -77,7 +79,9 @@ _install() {
     _REPO_NAME=$3
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
-        _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | sed "s|${_PACKAGE_NAME}/||g" | tail -n1)
+        _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | \
+            sed "s|${_PACKAGE_NAME}/||g" | \
+            sort -t "." -k1,1n -k2,2n -k3,3n | tail -n1)
     fi
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _echo "package $_PACKAGE_NAME does not exist" 1>&2
@@ -162,6 +166,11 @@ _remove() {
         sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
         _trim_mkpm_file
     fi
+}
+
+_reinstall() {
+    rm -rf "$_CWD/.mkpm" 2>/dev/null || true
+    make "$(date)	$(date)" 2>/dev/null || true
 }
 
 _init() {
@@ -351,11 +360,13 @@ while test $# -gt 0; do
             echo "    -s, --silent                  silent output"
             echo " "
             echo "commands:"
+            echo "    i install <PACKAGE>                   install a package from default git repo"
             echo "    i install <REPO> <PACKAGE>            install a package from git repo"
             echo "    r remove <PACKAGE>                    remove a package"
             echo "    d dependencies <PACKAGE>              dependencies required by package"
             echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
             echo "    rr repo-remove <REPO_NAME>            remove repo"
+            echo "    reinstall                             reinstal all packages"
             echo "    init                                  initialize mkpm"
             exit 0
         ;;
@@ -392,8 +403,8 @@ case "$1" in
             export _PARAM2=$1
             shift
         else
-            _echo "no package specified" 1>&2
-            exit 1
+            export _PARAM2=$_PARAM1
+            export _PARAM1=default
         fi
     ;;
     r|remove)
@@ -449,6 +460,10 @@ case "$1" in
     ;;
     init)
         export _COMMAND=init
+        shift
+    ;;
+    reinstall)
+        export _COMMAND=reinstall
         shift
     ;;
     *)
