@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 23-06-2022 11:37:35
+# Last Modified: 14-09-2022 07:43:54
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -29,7 +29,7 @@ include $(MKPM)/mkchain
 export USER ?= nobody
 export EMAIL ?= clayrisser@gmail.com
 PKG_NAME ?= mkpm
-PKG_VERSION ?= 0.0.1
+PKG_VERSION ?= 0.2.1
 PKG_STRICT ?= 0
 include $(MKPM)/pkg
 
