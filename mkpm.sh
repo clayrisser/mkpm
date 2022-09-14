@@ -75,14 +75,14 @@ _install() {
     fi
     _PACKAGE=$1
     _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
-    _PACKAGE_VERSION=$(echo $_PACKAGE | sed 's|^[^=]*=\?||g')
+    _PACKAGE_VERSION=$(echo $_PACKAGE | gsed 's|^[^=]*||g' | gsed 's|^=||g')
     _REPO_URI=$2
     _REPO_PATH=$(_repo_path $_REPO_URI)
     _REPO_NAME=$3
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | \
-            sed "s|${_PACKAGE_NAME}/||g" | \
+            gsed "s|${_PACKAGE_NAME}/||g" | \
             sort -t "." -k1,1n -k2,2n -k3,3n | tail -n1)
     fi
     if [ "$_PACKAGE_VERSION" = "" ]; then
@@ -112,7 +112,7 @@ _install() {
     tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
     if [ "$MKPM" = "" ] && [ "$_REPO_NAME" != "" ]; then
         _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep "MKPM_PACKAGES_${_REPO_NAME} := \\\\" | grep -oE '[0-9]+') + 1)
-        sed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
+        gsed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
         _trim_mkpm_file
     fi
     _create_cache
@@ -132,18 +132,10 @@ _lookup_repo_uri() {
     _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | \
         tr '[:lower:]' '[:upper:]'))
     if [ "$_REPO_URI" = "" ] && [ -f "$_CWD/mkpm.mk" ]; then
-        _LINE=$(cat -n "$_CWD/mkpm.mk" | \
-            grep "MKPM_REPO_$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')\s" | \
-            head -n1)
-        if echo $_LINE | grep -E '\\\s*$' >/dev/null 2>/dev/null; then
-            _LINE_NUMBER="$(expr $(echo $_LINE | \
-                grep -oE '[0-9]+') + 1)"
-            _REPO_URI=$(cat -n "$_CWD/mkpm.mk" | grep -E "^\s+$_LINE_NUMBER\s+" | \
-                sed "s|^\s*[0-9]\+\s\+||g")
-        else
-            _REPO_URI=$(echo $_LINE | \
-                sed "s|^\s*[0-9]\+\s\+MKPM_REPO_\w\+\s\+:=\s\+||g")
-        fi
+        _REPO_NAME=$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')
+        _REPO_ENV=$(echo export MKPM_REPO_$_REPO_NAME)
+        _REPO_URI=$(echo $(awk 'sub(/\\$/,""){printf("%s",$0);next};1' "$_CWD/mkpm.mk" | \
+            grep "$_REPO_ENV" | gsed 's|^.*:= ||g'))
     fi
     if _is_repo_uri "$_REPO_URI"; then
         echo "$_REPO_URI"
@@ -154,7 +146,7 @@ _lookup_repos() {
     env | \
         cut -d'=' -f1 | \
         grep -E 'MKPM_REPO_\w+' | \
-        sed 's|^MKPM_REPO_||g' | \
+        gsed 's|^MKPM_REPO_||g' | \
         tr '[:upper:]' '[:lower:]'
 }
 
@@ -165,7 +157,7 @@ _remove() {
         "$_CWD/.mkpm/-$_PACKAGE_NAME" \
         "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" 2>/dev/null || true
     if [ "$MKPM" = "" ]; then
-        sed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\(\.[0-9]\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
+        gsed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\+\(\.[0-9]\+\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
         _trim_mkpm_file
     fi
 }
@@ -185,8 +177,8 @@ _upgrade() {
     fi
     _update_repo $_REPO_URI $_REPO_PATH
     if [ "$_PACKAGE_NAME" = "" ]; then
-        _REPO_ENV=$(echo export MKPM_PACKAGES_$_REPO_NAME)
-        _PACKAGES=$(awk 'sub(/\\$/,""){printf("%s",$0);next};1' "$_CWD/mkpm.mk" | grep "$_REPO_ENV" | sed 's|^.*:= ||g')
+        _PACKAGES_ENV=$(echo export MKPM_PACKAGES_$_REPO_NAME)
+        _PACKAGES=$(awk 'sub(/\\$/,""){printf("%s",$0);next};1' "$_CWD/mkpm.mk" | grep "$_PACKAGES_ENV" | gsed 's|^.*:= ||g')
         for p in $_PACKAGES; do
             _PACKAGE_NAME=$(echo $p | cut -d'=' -f1)
             _install $_PACKAGE_NAME $_REPO_URI $_REPO_NAME
@@ -308,9 +300,9 @@ _repo_add() {
     _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | \
         grep "#\+ MKPM BOOTSTRAP SCRIPT BEGIN" | grep -oE '[0-9]+')
     if [ "$_LINE_NUMBER" = "" ]; then
-        sed -i -e "\$a\\\\n${_BODY}" "$_CWD/mkpm.mk"
+        gsed -i -e "\$a\\\\n${_BODY}" "$_CWD/mkpm.mk"
     else
-        sed -i "${_LINE_NUMBER}i\\${_BODY}\n" "$_CWD/mkpm.mk"
+        gsed -i "${_LINE_NUMBER}i\\${_BODY}\n" "$_CWD/mkpm.mk"
     fi
     _trim_mkpm_file
     _reset
@@ -327,7 +319,7 @@ _repo_remove() {
         _echo "repo $_REPO_NAME does not exist" 1>&2
         exit 1
     fi
-    sed -i -z "s|\s*export[ ]\+MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
+    gsed -i -z "s|\s*export[ ]\+MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
         )"'[ \t]\+:=[ \t]*\\[ \t]*\(\n[ \t]*[^ \t\n=]\+=[^ \t\n]\+\([ \t]\+\\\)\?[ \t]*\)*\s*export[ ]\+MKPM_REPO_'"$( \
             echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
         )"'[ \t]\+:=[ \t]*\\[ \t]*\n[ \t]*[^\n]\+\s*|\n\n|' "$_CWD/mkpm.mk"
@@ -359,7 +351,7 @@ _create_cache() {
 }
 
 _trim_mkpm_file() {
-    sed -i -z 's|\t\([^ \t\n=]\+=[^ \t\n]\+\)[ \t]\+\\[ \t]*\n\([ \t]*\n[ \t]*\)\+|\t\1\n\n|g' "$_CWD/mkpm.mk"
+    gsed -i -z 's|\t\([^ \t\n=]\+=[^ \t\n]\+\)[ \t]\+\\[ \t]*\n\([ \t]*\n[ \t]*\)\+|\t\1\n\n|g' "$_CWD/mkpm.mk"
 }
 
 _echo() {

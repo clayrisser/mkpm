@@ -3,8 +3,8 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 23-06-2022 11:52:56
-# Modified By: Clay Risser
+# Last Modified: 14-09-2022 21:49:40
+# Modified By: Jam Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
 #
@@ -21,9 +21,6 @@
 # limitations under the License.
 
 export MKPM_PACKAGES_DEFAULT := \
-	gnu=0.0.3 \
-	mkchain=0.1.0 \
-	pkg=0.0.1 \
 	hello=0.1.0
 
 export MKPM_REPO_DEFAULT := \
