@@ -3,8 +3,8 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 14-09-2022 20:26:02
-# Modified By: Jam Risser
+# Last Modified: 14-09-2022 10:18:22
+# Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
 #
@@ -255,6 +255,16 @@ endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
 
+ifeq (,$(.DEFAULT_GOAL))
+.DEFAULT_GOAL = $(HELP)
+endif
+ifeq ($(findstring .mkpm/.bootstrap,$(.DEFAULT_GOAL)),.mkpm/.bootstrap)
+.DEFAULT_GOAL = $(HELP)
+endif
+ifeq ($(findstring .mkpm/.cache,$(.DEFAULT_GOAL)),.mkpm/.cache)
+.DEFAULT_GOAL = $(HELP)
+endif
+
 export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,)
 .PHONY: sudo
 ifneq (,$(SUDO))
@@ -265,7 +275,7 @@ sudo: ;
 endif
 
 ifneq (,$(SUDO))
-_PKG_MANAGER_SUDO := sudo
+_PKG_MANAGER_SUDO := "sudo "
 endif
 ifeq ($(PKG_MANAGER),yum)
 define pkg_manager_install
@@ -307,6 +317,10 @@ define echo_command
 $(ECHO) "$(GREEN)    $1$(NOCOLOR)"
 endef
 
+define _mkpm_failed
+($(TOUCH) $(MKPM)/.failed && $(EXIT) 1)
+endef
+
 define requires_pkg
 $(ECHO) "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
 	$(ECHO) && \
@@ -316,11 +330,7 @@ $(ECHO) "$(YELLOW)"'the package $1 is required'"$(NOCOLOR)" && \
 	$(ECHO) && \
 	([ "$3" != "" ] && $(call echo_command,$3) || $(call echo_command,$(call pkg_manager_install,$1))) && \
 	$(ECHO) && \
-	$(EXIT) 9009
-endef
-
-define _mkpm_failed
-($(TOUCH) $(MKPM)/.failed && $(EXIT) 1)
+	$(call _mkpm_failed)
 endef
 
 ifneq ($(PROJECT_ROOT),$(CURDIR))
@@ -391,8 +401,7 @@ ifneq ($(call ternary,$(MAKE) --version | $(HEAD) -n1 | $(GREP) -E 4,1),1)
 		$(call echo_command,$(call pkg_manager_install,make)) && \
 		[ "$(PLATFORM)" = "darwin" ] && ($(ECHO) && $(ECHO) 'you may need to run \033[3mgmake\033[0m instead of \033[3mmake\033[0m on OSX') || $(TRUE) && \
 		$(ECHO) && \
-		$(EXIT) 9009
-
+		$(call _mkpm_failed)
 endif
 ifneq ($(call ternary,git --version,1),1)
 	@$(call requires_pkg,git,https://git-scm.com)
@@ -459,16 +468,6 @@ endif
 		$(MAKE) -s $(HELP) | \
 		$(HELP_GENERATE_TABLE) > $$HELP_TABLE && \
 		$(PRETTIER) $$HELP_TABLE
-endif
-
-ifeq (,$(.DEFAULT_GOAL))
-.DEFAULT_GOAL = $(HELP)
-endif
-ifeq ($(findstring .mkpm/.bootstrap,$(.DEFAULT_GOAL)),.mkpm/.bootstrap)
-.DEFAULT_GOAL = $(HELP)
-endif
-ifeq ($(findstring .mkpm/.cache,$(.DEFAULT_GOAL)),.mkpm/.cache)
-.DEFAULT_GOAL = $(HELP)
 endif
 
 .PHONY: mkpm
