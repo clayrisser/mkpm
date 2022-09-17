@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 17-09-2022 08:20:22
+# Last Modified: 17-09-2022 08:36:08
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -513,7 +513,9 @@ endif
 $(MKPM_CLI):
 	@$(MKDIR) -p $(@D)
 	@[ ! -f $(MKPM)/.cache.tar.gz ] && \
-		($(DOWNLOAD) $@ $(MKPM_CLI_URI) && $(CHMOD) +x $@) || $(TRUE)
+		([ -f $(PROJECT_ROOT)/$(MKPM_DIR)/.bin/mkpm ] && \
+			$(CP) $(PROJECT_ROOT)/$(MKPM_DIR)/.bin/mkpm $@ || \
+			($(DOWNLOAD) $@ $(MKPM_CLI_URI) && $(CHMOD) +x $@)) || $(TRUE)
 
 ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 include cmd.exe
