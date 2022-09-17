@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 14-09-2022 12:46:45
+# Last Modified: 17-09-2022 08:20:22
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -492,13 +492,12 @@ endif
 .PHONY: mkpm
 mkpm: ;
 
-ifneq (,$(wildcard $(MKPM)/.preflight))
-ifneq (,$(wildcard $(MKPM)/.ready))
-ifneq (,$(wildcard $(MKPM)/.bootstrap))
-export MKPM_READY := 1
-endif
-endif
-endif
+define MKPM_READY
+$(shell ([ -f $(MKPM)/.preflight ] && \
+	[ -f $(MKPM)/.ready ] && \
+	[ -f $(MKPM)/.bootstrap ]) && \
+	$(ECHO) 1 || $(TRUE))
+endef
 
 export GLOBAL_MK := $(wildcard $(PROJECT_ROOT)/global.mk)
 export LOCAL_MK := $(wildcard $(CURDIR)/local.mk)
