@@ -23,7 +23,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
    	https://gitlab.com/risserlabs/community/mkpm-stable.git
 
    ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-   MKPM_BOOTSTRAP := https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.2.0/bootstrap.mk
+   MKPM_BOOTSTRAP := https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk
    export PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
    NULL := /dev/null
    TRUE := true
@@ -56,7 +56,13 @@ https://gitlab.com/risserlabs/community/mkpm-example
    _you can also add packages with the mkpm cli instead_
 
    ```sh
-   mkpm i default hello
+   mkpm install hello
+   ```
+
+   _or_
+
+   ```sh
+   mkpm i hello
    ```
 
 3. To include packages in a _Makefile_, simply prefix them with the `MKPM`
