@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 17-09-2022 08:36:08
+# Last Modified: 16-10-2022 06:01:26
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -462,7 +462,7 @@ $(MKPM)/.ready:
 	@[ -f $(MKPM)/.preflight ] && $(TOUCH) -m "$@" || $(EXIT) 1
 
 NODE ?= node
-PRETTIER ?= $(call ternary,prettier -v,prettier,$(call ternary,$(PROJECT_ROOT)/node_modules/.bin/prettier -v,$(PROJECT_ROOT)/node_modules/.bin/prettier,$(call ternary,node_modules/.bin/prettier -v,node_modules/.bin/prettier,)))
+PRETTIER ?= $(call ternary,node_modules/.bin/prettier -v,node_modules/.bin/prettier,$(call ternary,$(PROJECT_ROOT)/node_modules/.bin/prettier -v,$(PROJECT_ROOT)/node_modules/.bin/prettier,$(call ternary,prettier -v,prettier,)))
 HELP_GENERATE_TABLE ?= $(NODE) -e 'var a=console.log;a("|command|description|");a("|-|-|");require("fs").readFileSync(0,"utf-8").replace(/\u001b\[\d*?m/g,"").split("\n").map(e=>e.split(/\s+(.+)/).map(e=>e.trim())).map(e=>{var r=e[0];if(e&&r)a("|","`make "+r+"`","|",e.length>1?e[1]:"","|")})'
 HELP_PREFIX ?=
 HELP_SPACING ?= 32
