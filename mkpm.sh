@@ -1,7 +1,7 @@
 #!/bin/sh
 
 export MKPM_CLI_VERSION="0.3.0"
-export DEFAULT_MKPM_BOOTSTRAP="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.2.0/bootstrap.mk"
+export DEFAULT_MKPM_BOOTSTRAP="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
 export DEFAULT_MKPM_REPO="https://gitlab.com/risserlabs/community/mkpm-stable.git"
 
 export _CWD=$(pwd)
