@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 19-11-2022 19:45:09
+# Last Modified: 19-11-2022 20:29:51
 # Modified By: Jam Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -342,7 +342,9 @@ endif
 include $(MKPM)/.a
 include $(MKPM)/.z
 ifeq ($(INCLUDE_ORDER),ASC)
+ifneq ($(TRUE),$(TAR))
 -include $(MKPM)/.cache
+endif
 include $(MKPM)/.preflight
 -include $(MKPM)/.bootstrap
 include $(MKPM)/.ready
@@ -351,12 +353,15 @@ ifeq ($(INCLUDE_ORDER),DESC)
 include $(MKPM)/.ready
 -include $(MKPM)/.bootstrap
 include $(MKPM)/.preflight
+ifneq ($(TRUE),$(TAR))
 -include $(MKPM)/.cache
 endif
+endif
 $(MKPM)/.a:
-	@$(ECHO) 'export INCLUDE_ORDER ?= ASC' > $@
+	@[ -f $(MKPM)/.a ] || $(ECHO) 'export INCLUDE_ORDER ?= ASC' > $@
 $(MKPM)/.z:
-	@$(ECHO) 'export INCLUDE_ORDER ?= DESC' > $@
+	@[ -f $(MKPM)/.a ] || $(ECHO) 'export INCLUDE_ORDER ?= DESC' > $(MKPM)/.a
+	@$(TOUCH) $@
 
 ifneq ($(TRUE),$(TAR))
 $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
@@ -381,8 +386,8 @@ ifneq ($(call ternary,$(MAKE) --version | $(HEAD) -n1 | $(GREP) -E 4,1),1)
 		$(ECHO) && \
 		$(ECHO) "or you can try to install \033[1m"'GNU Make'"\033[0m with the following command" && \
 		$(ECHO) && \
-		$(call echo_command,$(call pkg_manager_install,make)) && \
-		[ "$(PLATFORM)" = "darwin" ] && ($(ECHO) && $(ECHO) 'you may need to run \033[3mgmake\033[0m instead of \033[3mmake\033[0m on OSX') || $(TRUE) && \
+		$(call echo_command,$(call pkg_manager_install,remake)) && \
+		[ "$(PLATFORM)" = "darwin" ] && ($(ECHO) && $(ECHO) 'you may need to run \033[3mremake\033[0m instead of \033[3mmake\033[0m on OSX') || $(TRUE) && \
 		$(ECHO) && \
 		$(call _mkpm_failed)
 endif
