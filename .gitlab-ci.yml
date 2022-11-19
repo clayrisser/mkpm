@@ -32,6 +32,9 @@ upload:
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file mkpm.sh \
         ${PACKAGE_REGISTRY_URL}/mkpm.sh
     - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file install.sh \
+        ${PACKAGE_REGISTRY_URL}/install.sh
+    - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bootstrap.mk \
         ${PACKAGE_REGISTRY_URL}/bootstrap.mk
     - |
@@ -54,6 +57,7 @@ release:
     - |
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
         --assets-link "{\"name\":\"mkpm.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.sh\"}" \
+        --assets-link "{\"name\":\"install.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/install.sh\"}" \
         --assets-link "{\"name\":\"bootstrap.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/bootstrap.mk\"}" \
         --assets-link "{\"name\":\"${DEB}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DEB}\"}"
 
