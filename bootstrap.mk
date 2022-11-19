@@ -3,8 +3,8 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 16-10-2022 06:01:26
-# Modified By: Clay Risser
+# Last Modified: 19-11-2022 19:45:09
+# Modified By: Jam Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
 #
@@ -339,12 +339,26 @@ _COPY_MKPM := 1
 endif
 endif
 
+include $(MKPM)/.a
+include $(MKPM)/.z
+ifeq ($(INCLUDE_ORDER),ASC)
+-include $(MKPM)/.cache
+include $(MKPM)/.preflight
+-include $(MKPM)/.bootstrap
+include $(MKPM)/.ready
+endif
+ifeq ($(INCLUDE_ORDER),DESC)
 include $(MKPM)/.ready
 -include $(MKPM)/.bootstrap
 include $(MKPM)/.preflight
+-include $(MKPM)/.cache
+endif
+$(MKPM)/.a:
+	@$(ECHO) 'export INCLUDE_ORDER ?= ASC' > $@
+$(MKPM)/.z:
+	@$(ECHO) 'export INCLUDE_ORDER ?= DESC' > $@
 
 ifneq ($(TRUE),$(TAR))
--include $(MKPM)/.cache
 $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
 	@$(MKDIR) -p $(MKPM)
 	@([ -f $(MKPM)/.cache ] && [ "$(_LOAD_MKPM_FROM_CACHE)" = "" ]) && $(RM) -rf $(MKPM)/.cache.tar.gz || $(TRUE)
