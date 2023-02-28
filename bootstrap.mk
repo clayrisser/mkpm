@@ -3,8 +3,8 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 19-11-2022 20:29:51
-# Modified By: Jam Risser
+# Last Modified: 28-02-2023 09:22:58
+# Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
 #
@@ -358,8 +358,10 @@ ifneq ($(TRUE),$(TAR))
 endif
 endif
 $(MKPM)/.a:
+	@$(MKDIR) -p $(MKPM)
 	@[ -f $(MKPM)/.a ] || $(ECHO) 'export INCLUDE_ORDER ?= ASC' > $@
 $(MKPM)/.z:
+	@$(MKDIR) -p $(MKPM)
 	@[ -f $(MKPM)/.a ] || $(ECHO) 'export INCLUDE_ORDER ?= DESC' > $(MKPM)/.a
 	@$(TOUCH) $@
 
