@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 11-05-2023 09:46:37
+# Last Modified: 11-05-2023 10:19:42
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -29,6 +29,7 @@ export MKPM_DIR := .mkpm
 export MKPM_CLI_URI := \
 	https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/$(EXPECTED_MKPM_CLI_VERSION)/mkpm.sh
 
+export LC_ALL=C
 export MAKESHELL ?= $(SHELL)
 export MKPM := $(abspath $(CURDIR)/$(MKPM_DIR))
 export MKPM_CLI := $(MKPM)/.bin/mkpm
