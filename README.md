@@ -6,6 +6,12 @@ You can find an example project using mkpm at the link below
 
 https://gitlab.com/risserlabs/community/mkpm-example
 
+## Install
+
+```sh
+$(curl --version >/dev/null 2>/dev/null && echo curl -L || echo wget -O-) https://gitlab.com/risserlabs/community/mkpm/-/raw/main/install.sh 2>/dev/null | sh
+```
+
 ## Usage
 
 1. Create a file called `mkpm.mk` in the root of your project

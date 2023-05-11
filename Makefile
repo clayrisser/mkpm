@@ -3,8 +3,8 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 14-09-2022 22:11:59
-# Modified By: Jam Risser
+# Last Modified: 11-05-2023 09:18:45
+# Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
 #
@@ -57,6 +57,21 @@ $(ACTION)/build: $(call git_deps,.)
 	@$(CP) mkpm.sh build/mkpm
 	@$(CHMOD) +x build/mkpm
 	@$(call done,build)
+
+.PHONY: install
+install: | sudo \
+	/usr/local/bin/mkpm
+/usr/local/bin/mkpm:
+	@$(SUDO) $(CP) mkpm.sh $@
+	@$(SUDO) $(CHMOD) +x $@
+
+.PHONY: uninstall
+uninstall: | sudo
+	@$(SUDO) $(RM) -f \
+		/usr/local/bin/mkpm
+
+.PHONY: reinstall
+reinstall: | uninstall install
 
 .PHONY: clean
 clean: ##
