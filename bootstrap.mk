@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 28-02-2023 09:22:58
+# Last Modified: 11-05-2023 09:46:37
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -84,7 +84,9 @@ export ARCH := unknown
 export FLAVOR := unknown
 export PKG_MANAGER := unknown
 export PLATFORM := unknown
-ifeq ($(OS),Windows_NT)
+export CODENAME := unknown
+export IS_WSL :=
+ifeq ($(OS),Windows_NT) # WINDOWS
 	export HOME := $(HOMEDRIVE)$(HOMEPATH)
 	PLATFORM = win32
 	FLAVOR = win64
@@ -115,13 +117,13 @@ else
 	ifeq ($(ARCH),x86_64)
 		ARCH = amd64
 	endif
-	ifeq ($(PLATFORM),linux) # LINUX
-		ifneq (,$(wildcard /system/bin/adb))
+	ifeq ($(PLATFORM),linux)
+		ifneq (,$(wildcard /system/bin/adb)) # ANDROID
 			ifneq ($(shell getprop --help >$(NULL) 2>$(NULL) && echo 1 || echo 0),1)
 				PLATFORM = android
 			endif
 		endif
-		ifeq ($(PLATFORM),linux)
+		ifeq ($(PLATFORM),linux) # LINUX
 			FLAVOR = $(shell lsb_release -si 2>$(NULL) | $(TR) '[:upper:]' '[:lower:]' 2>$(NULL))
 			ifeq (,$(FLAVOR))
 				FLAVOR = unknown
@@ -134,7 +136,7 @@ else
 				ifneq (,$(wildcard /etc/debian_version))
 					FLAVOR = debian
 				endif
-				ifeq ($(shell cat /etc/os-release 2>$(NULL) | grep -E "^ID=alpine$$"),ID=alpine)
+				ifeq ($(shell cat /etc/os-release 2>$(NULL) | grep -qE "^ID=alpine$$"),ID=alpine)
 					FLAVOR = alpine
 				endif
 			endif
@@ -146,12 +148,17 @@ else
 			endif
 			ifeq ($(FLAVOR),debian)
 				PKG_MANAGER = apt-get
+				CODENAME = $(shell cat /etc/os-release | grep VERSION_CODENAME | cut -d'=' -f2)
 			endif
 			ifeq ($(FLAVOR),ubuntu)
 				PKG_MANAGER = apt-get
+				CODENAME = $(shell cat /etc/os-release | grep VERSION_CODENAME | cut -d'=' -f2)
 			endif
 			ifeq ($(FLAVOR),alpine)
 				PKG_MANAGER = apk
+			endif
+			ifneq (,$(wildcard /proc/sys/fs/binfmt_misc/WSLInterop))
+				IS_WSL := 1
 			endif
 		endif
 	else
@@ -174,9 +181,8 @@ else
 		PKG_MANAGER = brew
 	endif
 endif
-
 ifeq ($(PKG_MANAGER),unknown)
-	PKG_MANAGER = $(call ternary,apt-get,apt-get,$(call ternary,apk,apk,$(call ternary,yum,yum,$(call ternary,brew,brew,unknown))))
+	PKG_MANAGER = $(call ternary,$(WHICH) apt-get,apt-get,$(call ternary,$(WHICH) apk,apk,$(call ternary,$(WHICH) yum,yum,$(call ternary,$(WHICH) brew,brew,$(call ternary,$(WHICH) microdnf,microdnf,$(call ternary,$(WHICH) dnf,dnf,unknown))))))
 endif
 
 export COLUMNS := $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && $(ECHO) $$COLUMNS))
