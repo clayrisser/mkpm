@@ -6,7 +6,18 @@ You can find an example project using mkpm at the link below
 
 https://gitlab.com/risserlabs/community/mkpm-example
 
+## Requirements
+
+* [GNU Make >= 4.1](https://www.gnu.org/software/make)
+* [Git](https://git-scm.com)
+* [Git LFS](https://git-lfs.com)
+
 ## Install
+
+The `mkpm` binary is not required to use mkpm. However, it does provides several utilities for
+initializing new mkpm projects, installing new mkpm packages and updating mkpm pacakges.
+
+You can install it with the following command.
 
 ```sh
 $(curl --version >/dev/null 2>/dev/null && echo curl -L || echo wget -O-) https://gitlab.com/risserlabs/community/mkpm/-/raw/main/install.sh 2>/dev/null | sh
