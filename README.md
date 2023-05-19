@@ -8,7 +8,7 @@ https://gitlab.com/risserlabs/community/mkpm-example
 
 ## Requirements
 
-* [GNU Make >= 4.1](https://www.gnu.org/software/make)
+* [GNU Make](https://www.gnu.org/software/make) >= 4.1
 * [Git](https://git-scm.com)
 * [Git LFS](https://git-lfs.com)
 
