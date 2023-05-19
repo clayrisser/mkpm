@@ -72,11 +72,9 @@ $(curl --version >/dev/null 2>/dev/null && echo curl -L || echo wget -O-) https:
    ```
 
 3. To include packages in a _Makefile_, simply prefix them with the `MKPM`
-   variable. They MUST be included after the `mkpm.mk` file. Below is an
-   example. Make sure you prefix the include statement with a dash `-include`
-   to prevent the Makefile from crashing before the packages are installed.
-   Also make sure you wrap the file with `ifneq (,$(MKPM_READY))` and `endif` to
-   prevent code from executing before mkpm is loaded.
+   variable. Be sure to include `mkpm.mk`. Also wrap the file with `ifneq (,$(MKPM_READY))`
+   and `endif` to prevent code from executing before mkpm is loaded. The packages MUST be included
+   after the `mkpm.mk` file and after the `MKPM_READY` check. Below is an example.
 
    _Makefile_
 
