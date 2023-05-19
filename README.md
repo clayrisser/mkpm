@@ -98,3 +98,37 @@ $(curl --version >/dev/null 2>/dev/null && echo curl -L || echo wget -O-) https:
 
    endif
    ```
+
+## Repos
+
+The default repo is set to [https://gitlab.com/risserlabs/community/mkpm-stable.git](https://gitlab.com/risserlabs/community/mkpm-stable.git). Feel free to use any mkpm packages from this repo.
+
+```makefile
+export MKPM_REPO_DEFAULT := \
+	https://gitlab.com/risserlabs/community/mkpm-stable.git
+```
+
+However, you can change the repo to point to your own repo, or you can use multiple repos.
+For example, if you wanted to use the packages from the risserlabs default repo, but you
+also wanted to bring your own packages, you would simply add a new repo with a new name.
+
+For example, you could call it _howdy_.
+
+_mkpm.mk_
+```makefile
+export MKPM_REPO_HOWDY := \ # the name of the repo must be post-fixed to the end in all caps
+	https://gitlab.com/risserlabs/howdy-mkpm-packages.git
+```
+
+You can then install pacakges from this custom repo by running the following.
+
+```sh
+mkpm install <REPO_NAME> <PACKAGE_NAME>
+```
+
+For example, let's say you wanted to install the _texas_ package from _howdy_ repo. You would
+simply run the following.
+
+```sh
+mkpm install howdy texas
+```
