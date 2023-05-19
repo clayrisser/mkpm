@@ -118,6 +118,8 @@ _mkpm.mk_
 ```makefile
 export MKPM_REPO_HOWDY := \ # the name of the repo must be post-fixed to the end in all caps
 	https://gitlab.com/risserlabs/howdy-mkpm-packages.git
+
+export MKPM_PACKAGES_HOWDY := \ # don't forget to also add the packages variable
 ```
 
 You can then install pacakges from this custom repo by running the following.
