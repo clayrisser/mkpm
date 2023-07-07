@@ -6,6 +6,8 @@ You can find an example project using mkpm at the link below
 
 https://gitlab.com/bitspur/community/mkpm-example
 
+![](assets/mkpm.png)
+
 ## Usage
 
 1. Create a file called `mkpm.mk` in the root of your project
