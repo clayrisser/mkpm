@@ -5,65 +5,18 @@ stages:
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  DARWIN_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-darwin-amd64'
-  LINUX_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-linux-amd64'
-  WIN32_AMD64_BINARY: '${CI_PROJECT_NAME}-${CI_COMMIT_TAG}-win32-amd64.exe'
-  PACKAGE_REGISTRY_URL: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/mkpm/${CI_COMMIT_TAG}'
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}/${CI_COMMIT_TAG}"
 
-build:darwin:
+build:
   stage: build
-  tags:
-    - macos-amd64
+  image: registry.gitlab.com/risserlabs/community/images/debian:0.0.1
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - cd gpm
-    - git reset --hard
-    - git apply ../gpm.patch
-    - cargo build --release
-    - du -sh target/release/mkpm
-    - mkdir ../bin
-    - mv target/release/mkpm ../bin/${DARWIN_AMD64_BINARY}
+    - make pkg-deb
   artifacts:
     paths:
-      - bin
-    expire_in: 1 hour
-
-build:linux:
-  stage: build
-  image: joseluisq/rust-linux-darwin-builder:1.55.0
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - cd gpm
-    - git reset --hard
-    - git apply ../gpm.patch
-    - cargo build --release --target x86_64-unknown-linux-musl
-    - du -sh target/x86_64-unknown-linux-musl/release/mkpm
-    - mkdir ../bin
-    - mv target/x86_64-unknown-linux-musl/release/mkpm ../bin/${LINUX_AMD64_BINARY}
-  artifacts:
-    paths:
-      - bin
-    expire_in: 1 hour
-
-build:win32:
-  stage: build
-  tags:
-    - win32-amd64
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - cd gpm
-    - git reset --hard
-    - git apply ../gpm.patch
-    - cargo build --release
-    - dir target/release/mkpm.exe
-    - mkdir ../bin
-    - mv target/release/mkpm.exe ../bin/${WIN32_AMD64_BINARY}
-  artifacts:
-    paths:
-      - bin
+      - "*.deb"
     expire_in: 1 hour
 
 upload:
@@ -72,19 +25,22 @@ upload:
   rules:
     - if: $CI_COMMIT_TAG
   needs:
-    - build:darwin
-    - build:linux
-    - build:win32
+    - build
   script:
+    - export DEB=$(ls | grep -E '\.deb$')
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${DARWIN_AMD64_BINARY} \
-        ${PACKAGE_REGISTRY_URL}/${DARWIN_AMD64_BINARY}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file mkpm.sh \
+        ${PACKAGE_REGISTRY_URL}/mkpm.sh
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${LINUX_AMD64_BINARY} \
-        ${PACKAGE_REGISTRY_URL}/${LINUX_AMD64_BINARY}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bootstrap.mk \
+        ${PACKAGE_REGISTRY_URL}/bootstrap.mk
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${WIN32_AMD64_BINARY} \
-        ${PACKAGE_REGISTRY_URL}/${WIN32_AMD64_BINARY}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file ${DEB} \
+        ${PACKAGE_REGISTRY_URL}/${DEB}
+  artifacts:
+    paths:
+      - "*.deb"
+    expire_in: 1 hour
 
 release:
   stage: publish
@@ -94,11 +50,12 @@ release:
   needs:
     - upload
   script:
+    - export DEB=$(ls | grep -E '\.deb$')
     - |
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
-        --assets-link "{\"name\":\"${DARWIN_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DARWIN_AMD64_BINARY}\"}" \
-        --assets-link "{\"name\":\"${LINUX_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${LINUX_AMD64_BINARY}\"}" \
-        --assets-link "{\"name\":\"${WIN32_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${WIN32_AMD64_BINARY}\"}"
+        --assets-link "{\"name\":\"mkpm.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.sh\"}" \
+        --assets-link "{\"name\":\"bootstrap.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/bootstrap.mk\"}" \
+        --assets-link "{\"name\":\"${DEB}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DEB}\"}"
 
 pages:
   stage: publish
@@ -106,7 +63,7 @@ pages:
   needs: []
   script:
     - mkdir public
-    - cp bootstrap.mk public
+    - cp depricated-bootstrap.mk public/bootstrap.mk
   artifacts:
     paths:
       - public

@@ -3,10 +3,10 @@
 # File Created: 26-09-2021 00:44:57
 # Author: Clay Risser
 # -----
-# Last Modified: 11-12-2021 03:05:43
+# Last Modified: 16-10-2022 06:02:50
 # Modified By: Clay Risser
 # -----
-# BitSpur Inc (c) Copyright 2021
+# Risser Labs LLC (c) Copyright 2021
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,15 +20,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MKPM_PACKAGES := \
-	gnu=0.0.1 \
-	hello=0.0.5
+export MKPM_PACKAGES_DEFAULT := \
+	mkchain=0.1.1 \
+	gnu=0.0.3 \
+	pkg=0.0.1 \
+	hello=0.1.0
 
-MKPM_REPOS := \
-	https://gitlab.com/bitspur/community/mkpm-stable.git
+export MKPM_REPO_DEFAULT := \
+	https://gitlab.com/risserlabs/community/mkpm-stable.git
 
 ############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-MKPM_BOOTSTRAP := https://bitspur.gitlab.io/community/mkpm/bootstrap.mk
+MKPM_BOOTSTRAP := https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk
 export PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 NULL := /dev/null
 TRUE := true
@@ -36,12 +38,15 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	NULL = nul
 	TRUE = type nul
 endif
--include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
-$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk
-	@mkdir .mkpm 2>$(NULL) || $(TRUE)
+include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
+$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk mkpm.mk
 ifeq ($(OS),Windows_NT)
+	@mkdir .mkpm
 	@type $< > $@
 else
+	@mkdir -p .mkpm/.bin
 	@cp $< $@
+	@cp mkpm.sh .mkpm/.bin/mkpm
+	@chmod +x .mkpm/.bin/mkpm
 endif
 ############## MKPM BOOTSTRAP SCRIPT END ##############

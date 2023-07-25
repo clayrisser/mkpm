@@ -1,1 +1,19 @@
-.mkpm/
+# app
+/build
+
+# mkpm
+.mkpm/*
+!/.mkpm/.cache.tar.gz
+!/.mkpm/.bootstrap.mk
+**/.mkpm/*
+
+# pkg
+/.upstream
+*_*.orig.tar.xz
+*_*-*_*.build
+*_*-*_*.buildinfo
+*_*-*_*.changes
+*_*-*_*.deb
+*_*-*.debian.tar.xz
+*_*-*.dsc
+*_*-*.diff.*

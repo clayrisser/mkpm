@@ -1,5 +1,6 @@
 {
   "cSpell.words": [
+    "abspath",
     "aerys",
     "armv",
     "autotag",
@@ -13,6 +14,7 @@
     "crossterm",
     "ctarget",
     "curlimages",
+    "depricated",
     "dotenv",
     "dquote",
     "endef",
@@ -29,6 +31,7 @@
     "ifneq",
     "indicatif",
     "joseluisq",
+    "lastword",
     "libc",
     "linux",
     "mkdir",
@@ -46,6 +49,7 @@
     "release",
     "reqwest",
     "risser",
+    "risserlabs",
     "rpassword",
     "rustc",
     "rustflags",
@@ -74,8 +78,8 @@
   "psi-header.variables": [["projectCreationYear", "2021"]],
   "psi-header.config": {
     "blankLinesAfter": 1,
-    "company": "BitSpur Inc",
-    "copyrightHolder": "BitSpur Inc",
+    "company": "Risser Labs LLC",
+    "copyrightHolder": "Risser Labs LLC",
     "creationDateZero": "asIs",
     "forceToTop": true,
     "initials": "CR",
