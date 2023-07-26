@@ -22,8 +22,7 @@ _project_root() {
     return
 }
 export PROJECT_ROOT="$(_project_root)"
-export MKPM="$PROJECT_ROOT/.mkpm"
-export _MKPM_BIN="$MKPM/.bin"
+export _MKPM_BIN="$PROJECT_ROOT/.mkpm/mkpm/.bin"
 
 if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
     mkdir -p "$_MKPM_BIN"

@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 26-07-2023 14:05:17
+# Last Modified: 26-07-2023 16:36:24
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -22,5 +22,5 @@
 
 .POSIX:
 
-$(info WOW)
-
+export LC_ALL := C
+export MAKESHELL ?= $(SHELL)

@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-07-2023 14:05:06
+# Last Modified: 26-07-2023 16:37:14
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -21,16 +21,16 @@
 # limitations under the License.
 
 include $(MKPM_CORE)
-include $(MKPM)/gnu
-include $(MKPM)/hello
-include $(MKPM)/mkchain
+# include $(MKPM)/gnu
+# include $(MKPM)/hello
+# include $(MKPM)/mkchain
 
 export USER ?= nobody
 export EMAIL ?= clayrisser@gmail.com
 PKG_NAME ?= mkpm
 PKG_VERSION ?= 0.3.0
 PKG_STRICT ?= 0
-include $(MKPM)/pkg
+# include $(MKPM)/pkg
 
 .PHONY: test-bootstrap
 test-bootstrap: ##

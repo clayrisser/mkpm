@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MKPM_CORE="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
+MKPM_CORE_URL="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
 
 alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
 alias which="command -v"
@@ -13,6 +13,7 @@ _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 _REPOS_PATH="$_STATE_PATH/repos"
 _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 export GIT_LFS_SKIP_SMUDGE=1
+export LC_ALL=C
 
 export NOCOLOR='\e[0m'
 export WHITE='\e[1;37m'
@@ -90,9 +91,6 @@ _install() {
         _echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
     fi
-    if [ ! -d "$MKPM" ]; then
-        mkdir -p "$MKPM"
-    fi
     _remove $_PACKAGE_NAME
     # echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > \
     #     "$_CWD/.mkpm/$_PACKAGE_NAME"
@@ -120,21 +118,22 @@ _remove() {
 _prepare() {
     export PROJECT_ROOT="$(_project_root)"
     export MKPM_CONFIG="$PROJECT_ROOT/mkpm.yml"
-    export MKPM="$PROJECT_ROOT/.mkpm"
-    export MKPM_CORE="$MKPM/.core.mk"
+    export MKPM_ROOT="$PROJECT_ROOT/.mkpm"
+    export MKPM="$MKPM_ROOT/mkpm"
     _debug PROJECT_ROOT=\"$PROJECT_ROOT\"
     _debug MKPM_CONFIG=\"$MKPM_CONFIG\"
-    _debug MKPM=\"$MKPM\"
+    _debug MKPM_ROOT=\"$MKPM_ROOT\"
+    export MKPM_CORE="$MKPM/.core.mk"
     export _MKPM_BIN="$MKPM/.bin"
-    export _MKPM_CACHE="$MKPM/.cache"
+    export _MKPM_CACHE="$MKPM_ROOT/cache"
     export _MKPM_PACKAGES="$MKPM/.pkgs"
     export _MKPM_TMP="$MKPM/.tmp"
-    export _MKPM_CORE="$MKPM/.core.mk"
     _require_system_binary git
     _require_system_binary git-lfs
     _require_system_binary jq
     _require_system_binary make
     _require_system_binary yq
+    _ensure_dirs
     if [ ! -d "$_MKPM_PACKAGES" ]; then
         _install
     fi
@@ -195,12 +194,12 @@ install for me [Y|n]: "
 
 _ensure_core() {
     if [ -f "$PROJECT_ROOT/core.mk" ]; then
-        if [ ! -f "$_MKPM_CORE" ] || [ "$PROJECT_ROOT/core.mk" -nt "$_MKPM_CORE" ]; then
-            cp "$PROJECT_ROOT/core.mk" "$_MKPM_CORE"
+        if [ ! -f "$MKPM_CORE" ] || [ "$PROJECT_ROOT/core.mk" -nt "$MKPM_CORE" ]; then
+            cp "$PROJECT_ROOT/core.mk" "$MKPM_CORE"
             _debug downloaded core
         fi
-    elif [ ! -f "$_MKPM_CORE" ]; then
-        download "$_MKPM_CORE" "$MKPM_CORE" >/dev/null
+    elif [ ! -f "$MKPM_CORE" ]; then
+        download "$MKPM_CORE" "$MKPM_CORE_URL" >/dev/null
         _debug downloaded core
     fi
 }
@@ -209,8 +208,8 @@ _ensure_core() {
 ## CACHE ##
 
 _create_cache() {
-    cd "$MKPM"
     mkdir -p "$_MKPM_CACHE"
+    cd "$MKPM"
     touch "$_MKPM_CACHE/cache.tar.gz"
     tar -czf "$_MKPM_CACHE/cache.tar.gz" \
         --exclude '.bootstrap' \
@@ -300,6 +299,12 @@ _project_root() {
     fi
     echo $(_project_root $_PARENT)
     return
+}
+
+_ensure_dirs() {
+    if [ ! -d "$MKPM" ]; then
+        mkdir -p "$MKPM"
+    fi
 }
 
 export ARCH=unknown
