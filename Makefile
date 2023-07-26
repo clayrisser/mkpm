@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 11-05-2023 09:18:45
+# Last Modified: 26-07-2023 14:05:06
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -20,8 +20,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
--include mkpm.mk
-ifneq (,$(MKPM_READY))
+include $(MKPM_CORE)
 include $(MKPM)/gnu
 include $(MKPM)/hello
 include $(MKPM)/mkchain
@@ -83,5 +82,3 @@ purge: clean ##
 	@$(GIT) clean -fXd
 
 -include $(call actions)
-
-endif

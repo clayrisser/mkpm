@@ -1,86 +1,76 @@
 #!/bin/sh
 
-export MKPM_CLI_VERSION="0.3.0"
-export DEFAULT_MKPM_BOOTSTRAP="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
-export DEFAULT_MKPM_REPO="https://gitlab.com/risserlabs/community/mkpm-stable.git"
+MKPM_CORE="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
 
-export _CWD=$(pwd)
-export _USER_ID=$(id -u $USER)
-export _TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && \
+alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
+alias which="command -v"
+
+_CWD="$(pwd)"
+_USER_ID=$(id -u $USER)
+_TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && \
     echo "/run/user/$_USER_ID" || echo ${TMP:-${TEMP:-/tmp}})}/mkpm/$$"
-export _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
-export _REPOS_PATH="$_STATE_PATH/repos"
-export _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
+_STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
+_REPOS_PATH="$_STATE_PATH/repos"
+_REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 export GIT_LFS_SKIP_SMUDGE=1
 
-alias gsed="$(gsed --help >/dev/null 2>/dev/null && echo gsed || echo sed)"
+export NOCOLOR='\e[0m'
+export WHITE='\e[1;37m'
+export BLACK='\e[0;30m'
+export RED='\e[0;31m'
+export GREEN='\e[0;32m'
+export YELLOW='\e[0;33m'
+export BLUE='\e[0;34m'
+export PURPLE='\e[0;35m'
+export CYAN='\e[0;36m'
+export LIGHT_GRAY='\e[0;37m'
+export DARK_GRAY='\e[1;30m'
+export LIGHT_RED='\e[1;31m'
+export LIGHT_GREEN='\e[1;32m'
+export LIGHT_YELLOW='\e[1;33m'
+export LIGHT_BLUE='\e[1;34m'
+export LIGHT_PURPLE='\e[1;35m'
+export LIGHT_CYAN='\e[1;36m'
 
 main() {
-    _prepare
-    if [ "$_COMMAND" = "install" ]; then
-        if [ "$_PARAM1" = "" ] && [ "$_PARAM2" = "" ]; then
-            if [ "$MKPM" = "" ]; then
-                _echo "_install must be called from mkpm makefile" 1>&2
-                exit 1
-            fi
-            _install
-            return
-        fi
-        _REPO=$_PARAM1
-        _PACKAGE=$_PARAM2
-        _REPO_URI=$(_lookup_repo_uri $_REPO)
-        _REPO_PATH=$(_repo_path $_REPO_URI)
-        if [ "$_REPO_URI" = "" ]; then
-            _echo "repo $_REPO is not valid" 1>&2
-            exit 1
-        fi
-        if ! _is_repo_uri "$_REPO"; then
-            _REPO_NAME="$(echo $_REPO | tr '[:lower:]' '[:upper:]')"
-        fi
-        _update_repo $_REPO_URI $_REPO_PATH
-        _install $_PACKAGE $_REPO_URI $_REPO_NAME
-    elif [ "$_COMMAND" = "remove" ]; then
-        _remove $_PARAM1
-        _echo "removed $_PARAM1"
-    elif [ "$_COMMAND" = "upgrade" ]; then
-        _upgrade $_PARAM1 $_PARAM2
-    elif [ "$_COMMAND" = "dependencies" ]; then
-        _dependencies $_PARAM1
-    elif [ "$_COMMAND" = "repo-add" ]; then
-        _REPO_NAME=$_PARAM1
-        _REPO_URI=$_PARAM2
-        _repo_add $_REPO_NAME $_REPO_URI
-    elif [ "$_COMMAND" = "repo-remove" ]; then
-        _repo_remove $_PARAM1
-    elif [ "$_COMMAND" = "reinstall" ]; then
-        _reinstall
-    elif [ "$_COMMAND" = "init" ]; then
-        _init
-    fi
+    _prepare "$@"
+    _run "$_TARGET" "$@"
+}
+
+
+## COMMANDS ##
+
+_run() {
+    _TARGET="$1"
+    shift
+    _ARGS_ENV_NAME="$(echo "$_TARGET" | tr '[:lower:]' '[:upper:]')_ARGS"
+    eval "$_ARGS_ENV_NAME=\"$@\" make \"$_TARGET\""
+    _CODE="$?"
+    exit $_CODE
 }
 
 _install() {
     if [ "$1" = "" ]; then
-        for r in $(_lookup_repos); do
+        for r in $(_list_repos); do
             _REPO_URI="$(_lookup_repo_uri $r)"
             if [ "$_REPO_URI" = "" ]; then
                 continue
             fi
-            _REPO_PATH=$(_repo_path $_REPO_URI)
+            _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
             _update_repo "$_REPO_URI" "$_REPO_PATH"
-            for p in $(eval $(echo "echo \$MKPM_PACKAGES_$(echo $r | tr '[:lower:]' '[:upper:]')")); do
+            for p in $(_list_packages "$r"); do
                 _install $p "$_REPO_URI" $r
             done
         done
         _create_cache
         return
     fi
-    _PACKAGE=$1
-    _PACKAGE_NAME=$(echo $_PACKAGE | cut -d'=' -f1)
-    _PACKAGE_VERSION=$(echo $_PACKAGE | gsed 's|^[^=]*||g' | gsed 's|^=||g')
-    _REPO_URI=$2
-    _REPO_PATH=$(_repo_path $_REPO_URI)
-    _REPO_NAME=$3
+    _PACKAGE="$1"
+    _PACKAGE_NAME="$(echo $_PACKAGE | cut -d'=' -f1)"
+    _PACKAGE_VERSION="$(echo $_PACKAGE | gsed 's|^[^=]*||g' | gsed 's|^=||g')"
+    _REPO_URI="$2"
+    _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
+    _REPO_NAME="$3"
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | \
@@ -100,166 +90,164 @@ _install() {
         _echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
         exit 1
     fi
-    if [ ! -d "$_CWD/.mkpm" ]; then
-        mkdir -p "$_CWD/.mkpm"
+    if [ ! -d "$MKPM" ]; then
+        mkdir -p "$MKPM"
     fi
     _remove $_PACKAGE_NAME
-    echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > \
-        "$_CWD/.mkpm/$_PACKAGE_NAME"
-    echo ".PHONY: $_PACKAGE_NAME-%" > "$_CWD/.mkpm/-$_PACKAGE_NAME"
-    echo "$_PACKAGE_NAME-%:" >> "$_CWD/.mkpm/-$_PACKAGE_NAME"
-    echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> \
-        "$_CWD/.mkpm/-$_PACKAGE_NAME"
-    mkdir -p "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME"
-    tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" >/dev/null
-    if [ "$MKPM" = "" ] && [ "$_REPO_NAME" != "" ]; then
-        _LINE_NUMBER=$(expr $(cat -n "$_CWD/mkpm.mk" | grep "MKPM_PACKAGES_${_REPO_NAME} := \\\\" | grep -oE '[0-9]+') + 1)
-        gsed -i "${_LINE_NUMBER}i\\	${_PACKAGE_NAME}=${_PACKAGE_VERSION} \\\\" "$_CWD/mkpm.mk"
-        _trim_mkpm_file
-    fi
+    # echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > \
+    #     "$_CWD/.mkpm/$_PACKAGE_NAME"
+    # echo ".PHONY: $_PACKAGE_NAME-%" > "$_CWD/.mkpm/-$_PACKAGE_NAME"
+    # echo "$_PACKAGE_NAME-%:" >> "$_CWD/.mkpm/-$_PACKAGE_NAME"
+    # echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> \
+    #     "$_CWD/.mkpm/-$_PACKAGE_NAME"
+    mkdir -p "$_MKPM_PACKAGES/$_PACKAGE_NAME"
+    tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_MKPM_PACKAGES/$_PACKAGE_NAME" >/dev/null
     _create_cache
     _echo "installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}"
 }
 
-_is_repo_uri() {
-    echo "$1" | grep -E '^(\w+://.+)|(git@.+:.+)$' >/dev/null 2>/dev/null
+_remove() {
+    _PACKAGE_NAME="$1"
+    rm -rf \
+        "$MKPM/$_PACKAGE_NAME" \
+        "$MKPM/-$_PACKAGE_NAME" \
+        "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null || true
+}
+
+
+## PREPARE ##
+
+_prepare() {
+    export PROJECT_ROOT="$(_project_root)"
+    export MKPM_CONFIG="$PROJECT_ROOT/mkpm.yml"
+    export MKPM="$PROJECT_ROOT/.mkpm"
+    export MKPM_CORE="$MKPM/.core.mk"
+    _debug PROJECT_ROOT=\"$PROJECT_ROOT\"
+    _debug MKPM_CONFIG=\"$MKPM_CONFIG\"
+    _debug MKPM=\"$MKPM\"
+    export _MKPM_BIN="$MKPM/.bin"
+    export _MKPM_CACHE="$MKPM/.cache"
+    export _MKPM_PACKAGES="$MKPM/.pkgs"
+    export _MKPM_TMP="$MKPM/.tmp"
+    export _MKPM_CORE="$MKPM/.core.mk"
+    _require_system_binary git
+    _require_system_binary git-lfs
+    _require_system_binary jq
+    _require_system_binary make
+    _require_system_binary yq
+    if [ ! -d "$_MKPM_PACKAGES" ]; then
+        _install
+    fi
+    _ensure_core
+}
+
+_lookup_system_package_name() {
+    _BINARY="$1"
+    case "$_BINARY" in
+        make)
+            case "$PKG_MANAGER" in
+                brew)
+                    echo remake
+                ;;
+                *)
+                    echo "$_BINARY"
+                ;;
+            esac
+        ;;
+        *)
+            echo "$_BINARY"
+        ;;
+    esac
+}
+
+_lookup_system_package_install_command() {
+    _BINARY="$1"
+    _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || "$2")"
+    case "$PKG_MANAGER" in
+        apt-get)
+            echo "sudo $PKG_MANAGER install -y $_PACKAGE"
+        ;;
+        *)
+            echo "$PKG_MANAGER install $_PACKAGE"
+        ;;
+    esac
+}
+
+_require_system_binary() {
+    _SYSTEM_BINARY="$1"
+    _SYSTEM_PACKAGE_NAME="$(_lookup_system_package_name "$_SYSTEM_BINARY")"
+    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_PACKAGE_NAME")"
+    if ! which "$_SYSTEM_BINARY" >/dev/null 2>&1; then
+        _echo $_SYSTEM_BINARY is not installed on your system >&2
+        printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
+
+    $_SYSTEM_PACKAGE_INSTALL_COMMAND
+
+install for me [Y|n]: "
+        read _RES
+        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+            $_SYSTEM_PACKAGE_INSTALL_COMMAND
+        fi
+    else
+        _debug system binary $_SYSTEM_BINARY found
+    fi
+}
+
+_ensure_core() {
+    if [ -f "$PROJECT_ROOT/core.mk" ]; then
+        if [ ! -f "$_MKPM_CORE" ] || [ "$PROJECT_ROOT/core.mk" -nt "$_MKPM_CORE" ]; then
+            cp "$PROJECT_ROOT/core.mk" "$_MKPM_CORE"
+            _debug downloaded core
+        fi
+    elif [ ! -f "$_MKPM_CORE" ]; then
+        download "$_MKPM_CORE" "$MKPM_CORE" >/dev/null
+        _debug downloaded core
+    fi
+}
+
+
+## CACHE ##
+
+_create_cache() {
+    cd "$MKPM"
+    mkdir -p "$_MKPM_CACHE"
+    touch "$_MKPM_CACHE/cache.tar.gz"
+    tar -czf "$_MKPM_CACHE/cache.tar.gz" \
+        --exclude '.bootstrap' \
+        --exclude '.bootstrap.mk' \
+        --exclude '.core' \
+        --exclude '.core.mk' \
+        --exclude '.cache' \
+        --exclude '.failed' \
+        --exclude '.preflight' \
+        --exclude '.ready' \
+        --exclude '.tmp' \
+        .
+    _debug creaed cache
+}
+
+
+## REPOS ##
+
+_list_repos() {
+    cat "$MKPM_CONFIG" | yq -r '(.repos | keys)[]'
 }
 
 _lookup_repo_uri() {
-    _REPO=$1
-    if _is_repo_uri "$_REPO"; then
-        echo $_REPO
-        return
-    fi
-    _REPO_URI=$(eval 'echo $MKPM_REPO_'$(echo "$_REPO" | \
-        tr '[:lower:]' '[:upper:]'))
-    if [ "$_REPO_URI" = "" ] && [ -f "$_CWD/mkpm.mk" ]; then
-        _REPO_NAME=$(echo "$_REPO" | tr '[:lower:]' '[:upper:]')
-        _REPO_ENV=$(echo export MKPM_REPO_$_REPO_NAME)
-        _REPO_URI=$(echo $(awk 'sub(/\\$/,""){printf("%s",$0);next};1' "$_CWD/mkpm.mk" | \
-            grep "$_REPO_ENV" | gsed 's|^.*:= ||g'))
-    fi
-    if _is_repo_uri "$_REPO_URI"; then
-        echo "$_REPO_URI"
-    fi
+    _REPO="$1"
+    shift
+    cat "$MKPM_CONFIG" | yq -r ".repos.$_REPO"
 }
 
-_lookup_repos() {
-    env | \
-        cut -d'=' -f1 | \
-        grep -E 'MKPM_REPO_\w+' | \
-        gsed 's|^MKPM_REPO_||g' | \
-        tr '[:upper:]' '[:lower:]'
-}
-
-_remove() {
-    _PACKAGE_NAME=$1
-    rm -rf \
-        "$_CWD/.mkpm/$_PACKAGE_NAME" \
-        "$_CWD/.mkpm/-$_PACKAGE_NAME" \
-        "$_CWD/.mkpm/.pkgs/$_PACKAGE_NAME" 2>/dev/null || true
-    if [ "$MKPM" = "" ]; then
-        gsed -i "/^\(\s{4}\|\t\)${_PACKAGE_NAME}=[0-9]\+\(\.[0-9]\+\)*\s*\\\\\?\s*$/d" "$_CWD/mkpm.mk"
-        _trim_mkpm_file
-    fi
-}
-
-_upgrade() {
-    _REPO_NAME="$(echo $1 | tr '[:lower:]' '[:upper:]')"
-    _PACKAGE_NAME=$2
-    _REPO_URI=$(_lookup_repo_uri $_REPO_NAME)
-    _REPO_PATH=$(_repo_path $_REPO_URI)
-    if [ "$_REPO_URI" = "" ]; then
-        _echo "repo name $_REPO_NAME is not valid" 1>&2
-        exit 1
-    fi
-    if _is_repo_uri "$_REPO_NAME"; then
-        _echo "repo name $_REPO_NAME is not valid" 1>&2
-        exit 1
-    fi
-    _update_repo $_REPO_URI $_REPO_PATH
-    if [ "$_PACKAGE_NAME" = "" ]; then
-        _PACKAGES_ENV=$(echo export MKPM_PACKAGES_$_REPO_NAME)
-        _PACKAGES=$(awk 'sub(/\\$/,""){printf("%s",$0);next};1' "$_CWD/mkpm.mk" | grep "$_PACKAGES_ENV" | gsed 's|^.*:= ||g')
-        for p in $_PACKAGES; do
-            _PACKAGE_NAME=$(echo $p | cut -d'=' -f1)
-            _install $_PACKAGE_NAME $_REPO_URI $_REPO_NAME
-        done
-    else
-        _install $_PACKAGE_NAME $_REPO_URI $_REPO_NAME
-    fi
-}
-
-_reinstall() {
-    rm -rf "$_CWD/.mkpm" 2>/dev/null || true
-    if gmake --version >/dev/null 2>/dev/null; then
-        gmake "$(date)	$(date)" 2>/dev/null || true
-    else
-        make "$(date)	$(date)" 2>/dev/null || true
-    fi
-}
-
-_init() {
-    if [ "$MKPM" != "" ]; then
-        _echo "init cannot be run from makefile" 1>&2
-        exit 1
-    fi
-    if [ ! -f "$_CWD/.git/HEAD" ]; then
-        _echo "init must be run from the root of a git project" 1>&2
-        exit 1
-    fi
-    if [ -f "$_CWD/mkpm.mk" ]; then
-        _echo "mkpm already initialized" 1>&2
-        exit 1
-    fi
-    rm -rf "$_CWD/.mkpm"
-    cat <<EOF > "$_CWD/mkpm.mk"
-############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-MKPM_BOOTSTRAP := $DEFAULT_MKPM_BOOTSTRAP
-export PROJECT_ROOT := \$(abspath \$(dir \$(lastword \$(MAKEFILE_LIST))))
-NULL := /dev/null
-TRUE := true
-ifneq (\$(patsubst %.exe,%,\$(SHELL)),\$(SHELL))
-	NULL = nul
-	TRUE = type nul
-endif
-include \$(PROJECT_ROOT)/.mkpm/.bootstrap.mk
-\$(PROJECT_ROOT)/.mkpm/.bootstrap.mk:
-	@mkdir \$(@D) 2>\$(NULL) || \$(TRUE)
-	@\$(shell curl --version >\$(NULL) 2>\$(NULL) && \\
-		echo curl -Lo || echo wget -O) \\
-		\$@ \$(MKPM_BOOTSTRAP) >\$(NULL)
-############## MKPM BOOTSTRAP SCRIPT END ##############
-EOF
-    if [ ! -f "$_CWD/Makefile" ]; then
-        cat <<EOF > "$_CWD/Makefile"
-include mkpm.mk
-ifneq (,\$(MKPM_READY))
-
-endif
-EOF
-    fi
-    _repo_add default "$DEFAULT_MKPM_REPO"
-}
-
-_dependencies() {
-    _update_repo
-    echo dependencies $1
-}
-
-_prepare() {
-    if [ "$MKPM" != "" ] && [ "$EXPECTED_MKPM_CLI_VERSION" != "$MKPM_CLI_VERSION" ]; then
-        _echo "mkpm cli version $MKPM_CLI_VERSION does not match expected version $EXPECTED_MKPM_CLI_VERSION" 1>&2
-        exit 1
-    fi
-    if [ ! -f "$_REPOS_PATH" ]; then
-        mkdir -p "$_REPOS_PATH"
-    fi
+_lookup_repo_path() {
+    echo "$_REPOS_PATH/$(echo "$1" | md5sum | cut -d ' ' -f1)"
 }
 
 _update_repo() {
-    _REPO_URI=$1
-    _REPO_PATH=$2
+    _REPO_URI="$1"
+    shift
+    _REPO_PATH="$1"
+    shift
     _echo "updating repo $_REPO_URI"
     if [ ! -d "$_REPO_PATH" ]; then
         git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || exit 1
@@ -270,106 +258,132 @@ _update_repo() {
     git fetch -q --depth 1 --tags || exit 1
 }
 
-_repo_path() {
-    echo $_REPOS_PATH/$(echo $1 | md5sum | cut -d ' ' -f1)
+
+## PACKAGES ##
+
+_list_packages() {
+    _REPO="$1"
+    shift
+    for p in $(cat "$MKPM_CONFIG" | yq -r "(.packages.${_REPO} | keys)[]"); do
+        echo "$p"
+    done
 }
 
-_get_default_branch() {
-    git branch -r --points-at refs/remotes/origin/HEAD | grep '\->' | \
-        cut -d' ' -f5 | cut -d/ -f2
-}
 
-_repo_add() {
-    if [ "$MKPM" != "" ]; then
-        _echo "repo-add cannot be run from makefile" 1>&2
-        exit 1
-    fi
-    _REPO_NAME=$1
-    _REPO_URI=$2
-    if [ "$(_lookup_repo_uri $_REPO_NAME)" != "" ]; then
-        _echo "repo $_REPO_NAME already exists" 1>&2
-        exit 1
-    fi
-    if ! _is_repo_uri "$_REPO_URI"; then
-        _echo "invalid repo uri $_REPO_URI" 1>&2
-        exit 1
-    fi
-    _BODY="export MKPM_PACKAGES_$( \
-        echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
-    ) := \\\\\n\nexport MKPM_REPO_$( \
-        echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
-    ) := \\\\\n	${_REPO_URI}"
-    _LINE_NUMBER=$(cat -n "$_CWD/mkpm.mk" | \
-        grep "#\+ MKPM BOOTSTRAP SCRIPT BEGIN" | grep -oE '[0-9]+')
-    if [ "$_LINE_NUMBER" = "" ]; then
-        gsed -i -e "\$a\\\\n${_BODY}" "$_CWD/mkpm.mk"
-    else
-        gsed -i "${_LINE_NUMBER}i\\${_BODY}\n" "$_CWD/mkpm.mk"
-    fi
-    _trim_mkpm_file
-    _reset
-    _echo "added repo $_REPO_NAME"
-}
-
-_repo_remove() {
-    if [ "$MKPM" != "" ]; then
-        _echo "repo-remove cannot be run from makefile" 1>&2
-        exit 1
-    fi
-    _REPO_NAME=$1
-    if [ "$(_lookup_repo_uri $_REPO_NAME)" = "" ]; then
-        _echo "repo $_REPO_NAME does not exist" 1>&2
-        exit 1
-    fi
-    gsed -i -z "s|\s*export[ ]\+MKPM_PACKAGES_$(echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
-        )"'[ \t]\+:=[ \t]*\\[ \t]*\(\n[ \t]*[^ \t\n=]\+=[^ \t\n]\+\([ \t]\+\\\)\?[ \t]*\)*\s*export[ ]\+MKPM_REPO_'"$( \
-            echo $_REPO_NAME | tr '[:lower:]' '[:upper:]' \
-        )"'[ \t]\+:=[ \t]*\\[ \t]*\n[ \t]*[^\n]\+\s*|\n\n|' "$_CWD/mkpm.mk"
-    _trim_mkpm_file
-    _reset
-    _echo "removed repo $_REPO_NAME"
-}
-
-_reset() {
-    if [ -d "$_CWD/.mkpm" ]; then
-        rm -rf $(find "$_CWD/.mkpm" \
-            -not -path "$_CWD/.mkpm" \
-            -not -path "$_CWD/.mkpm/.bootstrap.mk" \
-            -not -path "$_CWD/.mkpm/.bin" \
-            -not -path "$_CWD/.mkpm/.bin/**")
-    fi
-}
-
-_create_cache() {
-    cd "$_CWD/.mkpm"
-    touch .cache.tar.gz
-    tar -czf .cache.tar.gz \
-        --exclude '.bootstrap' \
-        --exclude '.bootstrap.mk' \
-        --exclude '.cache.tar.gz' \
-        --exclude '.failed' \
-        --exclude '.preflight' \
-        --exclude '.ready' \
-        --exclude '.tmp' \
-        .
-}
-
-_trim_mkpm_file() {
-    gsed -i -z 's|\t\([^ \t\n=]\+=[^ \t\n]\+\)[ \t]\+\\[ \t]*\n\([ \t]*\n[ \t]*\)\+|\t\1\n\n|g' "$_CWD/mkpm.mk"
-}
+## UTIL ##
 
 _echo() {
-    if [ "$MKPM" = "" ]; then
-        echo $@
-    else
-        echo "MKPM: $@"
-    fi
+    echo "$@"
 }
 
-if [ -f "$_CWD/.mkpm/.bin/mkpm" ] && \
-    [ "$(realpath "$0")" != "$(realpath "$_CWD/.mkpm/.bin/mkpm")" ]; then
-    "$_CWD/.mkpm/.bin/mkpm" $@
-    exit
+_debug() {
+    [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true
+}
+
+_error() {
+    [ "$MKPM_DEBUG" = "1" ] && echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2 || true
+}
+
+_project_root() {
+    _ROOT=$1
+    if [ "$_ROOT" = "" ]; then
+        _ROOT=$(pwd)
+    fi
+    if [ -f "$_ROOT/mkpm.yml" ]; then
+        echo $_ROOT
+        return
+    fi
+    _PARENT=$(echo $_ROOT | sed 's|\/[^\/]\+$||g')
+    if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
+        echo "/"
+        return
+    fi
+    echo $(_project_root $_PARENT)
+    return
+}
+
+export ARCH=unknown
+export FLAVOR=unknown
+export PKG_MANAGER=unknown
+export PLATFORM=unknown
+if [ "$OS" = "Windows_NT" ]; then
+	export HOME="${HOMEDRIVE}${HOMEPATH}"
+	PLATFORM=win32
+	FLAVOR=win64
+	ARCH="$PROCESSOR_ARCHITECTURE"
+	PKG_MANAGER=choco
+    if [ "$ARCH" = "AMD64" ]; then
+		ARCH=amd64
+    elif [ "$ARCH" = "ARM64" ]; then
+		ARCH=arm64
+    fi
+    if [ "$PROCESSOR_ARCHITECTURE" = "x86" ]; then
+		ARCH=amd64
+        if [ "$PROCESSOR_ARCHITEW6432" = "" ]; then
+			ARCH=x86
+			FLAVOR=win32
+        fi
+    fi
+else
+	PLATFORM=$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+	ARCH=$( ( dpkg --print-architecture 2>/dev/null || uname -m 2>/dev/null || arch 2>/dev/null || echo unknown) | \
+        tr '[:upper:]' '[:lower:]' 2>/dev/null)
+    if [ "$ARCH" = "i386" ] || [ "$ARCH" = "i686" ]; then
+		ARCH=386
+    elif [ "$ARCH" = "x86_64" ]; then
+		ARCH=amd64
+    fi
+	if [ "$PLATFORM" = "linux" ]; then
+        if [ -f /system/bin/adb ]; then
+            if [ "$(getprop --help >/dev/null 2>/dev/null && echo 1 || echo 0)" = "1" ]; then
+                PLATFORM=android
+            fi
+        fi
+        if [ "$PLATFORM" = "linux" ]; then
+            FLAVOR=$(lsb_release -si 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+            if [ "$FLAVOR" = "" ]; then
+                FLAVOR=unknown
+                if [ -f /etc/redhat-release ]; then
+                    FLAVOR=rhel
+                elif [ -f /etc/SuSE-release ]; then
+                    FLAVOR=suse
+                elif [ -f /etc/debian_version ]; then
+                    FLAVOR=debian
+                elif (cat /etc/os-release 2>/dev/null | grep -qE '^ID=alpine$'); then
+                    FLAVOR=alpine
+                fi
+            fi
+            if [ "$FLAVOR" = "rhel" ]; then
+				PKG_MANAGER=yum
+            elif [ "$FLAVOR" = "suse" ]; then
+				PKG_MANAGER=zypper
+            elif [ "$FLAVOR" = "debian" ]; then
+				PKG_MANAGER=apt-get
+            elif [ "$FLAVOR" = "ubuntu" ]; then
+				PKG_MANAGER=apt-get
+            elif [ "$FLAVOR" = "alpine" ]; then
+				PKG_MANAGER=apk
+            fi
+        fi
+	elif [ "$PLATFORM" = "darwin" ]; then
+		PKG_MANAGER=brew
+    else
+        if (echo "$PLATFORM" | grep -q 'MSYS'); then
+			PLATFORM=win32
+			FLAVOR=msys
+			PKG_MANAGER=pacman
+        elif (echo "$PLATFORM" | grep -q 'MINGW'); then
+			PLATFORM=win32
+			FLAVOR=msys
+			PKG_MANAGER=mingw-get
+        elif (echo "$PLATFORM" | grep -q 'CYGWIN'); then
+			PLATFORM=win32
+			FLAVOR=cygwin
+        fi
+    fi
+fi
+if [ "$FLAVOR" = "unknown" ]; then
+    FLAVOR="$OS"
 fi
 
 if ! test $# -gt 0; then
@@ -512,9 +526,10 @@ case "$1" in
         shift
     ;;
     *)
-        _echo "invalid command $1" 1>&2
-        exit 1
+        export _COMMAND=run
+        export _TARGET="$1"
+        shift
     ;;
 esac
 
-main
+main "$@"

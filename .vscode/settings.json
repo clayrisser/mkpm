@@ -34,6 +34,7 @@
     "lastword",
     "libc",
     "linux",
+    "mkchain",
     "mkdir",
     "mkpm",
     "msvc",
