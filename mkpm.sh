@@ -2,8 +2,17 @@
 
 MKPM_CORE_URL="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
 
-alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
 alias which="command -v"
+
+_is_ci() {
+    _CI_ENVS="JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"
+    for v in $_CI_ENVS; do
+        if [ "$v" != "" ] && [ "$v" != "0" ] && [ "$(echo $v | tr '[:upper:]' '[:lower:]')" != "false" ]; then
+            return 1
+        fi
+    done
+    return
+}
 
 _CWD="$(pwd)"
 _USER_ID=$(id -u $USER)
@@ -12,26 +21,29 @@ _TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && \
 _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 _REPOS_PATH="$_STATE_PATH/repos"
 _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
+_CI="$(_is_ci && echo 1 || true)"
 export GIT_LFS_SKIP_SMUDGE=1
 export LC_ALL=C
 
-export NOCOLOR='\e[0m'
-export WHITE='\e[1;37m'
-export BLACK='\e[0;30m'
-export RED='\e[0;31m'
-export GREEN='\e[0;32m'
-export YELLOW='\e[0;33m'
-export BLUE='\e[0;34m'
-export PURPLE='\e[0;35m'
-export CYAN='\e[0;36m'
-export LIGHT_GRAY='\e[0;37m'
-export DARK_GRAY='\e[1;30m'
-export LIGHT_RED='\e[1;31m'
-export LIGHT_GREEN='\e[1;32m'
-export LIGHT_YELLOW='\e[1;33m'
-export LIGHT_BLUE='\e[1;34m'
-export LIGHT_PURPLE='\e[1;35m'
-export LIGHT_CYAN='\e[1;36m'
+if [ "$_CI" = "" ]; then
+    export NOCOLOR='\e[0m'
+    export WHITE='\e[1;37m'
+    export BLACK='\e[0;30m'
+    export RED='\e[0;31m'
+    export GREEN='\e[0;32m'
+    export YELLOW='\e[0;33m'
+    export BLUE='\e[0;34m'
+    export PURPLE='\e[0;35m'
+    export CYAN='\e[0;36m'
+    export LIGHT_GRAY='\e[0;37m'
+    export DARK_GRAY='\e[1;30m'
+    export LIGHT_RED='\e[1;31m'
+    export LIGHT_GREEN='\e[1;32m'
+    export LIGHT_YELLOW='\e[1;33m'
+    export LIGHT_BLUE='\e[1;34m'
+    export LIGHT_PURPLE='\e[1;35m'
+    export LIGHT_CYAN='\e[1;36m'
+fi
 
 main() {
     _prepare "$@"
@@ -118,7 +130,8 @@ _remove() {
 _prepare() {
     export PROJECT_ROOT="$(_project_root)"
     export MKPM_CONFIG="$PROJECT_ROOT/mkpm.yml"
-    export MKPM_ROOT="$PROJECT_ROOT/.mkpm"
+    export MKPM_ROOT_NAME=".mkpm"
+    export MKPM_ROOT="$PROJECT_ROOT/$MKPM_ROOT_NAME"
     export MKPM="$MKPM_ROOT/mkpm"
     _debug PROJECT_ROOT=\"$PROJECT_ROOT\"
     _debug MKPM_CONFIG=\"$MKPM_CONFIG\"
@@ -128,16 +141,33 @@ _prepare() {
     export _MKPM_CACHE="$MKPM_ROOT/cache"
     export _MKPM_PACKAGES="$MKPM/.pkgs"
     export _MKPM_TMP="$MKPM/.tmp"
-    _require_system_binary git
-    _require_system_binary git-lfs
-    _require_system_binary jq
-    _require_system_binary make
-    _require_system_binary yq
-    _ensure_dirs
-    if [ ! -d "$_MKPM_PACKAGES" ]; then
-        _install
+    [ "$MKPM_RESET_CACHE" = "1" ] && _reset_cache || true
+    if [ ! -f "$MKPM/.prepared" ]; then
+        _require_system_binary awk
+        _require_system_binary git
+        _require_system_binary git-lfs
+        _require_system_binary grep
+        _require_system_binary jq
+        _require_system_binary make
+        _require_system_binary tar
+        _require_system_binary yq
+        if [ "$PLATFORM" = "darwin" ]; then
+            _require_system_binary gsed
+        else
+            _require_system_binary sed
+        fi
+        alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
+        _ensure_dirs
+        if [ ! -d "$_MKPM_PACKAGES" ]; then
+            if [ -f "$_MKPM_CACHE/cache.tar.gz" ]; then
+                _restore_from_cache
+            else
+                _install
+            fi
+        fi
+        _ensure_core
+        touch "$MKPM/.prepared"
     fi
-    _ensure_core
 }
 
 _lookup_system_package_name() {
@@ -159,15 +189,22 @@ _lookup_system_package_name() {
     esac
 }
 
+_PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
 _lookup_system_package_install_command() {
     _BINARY="$1"
     _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || "$2")"
     case "$PKG_MANAGER" in
-        apt-get)
-            echo "sudo $PKG_MANAGER install -y $_PACKAGE"
+        apk)
+            echo "$PKG_MANAGER add --no-cache $_PACKAGE"
+        ;;
+        brew)
+            echo "$PKG_MANAGER install $_PACKAGE"
+        ;;
+        choco)
+            echo "$PKG_MANAGER install /y $_PACKAGE"
         ;;
         *)
-            echo "$PKG_MANAGER install $_PACKAGE"
+            echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
         ;;
     esac
 }
@@ -180,15 +217,23 @@ _require_system_binary() {
         _echo $_SYSTEM_BINARY is not installed on your system >&2
         printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
 
-    $_SYSTEM_PACKAGE_INSTALL_COMMAND
+    ${GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${NOCOLOR}
 
-install for me [Y|n]: "
+install for me [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
             $_SYSTEM_PACKAGE_INSTALL_COMMAND
+            _CODE="$?"
+            [ "$_CODE" = "0" ] && true || exit $_CODE
         fi
     else
         _debug system binary $_SYSTEM_BINARY found
+    fi
+}
+
+_ensure_dirs() {
+    if [ ! -d "$MKPM" ]; then
+        mkdir -p "$MKPM"
     fi
 }
 
@@ -197,10 +242,12 @@ _ensure_core() {
         if [ ! -f "$MKPM_CORE" ] || [ "$PROJECT_ROOT/core.mk" -nt "$MKPM_CORE" ]; then
             cp "$PROJECT_ROOT/core.mk" "$MKPM_CORE"
             _debug downloaded core
+            _create_cache
         fi
     elif [ ! -f "$MKPM_CORE" ]; then
         download "$MKPM_CORE" "$MKPM_CORE_URL" >/dev/null
         _debug downloaded core
+        _create_cache
     fi
 }
 
@@ -212,17 +259,30 @@ _create_cache() {
     cd "$MKPM"
     touch "$_MKPM_CACHE/cache.tar.gz"
     tar -czf "$_MKPM_CACHE/cache.tar.gz" \
-        --exclude '.bootstrap' \
-        --exclude '.bootstrap.mk' \
-        --exclude '.core' \
-        --exclude '.core.mk' \
         --exclude '.cache' \
         --exclude '.failed' \
         --exclude '.preflight' \
         --exclude '.ready' \
+        --exclude '.prepared' \
         --exclude '.tmp' \
         .
     _debug creaed cache
+}
+
+_restore_from_cache() {
+    if [ -f "$_MKPM_CACHE/cache.tar.gz" ]; then
+        mkdir -p "$MKPM"
+        cd "$MKPM"
+        tar -xzf "$_MKPM_CACHE/cache.tar.gz" >/dev/null
+        _debug restored cache
+    fi
+}
+
+_reset_cache() {
+    rm -rf \
+        "$_MKPM_CACHE" \
+        "$MKPM/.prepared"
+    _debug reset cache
 }
 
 
@@ -301,11 +361,6 @@ _project_root() {
     return
 }
 
-_ensure_dirs() {
-    if [ ! -d "$MKPM" ]; then
-        mkdir -p "$MKPM"
-    fi
-}
 
 export ARCH=unknown
 export FLAVOR=unknown
@@ -359,7 +414,8 @@ else
                 fi
             fi
             if [ "$FLAVOR" = "rhel" ]; then
-				PKG_MANAGER=yum
+				PKG_MANAGER=$(which microdnf >/dev/null 2>&1 && echo microdnf || \
+                    echo $(which dnf >/dev/null 2>&1 && echo dnf || echo yum))
             elif [ "$FLAVOR" = "suse" ]; then
 				PKG_MANAGER=zypper
             elif [ "$FLAVOR" = "debian" ]; then

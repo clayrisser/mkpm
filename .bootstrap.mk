@@ -1,9 +1,9 @@
-# File: /bootstrap.mk
+# File: /.bootstrap.mk
 # Project: mkpm
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 11-05-2023 10:19:42
+# Last Modified: 27-07-2023 10:49:28
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -77,131 +77,9 @@ export TRUE := true
 export UNIQ := uniq
 export WHICH := command -v
 
-define ternary
-$(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
-endef
 
-export ARCH := unknown
-export FLAVOR := unknown
-export PKG_MANAGER := unknown
-export PLATFORM := unknown
-export CODENAME := unknown
-export IS_WSL :=
-ifeq ($(OS),Windows_NT) # WINDOWS
-	export HOME := $(HOMEDRIVE)$(HOMEPATH)
-	PLATFORM = win32
-	FLAVOR = win64
-	ARCH = $(PROCESSOR_ARCHITECTURE)
-	PKG_MANAGER = choco
-	ifeq ($(ARCH),AMD64)
-		ARCH = amd64
-	endif
-	ifeq ($(ARCH),ARM64)
-		ARCH = arm64
-	endif
-	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-		ARCH = amd64
-		ifeq (,$(PROCESSOR_ARCHITEW6432))
-			ARCH = x86
-			FLAVOR := win32
-		endif
-	endif
-else
-	PLATFORM = $(shell uname 2>$(NULL) | $(TR) '[:upper:]' '[:lower:]' 2>$(NULL))
-	ARCH = $(shell (dpkg --print-architecture 2>$(NULL) || uname -m 2>$(NULL) || arch 2>$(NULL) || echo unknown) | $(TR) '[:upper:]' '[:lower:]' 2>$(NULL))
-	ifeq ($(ARCH),i386)
-		ARCH = 386
-	endif
-	ifeq ($(ARCH),i686)
-		ARCH = 386
-	endif
-	ifeq ($(ARCH),x86_64)
-		ARCH = amd64
-	endif
-	ifeq ($(PLATFORM),linux)
-		ifneq (,$(wildcard /system/bin/adb)) # ANDROID
-			ifneq ($(shell getprop --help >$(NULL) 2>$(NULL) && echo 1 || echo 0),1)
-				PLATFORM = android
-			endif
-		endif
-		ifeq ($(PLATFORM),linux) # LINUX
-			FLAVOR = $(shell lsb_release -si 2>$(NULL) | $(TR) '[:upper:]' '[:lower:]' 2>$(NULL))
-			ifeq (,$(FLAVOR))
-				FLAVOR = unknown
-				ifneq (,$(wildcard /etc/redhat-release))
-					FLAVOR = rhel
-				endif
-				ifneq (,$(wildcard /etc/SuSE-release))
-					FLAVOR = suse
-				endif
-				ifneq (,$(wildcard /etc/debian_version))
-					FLAVOR = debian
-				endif
-				ifeq ($(shell cat /etc/os-release 2>$(NULL) | grep -qE "^ID=alpine$$"),ID=alpine)
-					FLAVOR = alpine
-				endif
-			endif
-			ifeq ($(FLAVOR),rhel)
-				PKG_MANAGER = $(call ternary,$(WHICH) microdnf,microdnf,$(call ternary,$(WHICH) dnf,dnf,yum))
-			endif
-			ifeq ($(FLAVOR),suse)
-				PKG_MANAGER = zypper
-			endif
-			ifeq ($(FLAVOR),debian)
-				PKG_MANAGER = apt-get
-				CODENAME = $(shell cat /etc/os-release | grep VERSION_CODENAME | cut -d'=' -f2)
-			endif
-			ifeq ($(FLAVOR),ubuntu)
-				PKG_MANAGER = apt-get
-				CODENAME = $(shell cat /etc/os-release | grep VERSION_CODENAME | cut -d'=' -f2)
-			endif
-			ifeq ($(FLAVOR),alpine)
-				PKG_MANAGER = apk
-			endif
-			ifneq (,$(wildcard /proc/sys/fs/binfmt_misc/WSLInterop))
-				IS_WSL := 1
-			endif
-		endif
-	else
-		ifneq (,$(findstring CYGWIN,$(PLATFORM))) # CYGWIN
-			PLATFORM = win32
-			FLAVOR = cygwin
-		endif
-		ifneq (,$(findstring MINGW,$(PLATFORM))) # MINGW
-			PLATFORM = win32
-			FLAVOR = msys
-			PKG_MANAGER = mingw-get
-		endif
-		ifneq (,$(findstring MSYS,$(PLATFORM))) # MSYS
-			PLATFORM = win32
-			FLAVOR = msys
-			PKG_MANAGER = pacman
-		endif
-	endif
-	ifeq ($(PLATFORM),darwin)
-		PKG_MANAGER = brew
-	endif
-endif
-ifeq ($(PKG_MANAGER),unknown)
-	PKG_MANAGER = $(call ternary,$(WHICH) apt-get,apt-get,$(call ternary,$(WHICH) apk,apk,$(call ternary,$(WHICH) yum,yum,$(call ternary,$(WHICH) brew,brew,$(call ternary,$(WHICH) microdnf,microdnf,$(call ternary,$(WHICH) dnf,dnf,unknown))))))
-endif
 
-export COLUMNS := $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && $(ECHO) $$COLUMNS))
-define columns
-$(call ternary,[ "$(COLUMNS)" -$1 "$2" ],1)
-endef
 
-define git_clean_flags
--e $(BANG)$1 \
--e $(BANG)$1/ \
--e $(BANG)$1/**/* \
--e $(BANG)/$1 \
--e $(BANG)/$1/ \
--e $(BANG)/$1/**/* \
--e $(BANG)/**/$1 \
--e $(BANG)/**/$1/ \
--e $(BANG)/**/$1/**/*
-endef
 
 export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_DIR))
 export MKPM_CLEANED := $(MKPM)/.cleaned
@@ -209,120 +87,13 @@ define MKPM_CLEAN
 $(TOUCH) -m $(MKPM)/.cleaned
 endef
 
-export NIX_ENV := $(call ternary,$(ECHO) '$(PATH)' | grep -q ":/nix/store",1)
-export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget -O)
 
-ifneq ($(NIX_ENV),1)
-	ifeq ($(PLATFORM),darwin)
-		export AWK ?= $(call ternary,gawk --version,gawk,awk)
-		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
-		export SED ?= $(call ternary,gsed --version,gsed,sed)
-	endif
-endif
-export AWK ?= awk
-export GIT ?= git
-export GREP ?= grep
-export SED ?= sed
-export TAR ?= $(call ternary,$(WHICH) tar,$(shell $(WHICH) tar 2>$(NULL)),$(TRUE))
 
-export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
-export PROJECT_ROOT ?= $(shell \
-	project_root() { \
-		root=$$1 && \
-		if [ -f "$$root/mkpm.mk" ]; then \
-			$(ECHO) $$root && \
-			return 0; \
-		fi && \
-		parent=$$($(ECHO) $$root | $(SED) 's|\/[^\/]\+$$||g') && \
-		if ([ "$$parent" = "" ] || [ "$$parent" = "/" ]); then \
-			$(ECHO) "/" && \
-			return 0; \
-		fi && \
-		$(ECHO) $$(project_root $$parent) && \
-		return 0; \
-	} && \
-	$(ECHO) $$(project_root $(ROOT)) \
-)
-export SUBPROC :=
-ifneq ($(ROOT),$(CURDIR))
-	SUBPROC = 1
-endif
-export SUBDIR :=
-ifneq ($(PROJECT_ROOT),$(CURDIR))
-	SUBDIR = 1
-endif
 
-export NPROC := 1
-ifeq ($(PLATFORM),linux)
-	NPROC = $(shell nproc $(NOOUT) && nproc || $(GREP) -c -E "^processor" /proc/cpuinfo 2>$(NULL) || $(ECHO) 1)
-endif
-ifeq ($(PLATFORM),darwin)
-	NPROC = $(shell sysctl hw.ncpu | $(CUT) -d " " -f 2 2>$(NULL) || $(ECHO) 1)
-endif
-export NUMPROC ?= $(NPROC)
-export MAKEFLAGS += "-j $(NUMPROC)"
 
-ifeq (,$(.DEFAULT_GOAL))
-.DEFAULT_GOAL = $(HELP)
-endif
-ifeq ($(findstring .mkpm/.bootstrap,$(.DEFAULT_GOAL)),.mkpm/.bootstrap)
-.DEFAULT_GOAL = $(HELP)
-endif
-ifeq ($(findstring .mkpm/.cache,$(.DEFAULT_GOAL)),.mkpm/.cache)
-.DEFAULT_GOAL = $(HELP)
-endif
 
-export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,)
-.PHONY: sudo
-ifneq (,$(SUDO))
-sudo:
-	@$(SUDO) $(TRUE)
-else
-sudo: ;
-endif
 
-ifneq (,$(SUDO))
-_PKG_MANAGER_SUDO := "sudo "
-endif
-ifeq ($(PKG_MANAGER),yum)
-define pkg_manager_install
-$(_PKG_MANAGER_SUDO)yum install -y $1
-endef
-endif
-ifeq ($(PKG_MANAGER),dnf)
-define pkg_manager_install
-$(_PKG_MANAGER_SUDO)dnf install -y $1
-endef
-endif
-ifeq ($(PKG_MANAGER),microdnf)
-define pkg_manager_install
-$(_PKG_MANAGER_SUDO)microdnf install -y $1
-endef
-endif
-ifeq ($(PKG_MANAGER),apt-get)
-define pkg_manager_install
-$(_PKG_MANAGER_SUDO)apt-get install -y $1
-endef
-endif
-ifeq ($(PKG_MANAGER),apk)
-define pkg_manager_install
-$(_PKG_MANAGER_SUDO)apk add --no-cache $1
-endef
-endif
-ifeq ($(PKG_MANAGER),brew)
-define pkg_manager_install
-brew install $1
-endef
-endif
-ifeq ($(PKG_MANAGER),choco)
-define pkg_manager_install
-choco install /y $1
-endef
-endif
-
-define echo_command
-$(ECHO) "$(GREEN)    $1$(NOCOLOR)"
-endef
+i
 
 define _mkpm_failed
 ($(TOUCH) $(MKPM)/.failed && $(EXIT) 1)
@@ -387,39 +158,6 @@ $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
 	@$(ECHO) 'endif' >> $(MKPM)/.cache
 endif
 
-$(MKPM)/.preflight:
-ifneq ($(call ternary,$(MAKE) --version | $(HEAD) -n1 | $(GREP) -E 4,1),1)
-	@$(ECHO) "$(YELLOW)"'it appears you are using $(shell $(MAKE) --version | $(HEAD) -n1) but GNU Make 4 is required'"$(NOCOLOR)" && \
-		$(ECHO) && \
-		$(ECHO) "you can get \033[1m"'GNU Make'"\033[0m at \033[3mhttps://www.gnu.org/software/make\033[0m" && \
-		$(ECHO) && \
-		$(ECHO) "or you can try to install \033[1m"'GNU Make'"\033[0m with the following command" && \
-		$(ECHO) && \
-		$(call echo_command,$(call pkg_manager_install,remake)) && \
-		[ "$(PLATFORM)" = "darwin" ] && ($(ECHO) && $(ECHO) 'you may need to run \033[3mremake\033[0m instead of \033[3mmake\033[0m on OSX') || $(TRUE) && \
-		$(ECHO) && \
-		$(call _mkpm_failed)
-endif
-ifneq ($(call ternary,git --version,1),1)
-	@$(call requires_pkg,git,https://git-scm.com)
-endif
-ifneq ($(call ternary,git lfs --version,1),1)
-	@$(call requires_pkg,git-lfs,https://git-lfs.github.com)
-endif
-ifeq ($(PLATFORM),darwin)
-ifneq ($(call ternary,gsed --help,1),1)
-	@$(call requires_pkg,gsed,https://www.gnu.org/software/sed)
-endif
-else
-ifneq ($(call ternary,sed --help,1),1)
-	@$(call requires_pkg,sed,https://www.gnu.org/software/sed)
-endif
-endif
-ifneq ($(call ternary,tar --version,1),1)
-	@$(call requires_pkg,tar,https://www.gnu.org/software/tar)
-endif
-	@$(RM) -f $(MKPM)/.failed
-	@$(TOUCH) -m "$@"
 
 $(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk $(MKPM_CLI)
 	@$(RM) -f $(MKPM)/.failed

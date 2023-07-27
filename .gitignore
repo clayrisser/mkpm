@@ -3,7 +3,6 @@
 
 # mkpm
 .mkpm/mkpm
-.mkpm/cache
 
 # pkg
 /.upstream
