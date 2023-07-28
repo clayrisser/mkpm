@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-07-2023 10:49:28
+# Last Modified: 28-07-2023 05:41:44
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -158,7 +158,6 @@ $(MKPM)/.cache: $(PROJECT_ROOT)/mkpm.mk
 	@$(ECHO) 'endif' >> $(MKPM)/.cache
 endif
 
-
 $(MKPM)/.bootstrap: $(PROJECT_ROOT)/mkpm.mk $(MKPM_CLI)
 	@$(RM) -f $(MKPM)/.failed
 	@[ ! -f $(MKPM)/.preflight ] && $(EXIT) 1 || $(TRUE)
@@ -264,17 +263,6 @@ $(shell ([ -f $(MKPM)/.preflight ] && \
 	[ -f $(MKPM)/.bootstrap ]) && \
 	$(ECHO) 1 || $(TRUE))
 endef
-
-export GLOBAL_MK := $(wildcard $(PROJECT_ROOT)/global.mk)
-export LOCAL_MK := $(wildcard $(CURDIR)/local.mk)
-ifneq (,$(MKPM_READY))
-ifneq (,$(GLOBAL_MK))
--include $(GLOBAL_MK)
-endif
-ifneq (,$(LOCAL_MK))
--include $(LOCAL_MK)
-endif
-endif
 
 $(MKPM_CLI):
 	@$(MKDIR) -p $(@D)

@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 26-07-2023 16:37:14
+# Last Modified: 28-07-2023 07:01:41
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -32,8 +32,8 @@ PKG_VERSION ?= 0.3.0
 PKG_STRICT ?= 0
 # include $(MKPM)/pkg
 
-.PHONY: test-bootstrap
-test-bootstrap: ##
+.PHONY: inspect
+inspect: ##
 	@echo ARCH: $(ARCH)
 	@echo DOWNLOAD: $(DOWNLOAD)
 	@echo FLAVOR: $(FLAVOR)

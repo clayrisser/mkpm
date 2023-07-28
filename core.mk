@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 27-07-2023 09:51:45
+# Last Modified: 28-07-2023 07:08:26
 # Modified By: Clay Risser
 # -----
 # Risser Labs LLC (c) Copyright 2021
@@ -34,16 +34,15 @@ export ECHO := echo
 export TRUE := true
 export WHICH := command -v
 
+define ternary
+$(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
+endef
+
 export COLUMNS := $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && $(ECHO) $$COLUMNS))
 define columns
 $(call ternary,[ "$(COLUMNS)" -$1 "$2" ],1)
 endef
-
-$(info $(call columns,lt,less than 80))
-
-define ternary
-$(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
-endef
+WINDOW_SM=$(call columns,lt,80)
 
 define git_clean_flags
 -e $(BANG)$1 \
@@ -109,4 +108,18 @@ sudo:
 	@$(SUDO) $(TRUE)
 else
 sudo: ;
+endif
+
+export SHARED_MK := $(wildcard $(PROJECT_ROOT)/shared.mk)
+ifneq (,$(SHARED_MK))
+include $(SHARED_MK)
+endif
+
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+include cmd.exe
+cmd.exe:
+	@$(ECHO) cmd.exe not supported 1>&2
+	@$(ECHO) if you are on Windows, please use WSL (Windows Subsystem for Linux) 1>&2
+	@$(ECHO) https://docs.microsoft.com/windows/wsl
+	@$(EXIT) 1
 endif

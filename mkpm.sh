@@ -2,6 +2,10 @@
 
 MKPM_CORE_URL="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
 
+__0="$0"
+__ARGS="$@"
+
+alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
 alias which="command -v"
 
 _is_ci() {
@@ -56,7 +60,7 @@ main() {
 _run() {
     _TARGET="$1"
     shift
-    _ARGS_ENV_NAME="$(echo "$_TARGET" | tr '[:lower:]' '[:upper:]')_ARGS"
+    _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
     eval "$_ARGS_ENV_NAME=\"$@\" make \"$_TARGET\""
     _CODE="$?"
     exit $_CODE
@@ -113,6 +117,7 @@ _install() {
     mkdir -p "$_MKPM_PACKAGES/$_PACKAGE_NAME"
     tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_MKPM_PACKAGES/$_PACKAGE_NAME" >/dev/null
     _create_cache
+    cd "$_CWD"
     _echo "installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}"
 }
 
@@ -141,7 +146,11 @@ _prepare() {
     export _MKPM_CACHE="$MKPM_ROOT/cache"
     export _MKPM_PACKAGES="$MKPM/.pkgs"
     export _MKPM_TMP="$MKPM/.tmp"
-    [ "$MKPM_RESET_CACHE" = "1" ] && _reset_cache || true
+    if [ "$_MKPM_RESET_CACHE" = "1" ] || \
+        ([ -f "$PROJECT_ROOT/core.mk" ] && [ "$PROJECT_ROOT/core.mk" -nt "$MKPM_CORE" ]); then
+        _reset_cache
+        exit $?
+    fi
     if [ ! -f "$MKPM/.prepared" ]; then
         _require_system_binary awk
         _require_system_binary git
@@ -152,11 +161,10 @@ _prepare() {
         _require_system_binary tar
         _require_system_binary yq
         if [ "$PLATFORM" = "darwin" ]; then
-            _require_system_binary gsed
+            _require_system_binary gsed --version
         else
-            _require_system_binary sed
+            _require_system_binary sed --version
         fi
-        alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
         _ensure_dirs
         if [ ! -d "$_MKPM_PACKAGES" ]; then
             if [ -f "$_MKPM_CACHE/cache.tar.gz" ]; then
@@ -211,9 +219,11 @@ _lookup_system_package_install_command() {
 
 _require_system_binary() {
     _SYSTEM_BINARY="$1"
+    shift
+    _ARGS="$@"
     _SYSTEM_PACKAGE_NAME="$(_lookup_system_package_name "$_SYSTEM_BINARY")"
     _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_PACKAGE_NAME")"
-    if ! which "$_SYSTEM_BINARY" >/dev/null 2>&1; then
+    if ! ([ "$_ARGS" = "" ] && which "$_SYSTEM_BINARY" || "$_SYSTEM_BINARY" "$_ARGS") >/dev/null 2>&1; then
         _echo $_SYSTEM_BINARY is not installed on your system >&2
         printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
 
@@ -266,7 +276,8 @@ _create_cache() {
         --exclude '.prepared' \
         --exclude '.tmp' \
         .
-    _debug creaed cache
+    cd "$_CWD"
+    _debug created cache
 }
 
 _restore_from_cache() {
@@ -274,6 +285,7 @@ _restore_from_cache() {
         mkdir -p "$MKPM"
         cd "$MKPM"
         tar -xzf "$_MKPM_CACHE/cache.tar.gz" >/dev/null
+        cd "$_CWD"
         _debug restored cache
     fi
 }
@@ -281,8 +293,11 @@ _restore_from_cache() {
 _reset_cache() {
     rm -rf \
         "$_MKPM_CACHE" \
-        "$MKPM/.prepared"
+        "$MKPM/.prepared" \
+        "$MKPM_CORE" 2>/dev/null || true
+    unset _MKPM_RESET_CACHE
     _debug reset cache
+    exec "$__0" "$__ARGS"
 }
 
 
@@ -315,6 +330,7 @@ _update_repo() {
     git config advice.detachedHead false >/dev/null
     git config lfs.locksverify true >/dev/null
     git fetch -q --depth 1 --tags || exit 1
+    cd "$_CWD"
 }
 
 
