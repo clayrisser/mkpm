@@ -171,7 +171,7 @@ _prepare() {
                 _install
             fi
         fi
-        _ensure_core
+        _ensure_mkpm_mk
         touch "$MKPM/.prepared"
     fi
 }
@@ -245,16 +245,16 @@ _ensure_dirs() {
     fi
 }
 
-_ensure_core() {
+_ensure_mkpm_mk() {
     if [ -f "$PROJECT_ROOT/mkpm.mk" ]; then
         if [ ! -f "$MKPM/mkpm" ] || [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]; then
             cp "$PROJECT_ROOT/mkpm.mk" "$MKPM/mkpm"
-            _debug downloaded mkpm
+            _debug downloaded mkpm.mk
             _create_cache
         fi
     elif [ ! -f "$MKPM/mkpm" ]; then
         download "$MKPM/mkpm" "$MKPM/mkpm_URL" >/dev/null
-        _debug downloaded mkpm
+        _debug downloaded mkpm.mk
         _create_cache
     fi
 }

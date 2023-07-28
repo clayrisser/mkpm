@@ -11,12 +11,17 @@ _is_ci() {
     return
 }
 _CI="$(_is_ci && echo 1 || true)"
+_CWD="$(pwd)"
 if [ "$_CI" = "" ]; then
     export NOCOLOR='\e[0m'
     export RED='\e[0;31m'
+    export YELLOW='\e[0;33m'
 fi
 _error() {
     echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2
+}
+_debug() {
+    [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true
 }
 _project_root() {
     _ROOT=$1
@@ -36,19 +41,18 @@ _project_root() {
     return
 }
 _restore_from_cache() {
-    if [ -f "$_MKPM_CACHE/cache.tar.gz" ]; then
-        mkdir -p "$MKPM"
-        cd "$MKPM"
-        tar -xzf "$_MKPM_CACHE/cache.tar.gz" >/dev/null
-        cd "$_CWD"
-        _debug restored cache
-    fi
+    mkdir -p "$MKPM"
+    cd "$MKPM"
+    tar -xzf "$_MKPM_CACHE/cache.tar.gz"
+    cd "$_CWD"
+    _debug restored cache
 }
 export PROJECT_ROOT="$(_project_root)"
 if [ "$PROJECT_ROOT" = "/" ]; then
     _error "not an mkpm project" && exit 1
 fi
-export _MKPM_BIN="$PROJECT_ROOT/.mkpm/mkpm/.bin"
+export MKPM="$PROJECT_ROOT/.mkpm/mkpm"
+export _MKPM_BIN="$MKPM/.bin"
 export _MKPM_CACHE="$PROJECT_ROOT/.mkpm/cache"
 if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
     mkdir -p "$_MKPM_BIN"
@@ -57,7 +61,7 @@ if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
             _restore_from_cache
         else
             cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
-            echo DOWNLOAD
+            _debug downloaded mkpm.sh
         fi
     elif [ "$PROJECT_ROOT/mkpm.sh" -nt "$_MKPM_BIN/mkpm" ]; then
         export _MKPM_RESET_CACHE=1
@@ -70,7 +74,7 @@ elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
         _restore_from_cache
     else
         download "$_MKPM_BIN/mkpm" "$MKPM_BINARY" >/dev/null
-        echo DOWNLOAD
+        _debug downloaded mkpm.sh
     fi
     chmod +x "$_MKPM_BIN/mkpm"
 fi
