@@ -3,10 +3,10 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 28-07-2023 07:01:41
+# Last Modified: 28-07-2023 11:43:44
 # Modified By: Clay Risser
 # -----
-# Risser Labs LLC (c) Copyright 2021
+# BitSpur (c) Copyright 2021
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-include $(MKPM_CORE)
+include $(MKPM)/mkpm
 # include $(MKPM)/gnu
 # include $(MKPM)/hello
 # include $(MKPM)/mkchain

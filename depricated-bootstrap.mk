@@ -3,10 +3,10 @@
 # File Created: 14-09-2022 07:39:22
 # Author: Clay Risser
 # -----
-# Last Modified: 14-09-2022 07:39:30
+# Last Modified: 28-07-2023 07:09:36
 # Modified By: Clay Risser
 # -----
-# Risser Labs LLC (c) Copyright 2021 - 2022
+# BitSpur (c) Copyright 2021 - 2022
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -546,13 +546,13 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo.
 	@echo MKPM
 	@echo.
-	@echo Risser Labs LLC (c) Copyright 2022
+	@echo BitSpur (c) Copyright 2022
 	@echo.
 else
 	@echo
 	@echo "$(LIGHTBLUE)MKPM$(NOCOLOR)"
 	@echo
-	@echo 'Risser Labs LLC (c) Copyright 2022'
+	@echo 'BitSpur (c) Copyright 2022'
 	@echo
 endif
 else
@@ -569,7 +569,7 @@ ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
 	@echo                                88
 	@echo                                88
 	@echo.
-	@echo Risser Labs LLC (c) Copyright 2022
+	@echo BitSpur (c) Copyright 2022
 	@echo.
 else
 	@echo
@@ -584,7 +584,7 @@ else
 	@echo '                               88'
 	@echo '                               88'"$(NOCOLOR)"
 	@echo
-	@echo 'Risser Labs LLC (c) Copyright 2022'
+	@echo 'BitSpur (c) Copyright 2022'
 	@echo
 endif
 endif

@@ -1,12 +1,12 @@
 # File: /mkpm.mk
 # Project: mkpm
-# File Created: 26-09-2021 00:44:57
+# File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 16-10-2022 06:02:50
+# Last Modified: 28-07-2023 11:43:24
 # Modified By: Clay Risser
 # -----
-# Risser Labs LLC (c) Copyright 2021
+# BitSpur (c) Copyright 2021
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,33 +20,106 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export MKPM_PACKAGES_DEFAULT := \
-	mkchain=0.1.1 \
-	gnu=0.0.3 \
-	pkg=0.0.1 \
-	hello=0.1.0
+.POSIX:
 
-export MKPM_REPO_DEFAULT := \
-	https://gitlab.com/risserlabs/community/mkpm-stable.git
+export LC_ALL := C
+export MAKESHELL ?= $(SHELL)
 
-############# MKPM BOOTSTRAP SCRIPT BEGIN #############
-MKPM_BOOTSTRAP := https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk
-export PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-NULL := /dev/null
-TRUE := true
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-	NULL = nul
-	TRUE = type nul
+export BANG := \!
+export NULL := /dev/null
+export NOFAIL := 2>$(NULL) || $(TRUE)
+export NOOUT := >$(NULL) 2>&1
+
+export ECHO := echo
+export TRUE := true
+export WHICH := command -v
+
+define ternary
+$(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
+endef
+
+export COLUMNS := $(shell tput cols 2>$(NULL) || (eval $(resize 2>$(NULL)) 2>$(NULL) && $(ECHO) $$COLUMNS))
+define columns
+$(call ternary,[ "$(COLUMNS)" -$1 "$2" ],1)
+endef
+WINDOW_SM=$(call columns,lt,80)
+
+define git_clean_flags
+-e $(BANG)$1 \
+-e $(BANG)$1/ \
+-e $(BANG)$1/**/* \
+-e $(BANG)/$1 \
+-e $(BANG)/$1/ \
+-e $(BANG)/$1/**/* \
+-e $(BANG)/**/$1 \
+-e $(BANG)/**/$1/ \
+-e $(BANG)/**/$1/**/*
+endef
+export MKPM_GIT_CLEAN_FLAGS := $(call git_clean_flags,$(MKPM_ROOT_NAME))
+
+export MKPM_CLEANED := $(MKPM)/.cleaned
+define MKPM_CLEAN
+$(TOUCH) -m $(MKPM)/.cleaned
+endef
+
+export NIX_ENV := $(call ternary,$(ECHO) '$(PATH)' | grep -q ":/nix/store",1)
+ifneq ($(NIX_ENV),1)
+	ifeq ($(PLATFORM),darwin)
+		export AWK ?= $(call ternary,gawk --version,gawk,awk)
+		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
+		export SED ?= $(call ternary,gsed --version,gsed,sed)
+	endif
 endif
-include $(PROJECT_ROOT)/.mkpm/.bootstrap.mk
-$(PROJECT_ROOT)/.mkpm/.bootstrap.mk: bootstrap.mk mkpm.mk
-ifeq ($(OS),Windows_NT)
-	@mkdir .mkpm
-	@type $< > $@
+export AWK ?= awk
+export GIT ?= git
+export GREP ?= grep
+export SED ?= sed
+export TAR ?= $(call ternary,$(WHICH) tar,$(shell $(WHICH) tar 2>$(NULL)),$(TRUE))
+export DOWNLOAD	?= $(call ternary,curl --version,curl -L -o,wget -O)
+
+export ROOT ?= $(patsubst %/,%,$(dir $(abspath $(firstword $(MAKEFILE_LIST)))))
+export SUBPROC :=
+ifneq ($(ROOT),$(CURDIR))
+	SUBPROC = 1
+endif
+export SUBDIR :=
+ifneq ($(PROJECT_ROOT),$(CURDIR))
+	SUBDIR = 1
+endif
+
+export NPROC := 1
+ifeq ($(PLATFORM),linux)
+	NPROC = $(shell nproc $(NOOUT) && nproc || $(GREP) -c -E "^processor" /proc/cpuinfo 2>$(NULL) || $(ECHO) 1)
+endif
+ifeq ($(PLATFORM),darwin)
+	NPROC = $(shell sysctl hw.ncpu | $(CUT) -d " " -f 2 2>$(NULL) || $(ECHO) 1)
+endif
+export NUMPROC ?= $(NPROC)
+export MAKEFLAGS += "-j $(NUMPROC)"
+
+ifeq (,$(.DEFAULT_GOAL))
+.DEFAULT_GOAL = $(HELP)
+endif
+
+export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,)
+.PHONY: sudo
+ifneq (,$(SUDO))
+sudo:
+	@$(SUDO) $(TRUE)
 else
-	@mkdir -p .mkpm/.bin
-	@cp $< $@
-	@cp mkpm.sh .mkpm/.bin/mkpm
-	@chmod +x .mkpm/.bin/mkpm
+sudo: ;
 endif
-############## MKPM BOOTSTRAP SCRIPT END ##############
+
+export SHARED_MK := $(wildcard $(PROJECT_ROOT)/shared.mk)
+ifneq (,$(SHARED_MK))
+include $(SHARED_MK)
+endif
+
+ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
+include cmd.exe
+cmd.exe:
+	@$(ECHO) cmd.exe not supported 1>&2
+	@$(ECHO) if you are on Windows, please use WSL (Windows Subsystem for Linux) 1>&2
+	@$(ECHO) https://docs.microsoft.com/windows/wsl
+	@$(EXIT) 1
+endif

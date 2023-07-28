@@ -1,15 +1,29 @@
 #!/bin/sh
 
 MKPM_BINARY=https://example.com
-
 alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
-
+_is_ci() {
+    for v in "JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"; do
+        if [ "$v" != "" ] && [ "$v" != "0" ] && [ "$(echo $v | tr '[:upper:]' '[:lower:]')" != "false" ]; then
+            return 1
+        fi
+    done
+    return
+}
+_CI="$(_is_ci && echo 1 || true)"
+if [ "$_CI" = "" ]; then
+    export NOCOLOR='\e[0m'
+    export RED='\e[0;31m'
+fi
+_error() {
+    echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2
+}
 _project_root() {
     _ROOT=$1
     if [ "$_ROOT" = "" ]; then
-        _ROOT=$(pwd)
+        _ROOT="$(pwd)"
     fi
-    if [ -f "$_ROOT/mkpm.yml" ]; then
+    if [ -f "$_ROOT/mkpm.json" ]; then
         echo $_ROOT
         return
     fi
@@ -22,8 +36,10 @@ _project_root() {
     return
 }
 export PROJECT_ROOT="$(_project_root)"
+if [ "$PROJECT_ROOT" = "/" ]; then
+    _error "not an mkpm project" && exit 1
+fi
 export _MKPM_BIN="$PROJECT_ROOT/.mkpm/mkpm/.bin"
-
 if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
     mkdir -p "$_MKPM_BIN"
     if [ ! -f "$_MKPM_BIN/mkpm" ] || [ "$PROJECT_ROOT/mkpm.sh" -nt "$_MKPM_BIN/mkpm" ]; then
@@ -36,5 +52,4 @@ elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
     download "$_MKPM_BIN/mkpm" "$MKPM_BINARY" >/dev/null
     chmod +x "$_MKPM_BIN/mkpm"
 fi
-
 exec "$_MKPM_BIN/mkpm" "$@"

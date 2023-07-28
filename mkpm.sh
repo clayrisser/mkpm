@@ -134,20 +134,19 @@ _remove() {
 
 _prepare() {
     export PROJECT_ROOT="$(_project_root)"
-    export MKPM_CONFIG="$PROJECT_ROOT/mkpm.yml"
+    export MKPM_CONFIG="$PROJECT_ROOT/mkpm.json"
     export MKPM_ROOT_NAME=".mkpm"
     export MKPM_ROOT="$PROJECT_ROOT/$MKPM_ROOT_NAME"
     export MKPM="$MKPM_ROOT/mkpm"
     _debug PROJECT_ROOT=\"$PROJECT_ROOT\"
     _debug MKPM_CONFIG=\"$MKPM_CONFIG\"
     _debug MKPM_ROOT=\"$MKPM_ROOT\"
-    export MKPM_CORE="$MKPM/.core.mk"
     export _MKPM_BIN="$MKPM/.bin"
     export _MKPM_CACHE="$MKPM_ROOT/cache"
     export _MKPM_PACKAGES="$MKPM/.pkgs"
     export _MKPM_TMP="$MKPM/.tmp"
     if [ "$_MKPM_RESET_CACHE" = "1" ] || \
-        ([ -f "$PROJECT_ROOT/core.mk" ] && [ "$PROJECT_ROOT/core.mk" -nt "$MKPM_CORE" ]); then
+        ([ -f "$PROJECT_ROOT/mkpm.mk" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
         _reset_cache
         exit $?
     fi
@@ -159,7 +158,6 @@ _prepare() {
         _require_system_binary jq
         _require_system_binary make
         _require_system_binary tar
-        _require_system_binary yq
         if [ "$PLATFORM" = "darwin" ]; then
             _require_system_binary gsed --version
         else
@@ -248,15 +246,15 @@ _ensure_dirs() {
 }
 
 _ensure_core() {
-    if [ -f "$PROJECT_ROOT/core.mk" ]; then
-        if [ ! -f "$MKPM_CORE" ] || [ "$PROJECT_ROOT/core.mk" -nt "$MKPM_CORE" ]; then
-            cp "$PROJECT_ROOT/core.mk" "$MKPM_CORE"
-            _debug downloaded core
+    if [ -f "$PROJECT_ROOT/mkpm.mk" ]; then
+        if [ ! -f "$MKPM/mkpm" ] || [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]; then
+            cp "$PROJECT_ROOT/mkpm.mk" "$MKPM/mkpm"
+            _debug downloaded mkpm
             _create_cache
         fi
-    elif [ ! -f "$MKPM_CORE" ]; then
-        download "$MKPM_CORE" "$MKPM_CORE_URL" >/dev/null
-        _debug downloaded core
+    elif [ ! -f "$MKPM/mkpm" ]; then
+        download "$MKPM/mkpm" "$MKPM/mkpm_URL" >/dev/null
+        _debug downloaded mkpm
         _create_cache
     fi
 }
@@ -294,7 +292,7 @@ _reset_cache() {
     rm -rf \
         "$_MKPM_CACHE" \
         "$MKPM/.prepared" \
-        "$MKPM_CORE" 2>/dev/null || true
+        "$MKPM/mkpm" 2>/dev/null || true
     unset _MKPM_RESET_CACHE
     _debug reset cache
     exec "$__0" "$__ARGS"
@@ -304,13 +302,13 @@ _reset_cache() {
 ## REPOS ##
 
 _list_repos() {
-    cat "$MKPM_CONFIG" | yq -r '(.repos | keys)[]'
+    cat "$MKPM_CONFIG" | jq -r '(.repos | keys)[]'
 }
 
 _lookup_repo_uri() {
     _REPO="$1"
     shift
-    cat "$MKPM_CONFIG" | yq -r ".repos.$_REPO"
+    cat "$MKPM_CONFIG" | jq -r ".repos.$_REPO"
 }
 
 _lookup_repo_path() {
@@ -339,7 +337,7 @@ _update_repo() {
 _list_packages() {
     _REPO="$1"
     shift
-    for p in $(cat "$MKPM_CONFIG" | yq -r "(.packages.${_REPO} | keys)[]"); do
+    for p in $(cat "$MKPM_CONFIG" | jq -r "(.packages.${_REPO} | keys)[]"); do
         echo "$p"
     done
 }
@@ -348,7 +346,7 @@ _list_packages() {
 ## UTIL ##
 
 _echo() {
-    echo "$@"
+    echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"
 }
 
 _debug() {
@@ -356,15 +354,15 @@ _debug() {
 }
 
 _error() {
-    [ "$MKPM_DEBUG" = "1" ] && echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2 || true
+    echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2
 }
 
 _project_root() {
     _ROOT=$1
     if [ "$_ROOT" = "" ]; then
-        _ROOT=$(pwd)
+        _ROOT="$(pwd)"
     fi
-    if [ -f "$_ROOT/mkpm.yml" ]; then
+    if [ -f "$_ROOT/mkpm.json" ]; then
         echo $_ROOT
         return
     fi
@@ -376,7 +374,6 @@ _project_root() {
     echo $(_project_root $_PARENT)
     return
 }
-
 
 export ARCH=unknown
 export FLAVOR=unknown
