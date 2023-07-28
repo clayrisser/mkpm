@@ -51,7 +51,25 @@ fi
 
 main() {
     _prepare "$@"
-    _run "$_TARGET" "$@"
+    if [ "$_COMMAND" = "install" ]; then
+        _REPO=$_PARAM1
+        _PACKAGE=$_PARAM2
+        _REPO_URI=$(_lookup_repo_uri $_REPO)
+        _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
+        if [ "$_REPO_URI" = "" ]; then
+            _error "repo $_REPO is not valid"
+            exit 1
+        fi
+        _update_repo $_REPO_URI $_REPO_PATH
+        _install $_PACKAGE $_REPO_URI
+    elif [ "$_COMMAND" = "remove" ]; then
+        _remove $_PARAM1
+        _echo "removed $_PARAM1"
+    elif [ "$_COMMAND" = "upgrade" ]; then
+        _upgrade $_PARAM1 $_PARAM2
+    else
+        _run "$_TARGET" "$@"
+    fi
 }
 
 
@@ -87,7 +105,6 @@ _install() {
     _PACKAGE_VERSION="$(echo $_PACKAGE | gsed 's|^[^=]*||g' | gsed 's|^=||g')"
     _REPO_URI="$2"
     _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
-    _REPO_NAME="$3"
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | \
@@ -95,25 +112,22 @@ _install() {
             sort -t "." -k1,1n -k2,2n -k3,3n | tail -n1)
     fi
     if [ "$_PACKAGE_VERSION" = "" ]; then
-        _echo "package $_PACKAGE_NAME does not exist" 1>&2
+        _error "package $_PACKAGE_NAME does not exist"
         exit 1
     fi
     if ! git checkout -f "$_PACKAGE_NAME/$_PACKAGE_VERSION" >/dev/null 2>/dev/null; then
-        _echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
+        _error "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist"
         exit 1
     fi
     git lfs pull --include "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
     if [ ! -f "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" ]; then
-        _echo "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist" 1>&2
+        _error "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist"
         exit 1
     fi
     _remove $_PACKAGE_NAME
-    # echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > \
-    #     "$_CWD/.mkpm/$_PACKAGE_NAME"
-    # echo ".PHONY: $_PACKAGE_NAME-%" > "$_CWD/.mkpm/-$_PACKAGE_NAME"
-    # echo "$_PACKAGE_NAME-%:" >> "$_CWD/.mkpm/-$_PACKAGE_NAME"
-    # echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> \
-    #     "$_CWD/.mkpm/-$_PACKAGE_NAME"
+    cat "${PROJECT_ROOT}/mkpm.json" | \
+        jq ".packages.$_REPO += { \"$_PACKAGE_NAME\": \"$_PACKAGE_VERSION\" }" | \
+        tee "${PROJECT_ROOT}/mkpm.json" >/dev/null
     mkdir -p "$_MKPM_PACKAGES/$_PACKAGE_NAME"
     tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_MKPM_PACKAGES/$_PACKAGE_NAME" >/dev/null
     _create_cache
@@ -127,6 +141,9 @@ _remove() {
         "$MKPM/$_PACKAGE_NAME" \
         "$MKPM/-$_PACKAGE_NAME" \
         "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null || true
+    cat "${PROJECT_ROOT}/mkpm.json" | \
+        jq "del(.packages.default.${_PACKAGE_NAME})" | \
+        tee "${PROJECT_ROOT}/mkpm.json" >/dev/null
 }
 
 
@@ -295,7 +312,11 @@ _reset_cache() {
         "$MKPM/mkpm" 2>/dev/null || true
     unset _MKPM_RESET_CACHE
     _debug reset cache
-    exec "$__0" "$__ARGS"
+    exec "$__0" $__ARGS
+}
+
+_is_repo_uri() {
+    echo "$1" | grep -E '^(\w+://.+)|(git@.+:.+)$' >/dev/null 2>&1
 }
 
 
@@ -494,7 +515,7 @@ while test $# -gt 0; do
             shift
         ;;
         -*)
-            echo "invalid option $1" 1>&2
+            _error "invalid option $1"
             exit 1
         ;;
         *)
@@ -515,7 +536,7 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            _echo "no repo specified" 1>&2
+            _error "no repo specified"
             exit 1
         fi
         if test $# -gt 0; then
@@ -533,7 +554,7 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            _echo "no package specified" 1>&2
+            _error "no package specified"
             exit 1
         fi
     ;;
@@ -544,7 +565,7 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            _echo "no package specified" 1>&2
+            _error "no package specified"
             exit 1
         fi
     ;;
@@ -569,14 +590,14 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            _echo "no repo name specified" 1>&2
+            _error "no repo name specified"
             exit 1
         fi
         if test $# -gt 0; then
             export _PARAM2=$1
             shift
         else
-            _echo "no repo uri specified" 1>&2
+            _error "no repo uri specified"
             exit 1
         fi
     ;;
@@ -587,7 +608,7 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            _echo "no repo name specified" 1>&2
+            _error "no repo name specified"
             exit 1
         fi
     ;;
