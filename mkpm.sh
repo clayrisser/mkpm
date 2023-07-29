@@ -149,7 +149,11 @@ _run() {
     _TARGET="$1"
     shift
     _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
-    _debug "$_ARGS_ENV_NAME=\"$@\" gmake $_MAKE_FLAGS \"$_TARGET\""
+    _MAKEFILE="Mkpmfile"
+    if [ ! -f "$_MAKEFILE" ]; then
+        _MAKEFILE="Makefile"
+    fi
+    _debug "$_ARGS_ENV_NAME=\"$@\" gmake -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
     _TMP_PIPE_DIR="$(mktemp -d)"
     _TMP_PIPE="$_TMP_PIPE_DIR/stderr"
     mkfifo "$_TMP_PIPE"
@@ -161,7 +165,7 @@ _run() {
             grep -v 'warning: ignoring old recipe for target' >&2 &
         _PIPE_PID=$!
     fi
-    eval "$_ARGS_ENV_NAME=\"$@\" gmake $_MAKE_FLAGS \"$_TARGET\"" 2> "$_TMP_PIPE"
+    eval "$_ARGS_ENV_NAME=\"$@\" gmake -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\"" 2> "$_TMP_PIPE"
     _CODE="$?"
     wait "$_PIPE_PID"
     rm -rf "$_TMP_PIPE_DIR"
@@ -250,11 +254,11 @@ _upgrade() {
     _REPO_URI=$(_lookup_repo_uri $_REPO_NAME)
     _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
     if [ "$_REPO_URI" = "" ]; then
-        _echo "repo name $_REPO_NAME is not valid" 1>&2
+        _error "repo name $_REPO_NAME is not valid"
         exit 1
     fi
     if _is_repo_uri "$_REPO_NAME"; then
-        _echo "repo name $_REPO_NAME is not valid" 1>&2
+        _error "repo name $_REPO_NAME is not valid"
         exit 1
     fi
     _update_repo "$_REPO_URI" "$_REPO_PATH" "$_REPO_NAME"
@@ -279,11 +283,11 @@ _repo_add() {
     _REPO_URI="$2"
     _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
     if [ "$(_lookup_repo_uri $_REPO_NAME)" != "" ]; then
-        _error "repo $_REPO_NAME already exists" 1>&2
+        _error "repo $_REPO_NAME already exists"
         exit 1
     fi
     if ! _is_repo_uri "$_REPO_URI"; then
-        _error "invalid repo uri $_REPO_URI" 1>&2
+        _error "invalid repo uri $_REPO_URI"
         exit 1
     fi
     cat "$MKPM_CONFIG" | \
@@ -321,18 +325,18 @@ _init() {
     fi
     rm -rf "$MKPM_ROOT"
     _validate_mkpm_config
-    if [ ! -f "$_CWD/Makefile" ]; then
-        echo "generate ${LIGHT_GREEN}Makefile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    if [ ! -f "$_CWD/Makefile" ] && [ ! -f "$_CWD/Mkpmfile" ]; then
+        echo "generate ${LIGHT_GREEN}Mkpmfile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-            cat <<EOF > "$_CWD/Makefile"
+            cat <<EOF > "$_CWD/Mkpmfile"
 include \$(MKPM)/mkpm
 
 .PHONY: hello
 hello:
 	@\$(ECHO) Hello, world!
 EOF
-            _echo generated ${LIGHT_GREEN}Makefile${NOCOLOR}
+            _echo generated ${LIGHT_GREEN}Mkpmfile${NOCOLOR}
         fi
     fi
     printf "add cache to git [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
@@ -375,7 +379,7 @@ _prepare() {
         _reset_cache
         exit $?
     fi
-    if [ ! -f "$MKPM/.ready" ]; then
+    if [ ! -f "$MKPM/mkpm" ]; then
         _require_system_binary awk
         _require_system_binary git
         _require_system_binary git-lfs
@@ -402,7 +406,6 @@ _prepare() {
             fi
         fi
         _ensure_mkpm_mk
-        touch "$MKPM/.ready"
     fi
 }
 
@@ -526,7 +529,6 @@ _create_cache() {
     cd "$MKPM"
     touch "$_MKPM_ROOT/cache.tar.gz"
     tar --format=gnu --sort=name --mtime='1970-01-01 00:00:00 UTC' -czf "$_MKPM_ROOT/cache.tar.gz" \
-        --exclude '.ready' \
         --exclude '.tmp' \
         .
     cd "$_CWD"

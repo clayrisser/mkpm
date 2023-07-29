@@ -1,9 +1,9 @@
-# File: /Makefile
+# File: /Mkpmfile
 # Project: mkpm
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 29-07-2023 16:48:50
+# Last Modified: 29-07-2023 17:11:47
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021
@@ -22,8 +22,7 @@
 
 include $(MKPM)/mkpm
 include $(MKPM)/hello
-# include $(MKPM)/gnu
-# include $(MKPM)/hello
+include $(MKPM)/gnu
 # include $(MKPM)/mkchain
 
 export USER ?= nobody
@@ -31,7 +30,7 @@ export EMAIL ?= clayrisser@gmail.com
 PKG_NAME ?= mkpm
 PKG_VERSION ?= 0.3.0
 PKG_STRICT ?= 0
-# include $(MKPM)/pkg
+include $(MKPM)/pkg
 
 .PHONY: inspect
 inspect: ##
@@ -61,8 +60,8 @@ $(ACTION)/build: $(call git_deps,.)
 .PHONY: install
 install: | sudo \
 	/usr/local/bin/mkpm
-/usr/local/bin/mkpm:
-	@$(SUDO) $(CP) mkpm.sh $@
+/usr/local/bin/mkpm: mkpm.sh
+	@$(SUDO) $(CP) $< $@
 	@$(SUDO) $(CHMOD) +x $@
 
 .PHONY: uninstall
