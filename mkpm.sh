@@ -240,7 +240,7 @@ _install() {
 
 _remove() {
     _PACKAGE_NAME="$1"
-    _remove "$_PACKAGE_NAME"
+    _remove_package "$_PACKAGE_NAME"
     _echo "removed package $_PACKAGE_NAME"
 }
 
@@ -269,7 +269,7 @@ _upgrade() {
 }
 
 _reset() {
-    rm -rf "$_MKPM_ROOT" 2>/dev/null || true
+    rm -rf "$_MKPM_ROOT" 2>/dev/null
     _ensure_mkpm_sh
     _prepare
 }
@@ -375,7 +375,7 @@ _prepare() {
         _reset_cache
         exit $?
     fi
-    if [ ! -f "$MKPM/.prepared" ]; then
+    if [ ! -f "$MKPM/.ready" ]; then
         _require_system_binary awk
         _require_system_binary git
         _require_system_binary git-lfs
@@ -402,7 +402,7 @@ _prepare() {
             fi
         fi
         _ensure_mkpm_mk
-        touch "$MKPM/.prepared"
+        touch "$MKPM/.ready"
     fi
 }
 
@@ -470,8 +470,14 @@ install for me [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
 }
 
 _ensure_dirs() {
-    if [ ! -d "$MKPM" ]; then
-        mkdir -p "$MKPM"
+    if [ ! -d "$MKPM/.bin" ]; then
+        mkdir -p "$MKPM/.bin"
+    fi
+    if [ ! -d "$MKPM/.pkgs" ]; then
+        mkdir -p "$MKPM/.pkgs"
+    fi
+    if [ ! -d "$MKPM/.tmp" ]; then
+        mkdir -p "$MKPM/.tmp"
     fi
 }
 
@@ -520,11 +526,7 @@ _create_cache() {
     cd "$MKPM"
     touch "$_MKPM_ROOT/cache.tar.gz"
     tar --format=gnu --sort=name --mtime='1970-01-01 00:00:00 UTC' -czf "$_MKPM_ROOT/cache.tar.gz" \
-        --exclude '.cache' \
-        --exclude '.failed' \
-        --exclude '.preflight' \
         --exclude '.ready' \
-        --exclude '.prepared' \
         --exclude '.tmp' \
         .
     cd "$_CWD"
@@ -546,7 +548,7 @@ _reset_cache() {
     rm -rf \
         "$_MKPM_ROOT/cache.tar.gz" \
         "$MKPM/.prepared" \
-        "$MKPM/mkpm" 2>/dev/null || true
+        "$MKPM/mkpm" 2>/dev/null
     unset _MKPM_RESET_CACHE
     _debug reset cache
     exec "$__0" $__ARGS
@@ -609,7 +611,7 @@ _remove_package() {
     rm -rf \
         "$MKPM/$_PACKAGE_NAME" \
         "$MKPM/-$_PACKAGE_NAME" \
-        "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null || true
+        "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null
     for r in $(_list_repos); do
         cat "$MKPM_CONFIG" | \
             jq "del(.packages.${r}.${_PACKAGE_NAME})" | \
