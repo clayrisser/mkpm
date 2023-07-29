@@ -90,16 +90,17 @@ export _MKPM_PACKAGES="$MKPM/.pkgs"
 export _MKPM_TMP="$MKPM/.tmp"
 
 main() {
-    if [ "$_COMMAND" = "init" ] && [ -f "$MKPM_CONFIG" ]; then
-        _error "mkpm already initialized"
-        exit 1
-    fi
-    _prepare
     if [ "$_COMMAND" = "install" ]; then
+        if [ ! -f "$MKPM/.prepared" ]; then
+            _PREPARE_INSTALLED=1
+        fi
+        _prepare
         _REPO_NAME="$_PARAM1"
         _PACKAGE="$_PARAM2"
         if [ "$_REPO_NAME" = "" ]; then
-            _install
+            if [ "$_PREPARE_INSTALLED" != "1" ]; then
+                _install
+            fi
         else
             _REPO_URI="$(_lookup_repo_uri $_REPO_NAME)"
             _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
@@ -111,20 +112,31 @@ main() {
             _install "$_REPO_URI" "$_REPO_NAME" "$_PACKAGE"
         fi
     elif [ "$_COMMAND" = "remove" ]; then
+        _prepare
         _remove $_PARAM1
     elif [ "$_COMMAND" = "upgrade" ]; then
+        _prepare
         _upgrade $_PARAM1 $_PARAM2
     elif [ "$_COMMAND" = "repo-add" ]; then
+        _prepare
         _REPO_NAME=$_PARAM1
         _REPO_URI=$_PARAM2
         _repo_add $_REPO_NAME $_REPO_URI
     elif [ "$_COMMAND" = "repo-remove" ]; then
+        _prepare
         _repo_remove $_PARAM1
     elif [ "$_COMMAND" = "reset" ]; then
+        _prepare
         _reset
     elif [ "$_COMMAND" = "init" ]; then
+        if [ "$_COMMAND" = "init" ] && [ -f "$MKPM_CONFIG" ]; then
+            _error "mkpm already initialized"
+            exit 1
+        fi
+        _prepare
         _init
     else
+        _prepare
         _run "$_TARGET" "$@"
     fi
 }
