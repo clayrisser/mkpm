@@ -49,7 +49,11 @@ _restore_from_cache() {
 }
 export PROJECT_ROOT="$(_project_root)"
 if [ "$PROJECT_ROOT" = "/" ]; then
-    _error "not an mkpm project" && exit 1
+    if [ "$1" = "init" ]; then
+        PROJECT_ROOT="$_CWD"
+    else
+        _error "not an mkpm project" && exit 1
+    fi
 fi
 export _MKPM_ROOT="$PROJECT_ROOT/.mkpm"
 export MKPM="$_MKPM_ROOT/mkpm"

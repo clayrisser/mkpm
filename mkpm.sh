@@ -72,8 +72,12 @@ _project_root() {
     echo $(_project_root $_PARENT)
     return
 }
-
-export PROJECT_ROOT="$(_project_root)"
+if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
+    export PROJECT_ROOT="$(_project_root)"
+fi
+if [ "$PROJECT_ROOT" = "/" ]; then
+    _error "not an mkpm project" && exit 1
+fi
 _MKPM_ROOT_NAME=".mkpm"
 export MKPM_ROOT="$PROJECT_ROOT/$_MKPM_ROOT_NAME"
 export MKPM="$MKPM_ROOT/mkpm"
@@ -86,6 +90,10 @@ export _MKPM_PACKAGES="$MKPM/.pkgs"
 export _MKPM_TMP="$MKPM/.tmp"
 
 main() {
+    if [ "$_COMMAND" = "init" ] && [ -f "$MKPM_CONFIG" ]; then
+        _error "mkpm already initialized"
+        exit 1
+    fi
     _prepare
     if [ "$_COMMAND" = "install" ]; then
         _REPO_NAME="$_PARAM1"
@@ -271,6 +279,24 @@ _repo_remove() {
     _echo "removed repo $_REPO_NAME"
 }
 
+_init() {
+    if [ ! -f "$_CWD/.git/HEAD" ]; then
+        _error "init must be run from the root of a git project"
+        exit 1
+    fi
+    rm -rf "$MKPM_ROOT"
+    if [ ! -f "$_CWD/Makefile" ]; then
+        cat <<EOF > "$_CWD/Makefile"
+include \$(MKPM)/mkpm
+
+.PHONY: hello
+hello:
+	@\$(ECHO) Hello, world!
+EOF
+    fi
+    _validate_mkpm_config
+}
+
 
 ## PREPARE ##
 
@@ -424,7 +450,7 @@ _ensure_mkpm_sh() {
 _create_cache() {
     cd "$MKPM"
     touch "$_MKPM_ROOT/cache.tar.gz"
-    tar -czf "$_MKPM_ROOT/cache.tar.gz" \
+    tar --mtime='2023-07-29 00:00:00' -czf "$_MKPM_ROOT/cache.tar.gz" \
         --exclude '.cache' \
         --exclude '.failed' \
         --exclude '.preflight' \
@@ -526,7 +552,7 @@ _remove_package() {
 ## CONFIG ##
 
 _validate_mkpm_config() {
-    if [ "$(cat "$MKPM_CONFIG" | jq -r '. | type')" != "object" ]; then
+    if [ ! -f "$MKPM_CONFIG" ] || [ "$(cat "$MKPM_CONFIG" | jq -r '. | type')" != "object" ]; then
         echo '{}' > "$MKPM_CONFIG"
     fi
     cat "$MKPM_CONFIG" | \
