@@ -57,20 +57,20 @@ _debug() {
 }
 
 _project_root() {
-    _ROOT=$1
+    _ROOT="$1"
     if [ "$_ROOT" = "" ]; then
         _ROOT="$(pwd)"
     fi
     if [ -f "$_ROOT/mkpm.json" ]; then
-        echo $_ROOT
+        echo "$_ROOT"
         return
     fi
-    _PARENT=$(echo $_ROOT | sed 's|\/[^\/]\+$||g')
+    _PARENT="$(echo "$_ROOT" | sed 's|\/[^\/]\+$||g')"
     if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
         echo "/"
         return
     fi
-    echo $(_project_root $_PARENT)
+    echo "$(_project_root $_PARENT)"
     return
 }
 if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
@@ -276,6 +276,9 @@ _reset() {
     rm -rf "$_MKPM_ROOT" 2>/dev/null
     _ensure_mkpm_sh
     _prepare
+    if [ "$_INSTALL_REFCOUNT" = "" ] || [ "$_INSTALL_REFCOUNT" = "0" ]; then
+        _install
+    fi
 }
 
 _repo_add() {

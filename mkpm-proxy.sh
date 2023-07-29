@@ -40,13 +40,6 @@ _project_root() {
     echo "$(_project_root $_PARENT)"
     return
 }
-_restore_from_cache() {
-    mkdir -p "$MKPM"
-    cd "$MKPM"
-    tar -xzf "$_MKPM_ROOT/cache.tar.gz"
-    cd "$_CWD"
-    _debug restored cache
-}
 export PROJECT_ROOT="$(_project_root)"
 if [ "$PROJECT_ROOT" = "/" ]; then
     if [ "$1" = "init" ]; then
@@ -55,31 +48,22 @@ if [ "$PROJECT_ROOT" = "/" ]; then
         _error "not an mkpm project" && exit 1
     fi
 fi
-export _MKPM_ROOT="$PROJECT_ROOT/.mkpm"
-export _MKPM="$_MKPM_ROOT/mkpm"
-export _MKPM_BIN="$_MKPM/.bin"
-if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
-    mkdir -p "$_MKPM_BIN"
-    if [ ! -f "$_MKPM_BIN/mkpm" ]; then
-        if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
-            _restore_from_cache
-        else
-            cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
-            _debug downloaded mkpm.sh
-        fi
-    elif [ "$PROJECT_ROOT/mkpm.sh" -nt "$_MKPM_BIN/mkpm" ]; then
-        export _MKPM_RESET_CACHE=1
-        cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
-    fi
-    chmod +x "$_MKPM_BIN/mkpm"
-elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
+_MKPM_ROOT="$PROJECT_ROOT/.mkpm"
+_MKPM="$_MKPM_ROOT/mkpm"
+_MKPM_BIN="$MKPM/.bin"
+if [ ! -f "$_MKPM_BIN/mkpm" ]; then
     mkdir -p "$_MKPM_BIN"
     if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
-        _restore_from_cache
+        mkdir -p "$_MKPM"
+        cd "$_MKPM"
+        tar -xzf "$_MKPM_ROOT/cache.tar.gz"
+        cd "$_CWD"
+        _debug restored cache
     else
         download "$_MKPM_BIN/mkpm" "$MKPM_BINARY" >/dev/null
         _debug downloaded mkpm.sh
     fi
     chmod +x "$_MKPM_BIN/mkpm"
 fi
+_ensure_mkpm_sh
 exec "$_MKPM_BIN/mkpm" "$@"

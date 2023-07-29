@@ -1,8 +1,8 @@
 {
   "packages": {
     "default": {
-      "hello": "0.1.0",
       "gnu": "0.0.3",
+      "hello": "0.1.0",
       "mkchain": "0.1.1",
       "pkg": "0.0.1"
     }
