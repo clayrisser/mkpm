@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 28-07-2023 11:43:44
+# Last Modified: 29-07-2023 06:06:06
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021
@@ -49,6 +49,10 @@ inspect: ##
 	@echo SED: $(SED)
 	@echo SHELL: $(SHELL)
 	@echo WHICH: $(WHICH)
+
+.PHONY: hello
+hello:
+	@$(ECHO) world
 
 ACTIONS += build ##
 $(ACTION)/build: $(call git_deps,.)

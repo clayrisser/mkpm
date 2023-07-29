@@ -5,6 +5,7 @@ MKPM_CORE_URL="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm
 __0="$0"
 __ARGS="$@"
 
+alias gmake="$(gmake --version >/dev/null 2>&1 && echo gmake || echo make)"
 alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
 alias which="command -v"
 
@@ -52,23 +53,42 @@ fi
 main() {
     _prepare "$@"
     if [ "$_COMMAND" = "install" ]; then
-        _REPO=$_PARAM1
-        _PACKAGE=$_PARAM2
-        _REPO_URI=$(_lookup_repo_uri $_REPO)
-        _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
+        _REPO_NAME="$_PARAM1"
+        _PACKAGE="$_PARAM2"
+        _REPO_URI="$(_lookup_repo_uri $_REPO_NAME)"
+        _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
         if [ "$_REPO_URI" = "" ]; then
             _error "repo $_REPO is not valid"
             exit 1
         fi
         _update_repo $_REPO_URI $_REPO_PATH
-        _install $_PACKAGE $_REPO_URI
+        _install $_PACKAGE $_REPO_URI $_REPO_NAME
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM1
         _echo "removed $_PARAM1"
     elif [ "$_COMMAND" = "upgrade" ]; then
         _upgrade $_PARAM1 $_PARAM2
+    elif [ "$_COMMAND" = "repo-add" ]; then
+        _REPO_NAME=$_PARAM1
+        _REPO_URI=$_PARAM2
+        _repo_add $_REPO_NAME $_REPO_URI
+    elif [ "$_COMMAND" = "repo-remove" ]; then
+        _repo_remove $_PARAM1
+    elif [ "$_COMMAND" = "reinstall" ]; then
+        _reinstall
+    elif [ "$_COMMAND" = "init" ]; then
+        _init
     else
         _run "$_TARGET" "$@"
+    fi
+}
+
+_reinstall() {
+    rm -rf "$_MKPM_ROOT" 2>/dev/null || true
+    if gmake --version >/dev/null 2>/dev/null; then
+        gmake "$(date)	$(date)" 2>/dev/null || true
+    else
+        make "$(date)	$(date)" 2>/dev/null || true
     fi
 }
 
@@ -79,7 +99,7 @@ _run() {
     _TARGET="$1"
     shift
     _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
-    eval "$_ARGS_ENV_NAME=\"$@\" make \"$_TARGET\""
+    eval "$_ARGS_ENV_NAME=\"$@\" gmake \"$_TARGET\""
     _CODE="$?"
     exit $_CODE
 }
@@ -94,7 +114,7 @@ _install() {
             _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
             _update_repo "$_REPO_URI" "$_REPO_PATH"
             for p in $(_list_packages "$r"); do
-                _install $p "$_REPO_URI" $r
+                _install $p "$_REPO_URI" "$r"
             done
         done
         _create_cache
@@ -104,6 +124,7 @@ _install() {
     _PACKAGE_NAME="$(echo $_PACKAGE | cut -d'=' -f1)"
     _PACKAGE_VERSION="$(echo $_PACKAGE | gsed 's|^[^=]*||g' | gsed 's|^=||g')"
     _REPO_URI="$2"
+    _REPO_NAME="$3"
     _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
@@ -126,8 +147,8 @@ _install() {
     fi
     _remove $_PACKAGE_NAME
     cat "${PROJECT_ROOT}/mkpm.json" | \
-        jq ".packages.$_REPO += { \"$_PACKAGE_NAME\": \"$_PACKAGE_VERSION\" }" | \
-        tee "${PROJECT_ROOT}/mkpm.json" >/dev/null
+        jq ".packages.${_REPO_NAME} += { \"${_PACKAGE_NAME}\": \"${_PACKAGE_VERSION}\" }" | \
+        _sponge "${PROJECT_ROOT}/mkpm.json" >/dev/null
     mkdir -p "$_MKPM_PACKAGES/$_PACKAGE_NAME"
     tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_MKPM_PACKAGES/$_PACKAGE_NAME" >/dev/null
     _create_cache
@@ -141,9 +162,35 @@ _remove() {
         "$MKPM/$_PACKAGE_NAME" \
         "$MKPM/-$_PACKAGE_NAME" \
         "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null || true
-    cat "${PROJECT_ROOT}/mkpm.json" | \
-        jq "del(.packages.default.${_PACKAGE_NAME})" | \
-        tee "${PROJECT_ROOT}/mkpm.json" >/dev/null
+    for r in $(_list_repos); do
+        cat "${PROJECT_ROOT}/mkpm.json" | \
+            jq "del(.packages.${r}.${_PACKAGE_NAME})" | \
+            _sponge "${PROJECT_ROOT}/mkpm.json" >/dev/null
+    done
+}
+
+_upgrade() {
+    _REPO_NAME="$1"
+    _PACKAGE_NAME="$2"
+    _REPO_URI=$(_lookup_repo_uri $_REPO_NAME)
+    _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
+    if [ "$_REPO_URI" = "" ]; then
+        _echo "repo name $_REPO_NAME is not valid" 1>&2
+        exit 1
+    fi
+    if _is_repo_uri "$_REPO_NAME"; then
+        _echo "repo name $_REPO_NAME is not valid" 1>&2
+        exit 1
+    fi
+    _update_repo "$_REPO_URI" "$_REPO_PATH"
+    if [ "$_PACKAGE_NAME" = "" ]; then
+        for p in $(_list_packages "$_REPO_NAME"); do
+            echo _install "$p" "$_REPO_URI" "$_REPO_NAME"
+            _install "$p" "$_REPO_URI" "$_REPO_NAME"
+        done
+    else
+        _install "$_PACKAGE_NAME" "$_REPO_URI" "$_REPO_NAME"
+    fi
 }
 
 
@@ -159,7 +206,6 @@ _prepare() {
     _debug MKPM_CONFIG=\"$MKPM_CONFIG\"
     _debug MKPM_ROOT=\"$MKPM_ROOT\"
     export _MKPM_BIN="$MKPM/.bin"
-    export _MKPM_CACHE="$MKPM_ROOT/cache"
     export _MKPM_PACKAGES="$MKPM/.pkgs"
     export _MKPM_TMP="$MKPM/.tmp"
     if [ "$_MKPM_RESET_CACHE" = "1" ] || \
@@ -173,8 +219,12 @@ _prepare() {
         _require_system_binary git-lfs
         _require_system_binary grep
         _require_system_binary jq
-        _require_system_binary make
         _require_system_binary tar
+        if [ "$PLATFORM" = "darwin" ]; then
+            _require_system_binary gmake --version
+        else
+            _require_system_binary make --version
+        fi
         if [ "$PLATFORM" = "darwin" ]; then
             _require_system_binary gsed --version
         else
@@ -182,7 +232,7 @@ _prepare() {
         fi
         _ensure_dirs
         if [ ! -d "$_MKPM_PACKAGES" ]; then
-            if [ -f "$_MKPM_CACHE/cache.tar.gz" ]; then
+            if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
                 _restore_from_cache
             else
                 _install
@@ -196,7 +246,7 @@ _prepare() {
 _lookup_system_package_name() {
     _BINARY="$1"
     case "$_BINARY" in
-        make)
+        gmake)
             case "$PKG_MANAGER" in
                 brew)
                     echo remake
@@ -280,10 +330,9 @@ _ensure_mkpm_mk() {
 ## CACHE ##
 
 _create_cache() {
-    mkdir -p "$_MKPM_CACHE"
     cd "$MKPM"
-    touch "$_MKPM_CACHE/cache.tar.gz"
-    tar -czf "$_MKPM_CACHE/cache.tar.gz" \
+    touch "$_MKPM_ROOT/cache.tar.gz"
+    tar -czf "$_MKPM_ROOT/cache.tar.gz" \
         --exclude '.cache' \
         --exclude '.failed' \
         --exclude '.preflight' \
@@ -296,10 +345,10 @@ _create_cache() {
 }
 
 _restore_from_cache() {
-    if [ -f "$_MKPM_CACHE/cache.tar.gz" ]; then
+    if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
         mkdir -p "$MKPM"
         cd "$MKPM"
-        tar -xzf "$_MKPM_CACHE/cache.tar.gz" >/dev/null
+        tar -xzf "$_MKPM_ROOT/cache.tar.gz" >/dev/null
         cd "$_CWD"
         _debug restored cache
     fi
@@ -307,7 +356,7 @@ _restore_from_cache() {
 
 _reset_cache() {
     rm -rf \
-        "$_MKPM_CACHE" \
+        "$_MKPM_ROOT/cache.tar.gz" \
         "$MKPM/.prepared" \
         "$MKPM/mkpm" 2>/dev/null || true
     unset _MKPM_RESET_CACHE
@@ -394,6 +443,20 @@ _project_root() {
     fi
     echo $(_project_root $_PARENT)
     return
+}
+
+_sponge() {
+    if which sponge >/dev/null 2>&1; then
+        sponge "$@"
+    else
+        if [ -p /dev/stdin ]; then
+            _TMP_FILE=$(mktemp)
+            cat > "$_TMP_FILE"
+            cat "$_TMP_FILE" > "$1"
+            rm -f "$_TMP_FILE"
+        fi
+        cat "$1"
+    fi
 }
 
 export ARCH=unknown
@@ -490,7 +553,7 @@ while test $# -gt 0; do
         -h|--help)
             echo "mkpm - makefile package manager"
             echo " "
-            echo "mkpm [options] command <PACKAGE>"
+            echo "mkpm [options] <TARGET> [...ARGS]"
             echo " "
             echo "options:"
             echo "    -h, --help                    show brief help"
@@ -500,7 +563,6 @@ while test $# -gt 0; do
             echo "    i install <PACKAGE>                   install a package from default git repo"
             echo "    i install <REPO> <PACKAGE>            install a package from git repo"
             echo "    r remove <PACKAGE>                    remove a package"
-            echo "    d dependencies <PACKAGE>              dependencies required by package"
             echo "    u upgrade                             upgrade all packages from default git repo"
             echo "    u upgrade <REPO>                      upgrade all packages from git repo"
             echo "    u upgrade <REPO> <PACKAGE>            upgrade a package from git repo"
@@ -525,10 +587,6 @@ while test $# -gt 0; do
 done
 
 case "$1" in
-    _install)
-        export _COMMAND=install
-        shift
-    ;;
     i|install)
         export _COMMAND=install
         shift
@@ -549,17 +607,6 @@ case "$1" in
     ;;
     r|remove)
         export _COMMAND=remove
-        shift
-        if test $# -gt 0; then
-            export _PARAM1=$1
-            shift
-        else
-            _error "no package specified"
-            exit 1
-        fi
-    ;;
-    d|dependencies)
-        export _COMMAND=dependencies
         shift
         if test $# -gt 0; then
             export _PARAM1=$1
