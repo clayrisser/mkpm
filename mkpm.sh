@@ -499,7 +499,7 @@ _ensure_mkpm_sh() {
 _create_cache() {
     cd "$MKPM"
     touch "$_MKPM_ROOT/cache.tar.gz"
-    tar --format=gnu -czf "$_MKPM_ROOT/cache.tar.gz" \
+    tar --format=gnu --sort=name --mtime='1970-01-01 00:00:00 UTC' -czf "$_MKPM_ROOT/cache.tar.gz" \
         --exclude '.cache' \
         --exclude '.failed' \
         --exclude '.preflight' \
