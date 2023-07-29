@@ -50,22 +50,59 @@ if [ "$_CI" = "" ]; then
     export LIGHT_CYAN='\e[1;36m'
 fi
 
+_debug() {
+    [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true
+}
+
+_project_root() {
+    _ROOT=$1
+    if [ "$_ROOT" = "" ]; then
+        _ROOT="$(pwd)"
+    fi
+    if [ -f "$_ROOT/mkpm.json" ]; then
+        echo $_ROOT
+        return
+    fi
+    _PARENT=$(echo $_ROOT | sed 's|\/[^\/]\+$||g')
+    if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
+        echo "/"
+        return
+    fi
+    echo $(_project_root $_PARENT)
+    return
+}
+
+export PROJECT_ROOT="$(_project_root)"
+_MKPM_ROOT_NAME=".mkpm"
+export MKPM_ROOT="$PROJECT_ROOT/$_MKPM_ROOT_NAME"
+export MKPM="$MKPM_ROOT/mkpm"
+export MKPM_CONFIG="$PROJECT_ROOT/mkpm.json"
+_debug PROJECT_ROOT=\"$PROJECT_ROOT\"
+_debug MKPM_CONFIG=\"$MKPM_CONFIG\"
+_debug MKPM_ROOT=\"$MKPM_ROOT\"
+export _MKPM_BIN="$MKPM/.bin"
+export _MKPM_PACKAGES="$MKPM/.pkgs"
+export _MKPM_TMP="$MKPM/.tmp"
+
 main() {
-    _prepare "$@"
+    _prepare
     if [ "$_COMMAND" = "install" ]; then
         _REPO_NAME="$_PARAM1"
         _PACKAGE="$_PARAM2"
-        _REPO_URI="$(_lookup_repo_uri $_REPO_NAME)"
-        _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
-        if [ "$_REPO_URI" = "" ]; then
-            _error "repo $_REPO is not valid"
-            exit 1
+        if [ "$_REPO_NAME" = "" ]; then
+            _install
+        else
+            _REPO_URI="$(_lookup_repo_uri $_REPO_NAME)"
+            _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
+            if [ "$_REPO_URI" = "" ]; then
+                _error "repo $_REPO_NAME is not valid"
+                exit 1
+            fi
+            _update_repo "$_REPO_URI" "$_REPO_PATH" "$_REPO_NAME"
+            _install "$_REPO_URI" "$_REPO_NAME" "$_PACKAGE"
         fi
-        _update_repo $_REPO_URI $_REPO_PATH
-        _install $_PACKAGE $_REPO_URI $_REPO_NAME
     elif [ "$_COMMAND" = "remove" ]; then
         _remove $_PARAM1
-        _echo "removed $_PARAM1"
     elif [ "$_COMMAND" = "upgrade" ]; then
         _upgrade $_PARAM1 $_PARAM2
     elif [ "$_COMMAND" = "repo-add" ]; then
@@ -74,21 +111,12 @@ main() {
         _repo_add $_REPO_NAME $_REPO_URI
     elif [ "$_COMMAND" = "repo-remove" ]; then
         _repo_remove $_PARAM1
-    elif [ "$_COMMAND" = "reinstall" ]; then
-        _reinstall
+    elif [ "$_COMMAND" = "reset" ]; then
+        _reset
     elif [ "$_COMMAND" = "init" ]; then
         _init
     else
         _run "$_TARGET" "$@"
-    fi
-}
-
-_reinstall() {
-    rm -rf "$_MKPM_ROOT" 2>/dev/null || true
-    if gmake --version >/dev/null 2>/dev/null; then
-        gmake "$(date)	$(date)" 2>/dev/null || true
-    else
-        make "$(date)	$(date)" 2>/dev/null || true
     fi
 }
 
@@ -105,6 +133,7 @@ _run() {
 }
 
 _install() {
+    _validate_mkpm_config
     if [ "$1" = "" ]; then
         for r in $(_list_repos); do
             _REPO_URI="$(_lookup_repo_uri $r)"
@@ -112,19 +141,27 @@ _install() {
                 continue
             fi
             _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
-            _update_repo "$_REPO_URI" "$_REPO_PATH"
+            _update_repo "$_REPO_URI" "$_REPO_PATH" "$r"
             for p in $(_list_packages "$r"); do
-                _install $p "$_REPO_URI" "$r"
+                _install "$_REPO_URI" "$r" "$p"
             done
         done
-        _create_cache
+        return
+    elif [ "$2" != "" ] && [ "$3" = "" ]; then
+        _REPO_URI="$1"
+        _REPO_NAME="$2"
+        _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
+        _update_repo "$_REPO_URI" "$_REPO_PATH" "$_REPO_NAME"
+        for p in $(_list_packages "$_REPO_NAME"); do
+            _install "$_REPO_URI" "$_REPO_NAME" "$p"
+        done
         return
     fi
-    _PACKAGE="$1"
+    _REPO_URI="$1"
+    _REPO_NAME="$2"
+    _PACKAGE="$3"
     _PACKAGE_NAME="$(echo $_PACKAGE | cut -d'=' -f1)"
     _PACKAGE_VERSION="$(echo $_PACKAGE | gsed 's|^[^=]*||g' | gsed 's|^=||g')"
-    _REPO_URI="$2"
-    _REPO_NAME="$3"
     _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
@@ -145,10 +182,10 @@ _install() {
         _error "package ${_PACKAGE_NAME}=${_PACKAGE_VERSION} does not exist"
         exit 1
     fi
-    _remove $_PACKAGE_NAME
-    cat "${PROJECT_ROOT}/mkpm.json" | \
+    _remove_package "$_PACKAGE_NAME"
+    cat "$MKPM_CONFIG" | \
         jq ".packages.${_REPO_NAME} += { \"${_PACKAGE_NAME}\": \"${_PACKAGE_VERSION}\" }" | \
-        _sponge "${PROJECT_ROOT}/mkpm.json" >/dev/null
+        _sponge "$MKPM_CONFIG" >/dev/null
     mkdir -p "$_MKPM_PACKAGES/$_PACKAGE_NAME"
     tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_MKPM_PACKAGES/$_PACKAGE_NAME" >/dev/null
     _create_cache
@@ -158,15 +195,8 @@ _install() {
 
 _remove() {
     _PACKAGE_NAME="$1"
-    rm -rf \
-        "$MKPM/$_PACKAGE_NAME" \
-        "$MKPM/-$_PACKAGE_NAME" \
-        "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null || true
-    for r in $(_list_repos); do
-        cat "${PROJECT_ROOT}/mkpm.json" | \
-            jq "del(.packages.${r}.${_PACKAGE_NAME})" | \
-            _sponge "${PROJECT_ROOT}/mkpm.json" >/dev/null
-    done
+    _remove "$_PACKAGE_NAME"
+    _echo "removed package $_PACKAGE_NAME"
 }
 
 _upgrade() {
@@ -182,32 +212,67 @@ _upgrade() {
         _echo "repo name $_REPO_NAME is not valid" 1>&2
         exit 1
     fi
-    _update_repo "$_REPO_URI" "$_REPO_PATH"
+    _update_repo "$_REPO_URI" "$_REPO_PATH" "$_REPO_NAME"
     if [ "$_PACKAGE_NAME" = "" ]; then
         for p in $(_list_packages "$_REPO_NAME"); do
-            echo _install "$p" "$_REPO_URI" "$_REPO_NAME"
-            _install "$p" "$_REPO_URI" "$_REPO_NAME"
+            echo _install "$_REPO_URI" "$_REPO_NAME" "$p"
+            _install "$_REPO_URI" "$_REPO_NAME" "$p"
         done
     else
-        _install "$_PACKAGE_NAME" "$_REPO_URI" "$_REPO_NAME"
+        _install "$_REPO_URI" "$_REPO_NAME" "$_PACKAGE_NAME"
     fi
+}
+
+_reset() {
+    rm -rf "$_MKPM_ROOT" 2>/dev/null || true
+    _ensure_mkpm_sh
+    _prepare
+}
+
+_repo_add() {
+    _REPO_NAME="$1"
+    _REPO_URI="$2"
+    _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
+    if [ "$(_lookup_repo_uri $_REPO_NAME)" != "" ]; then
+        _error "repo $_REPO_NAME already exists" 1>&2
+        exit 1
+    fi
+    if ! _is_repo_uri "$_REPO_URI"; then
+        _error "invalid repo uri $_REPO_URI" 1>&2
+        exit 1
+    fi
+    cat "$MKPM_CONFIG" | \
+        jq ".repos += { \"${_REPO_NAME}\": \"${_REPO_URI}\" }" | \
+        _sponge "$MKPM_CONFIG" >/dev/null
+    cat "$MKPM_CONFIG" | \
+        jq ".packages.${_REPO_NAME} += {}" | \
+        _sponge "$MKPM_CONFIG" >/dev/null
+    _echo "added repo $_REPO_NAME"
+    _install "$_REPO_URI" "$_REPO_NAME"
+}
+
+_repo_remove() {
+    _REPO_NAME=$1
+    if [ "$(_lookup_repo_uri $_REPO_NAME)" = "" ]; then
+        _error "repo $_REPO_NAME does not exist"
+        exit 1
+    fi
+    for p in $(_list_packages "$_REPO_NAME"); do
+        _remove_package "$p"
+    done
+    cat "$MKPM_CONFIG" | \
+        jq "del(.repos.${_REPO_NAME})" | \
+        _sponge "$MKPM_CONFIG" >/dev/null
+    cat "$MKPM_CONFIG" | \
+        jq "del(.packages.${_REPO_NAME})" | \
+        _sponge "$MKPM_CONFIG" >/dev/null
+    _echo "removed repo $_REPO_NAME"
 }
 
 
 ## PREPARE ##
 
 _prepare() {
-    export PROJECT_ROOT="$(_project_root)"
-    export MKPM_CONFIG="$PROJECT_ROOT/mkpm.json"
-    export MKPM_ROOT_NAME=".mkpm"
-    export MKPM_ROOT="$PROJECT_ROOT/$MKPM_ROOT_NAME"
-    export MKPM="$MKPM_ROOT/mkpm"
-    _debug PROJECT_ROOT=\"$PROJECT_ROOT\"
-    _debug MKPM_CONFIG=\"$MKPM_CONFIG\"
-    _debug MKPM_ROOT=\"$MKPM_ROOT\"
-    export _MKPM_BIN="$MKPM/.bin"
-    export _MKPM_PACKAGES="$MKPM/.pkgs"
-    export _MKPM_TMP="$MKPM/.tmp"
     if [ "$_MKPM_RESET_CACHE" = "1" ] || \
         ([ -f "$PROJECT_ROOT/mkpm.mk" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
         _reset_cache
@@ -231,6 +296,7 @@ _prepare() {
             _require_system_binary sed --version
         fi
         _ensure_dirs
+        _validate_mkpm_config
         if [ ! -d "$_MKPM_PACKAGES" ]; then
             if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
                 _restore_from_cache
@@ -326,6 +392,30 @@ _ensure_mkpm_mk() {
     fi
 }
 
+_ensure_mkpm_sh() {
+    if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
+        mkdir -p "$_MKPM_BIN"
+        if [ ! -f "$_MKPM_BIN/mkpm" ]; then
+            if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+                _restore_from_cache
+            else
+                cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
+                _debug downloaded mkpm.sh
+            fi
+        fi
+        chmod +x "$_MKPM_BIN/mkpm"
+    elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
+        mkdir -p "$_MKPM_BIN"
+        if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+            _restore_from_cache
+        else
+            download "$_MKPM_BIN/mkpm" "$MKPM_BINARY" >/dev/null
+            _debug downloaded mkpm.sh
+        fi
+        chmod +x "$_MKPM_BIN/mkpm"
+    fi
+}
+
 
 ## CACHE ##
 
@@ -346,6 +436,7 @@ _create_cache() {
 
 _restore_from_cache() {
     if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+        rm -rf "$MKPM"
         mkdir -p "$MKPM"
         cd "$MKPM"
         tar -xzf "$_MKPM_ROOT/cache.tar.gz" >/dev/null
@@ -371,14 +462,20 @@ _is_repo_uri() {
 
 ## REPOS ##
 
+_lookup_default_repo() {
+    for r in $(_list_repos); do
+        echo "$r"
+        return
+    done
+}
+
 _list_repos() {
     cat "$MKPM_CONFIG" | jq -r '(.repos | keys)[]'
 }
 
 _lookup_repo_uri() {
     _REPO="$1"
-    shift
-    cat "$MKPM_CONFIG" | jq -r ".repos.$_REPO"
+    cat "$MKPM_CONFIG" | jq -r ".repos.$_REPO // \"\""
 }
 
 _lookup_repo_path() {
@@ -387,10 +484,9 @@ _lookup_repo_path() {
 
 _update_repo() {
     _REPO_URI="$1"
-    shift
-    _REPO_PATH="$1"
-    shift
-    _echo "updating repo $_REPO_URI"
+    _REPO_PATH="$2"
+    _REPO_NAME="$3"
+    _echo "updating repo $_REPO_NAME $_REPO_URI"
     if [ ! -d "$_REPO_PATH" ]; then
         git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || exit 1
     fi
@@ -406,10 +502,61 @@ _update_repo() {
 
 _list_packages() {
     _REPO="$1"
-    shift
     for p in $(cat "$MKPM_CONFIG" | jq -r "(.packages.${_REPO} | keys)[]"); do
         echo "$p"
     done
+}
+
+_remove_package() {
+    _PACKAGE_NAME="$1"
+    rm -rf \
+        "$MKPM/$_PACKAGE_NAME" \
+        "$MKPM/-$_PACKAGE_NAME" \
+        "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null || true
+    for r in $(_list_repos); do
+        cat "$MKPM_CONFIG" | \
+            jq "del(.packages.${r}.${_PACKAGE_NAME})" | \
+            _sponge "$MKPM_CONFIG" >/dev/null
+    done
+}
+
+
+## CONFIG ##
+
+_validate_mkpm_config() {
+    cat "$MKPM_CONFIG" | \
+        jq ".packages += {}" | \
+        _sponge "$MKPM_CONFIG" >/dev/null
+    cat "$MKPM_CONFIG" | \
+        jq ".repos += {}" | \
+        _sponge "$MKPM_CONFIG" >/dev/null
+    for r in $(_list_repos); do
+        cat "$MKPM_CONFIG" | \
+            jq ".packages.${r} += {}" | \
+            _sponge "$MKPM_CONFIG" >/dev/null
+    done
+    _ERR=
+    for r in $(echo "$(_list_repos) $(cat "$MKPM_CONFIG" | jq -r '(.packages | keys)[]')" | tr ' ' '\n' | \
+        sort | uniq -c | grep -E "^\s+1\s" | sed 's|\s\+[0-9]\+\s||g'); do
+        _PACKAGES="$(_list_packages "$r")"
+        if [ "$_PACKAGES" = "" ]; then
+            cat "$MKPM_CONFIG" | \
+                jq "del(.packages.${r})" | \
+                _sponge "$MKPM_CONFIG" >/dev/null
+        else
+            for p in $_PACKAGES; do
+                _error "package ${LIGHT_CYAN}$p${NOCOLOR} missing ${LIGHT_CYAN}$r${NOCOLOR} repo"
+                _ERR=1
+            done
+        fi
+    done
+    for p in $(cat "$MKPM_CONFIG" | jq -r '.packages[] | keys[]' | sort | uniq -c | grep -vE "^\s+1\s" | sed 's|\s\+[0-9]\+\s||g'); do
+        _error "package ${LIGHT_CYAN}$p${NOCOLOR} exists more than once"
+        _ERR=1
+    done
+    if [ "$_ERR" = "1" ]; then
+        exit 1
+    fi
 }
 
 
@@ -419,30 +566,8 @@ _echo() {
     echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"
 }
 
-_debug() {
-    [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true
-}
-
 _error() {
     echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2
-}
-
-_project_root() {
-    _ROOT=$1
-    if [ "$_ROOT" = "" ]; then
-        _ROOT="$(pwd)"
-    fi
-    if [ -f "$_ROOT/mkpm.json" ]; then
-        echo $_ROOT
-        return
-    fi
-    _PARENT=$(echo $_ROOT | sed 's|\/[^\/]\+$||g')
-    if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
-        echo "/"
-        return
-    fi
-    echo $(_project_root $_PARENT)
-    return
 }
 
 _sponge() {
@@ -458,6 +583,7 @@ _sponge() {
         cat "$1"
     fi
 }
+
 
 export ARCH=unknown
 export FLAVOR=unknown
@@ -560,6 +686,7 @@ while test $# -gt 0; do
             echo "    -s, --silent                  silent output"
             echo " "
             echo "commands:"
+            echo "    i install                             install all packages"
             echo "    i install <PACKAGE>                   install a package from default git repo"
             echo "    i install <REPO> <PACKAGE>            install a package from git repo"
             echo "    r remove <PACKAGE>                    remove a package"
@@ -568,7 +695,7 @@ while test $# -gt 0; do
             echo "    u upgrade <REPO> <PACKAGE>            upgrade a package from git repo"
             echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
             echo "    rr repo-remove <REPO_NAME>            remove repo"
-            echo "    reinstall                             reinstal all packages"
+            echo "    reset                                 reset mkpm"
             echo "    init                                  initialize mkpm"
             exit 0
         ;;
@@ -602,7 +729,7 @@ case "$1" in
             shift
         else
             export _PARAM2=$_PARAM1
-            export _PARAM1=default
+            export _PARAM1="$(_lookup_default_repo)"
         fi
     ;;
     r|remove)
@@ -623,7 +750,7 @@ case "$1" in
             export _PARAM1=$1
             shift
         else
-            export _PARAM1=default
+            export _PARAM1="$(_lookup_default_repo)"
         fi
         if test $# -gt 0; then
             export _PARAM2=$1
@@ -663,8 +790,8 @@ case "$1" in
         export _COMMAND=init
         shift
     ;;
-    reinstall)
-        export _COMMAND=reinstall
+    reset)
+        export _COMMAND=reset
         shift
     ;;
     *)
