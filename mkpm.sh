@@ -1,6 +1,7 @@
 #!/bin/sh
 
 MKPM_CORE_URL="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
+DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/risserlabs/community/mkpm-stable.git}"
 
 __0="$0"
 __ARGS="$@"
@@ -142,8 +143,9 @@ _install() {
             fi
             _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
             _update_repo "$_REPO_URI" "$_REPO_PATH" "$r"
+            _r=$r
             for p in $(_list_packages "$r"); do
-                _install "$_REPO_URI" "$r" "$p"
+                _install "$_REPO_URI" "$_r" "$p"
             done
         done
         return
@@ -515,7 +517,7 @@ _remove_package() {
         "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null || true
     for r in $(_list_repos); do
         cat "$MKPM_CONFIG" | \
-            jq "del(.packages.${r}.${_PACKAGE_NAME})" | \
+            jq "del(.packages.${_r}.${_PACKAGE_NAME})" | \
             _sponge "$MKPM_CONFIG" >/dev/null
     done
 }
@@ -524,12 +526,20 @@ _remove_package() {
 ## CONFIG ##
 
 _validate_mkpm_config() {
+    if [ "$(cat "$MKPM_CONFIG" | jq -r '. | type')" != "object" ]; then
+        echo '{}' > "$MKPM_CONFIG"
+    fi
     cat "$MKPM_CONFIG" | \
         jq ".packages += {}" | \
         _sponge "$MKPM_CONFIG" >/dev/null
     cat "$MKPM_CONFIG" | \
         jq ".repos += {}" | \
         _sponge "$MKPM_CONFIG" >/dev/null
+    if [ "$(cat "$MKPM_CONFIG" | jq '.repos | length')" = "0" ]; then
+        cat "$MKPM_CONFIG" | \
+            jq ".repos += {\"default\": \"${DEFAULT_REPO}\"}" | \
+            _sponge "$MKPM_CONFIG" >/dev/null
+    fi
     for r in $(_list_repos); do
         cat "$MKPM_CONFIG" | \
             jq ".packages.${r} += {}" | \
@@ -720,16 +730,13 @@ case "$1" in
         if test $# -gt 0; then
             export _PARAM1=$1
             shift
-        else
-            _error "no repo specified"
-            exit 1
-        fi
-        if test $# -gt 0; then
-            export _PARAM2=$1
-            shift
-        else
-            export _PARAM2=$_PARAM1
-            export _PARAM1="$(_lookup_default_repo)"
+            if test $# -gt 0; then
+                export _PARAM2=$1
+                shift
+            else
+                export _PARAM2=$_PARAM1
+                export _PARAM1="$(_lookup_default_repo)"
+            fi
         fi
     ;;
     r|remove)

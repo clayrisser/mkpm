@@ -1,18 +1,8 @@
 {
   "packages": {
-    "defaultz": {
-      "gnu": "0.0.3"
-    },
-    "defaultzz": {
-      "hello": "0.1.0"
-    },
-    "zap": {
-      "mkchain": "0.1.1"
-    }
+    "default": {}
   },
   "repos": {
-    "defaultz": "https://gitlab.com/risserlabs/community/mkpm-stable.git",
-    "defaultzz": "https://gitlab.com/risserlabs/community/mkpm-stable.git",
-    "zap": "https://gitlab.com/risserlabs/community/mkpm-stable.git"
+    "default": "https://gitlab.com/risserlabs/community/mkpm-stable.git"
   }
 }
