@@ -2,6 +2,7 @@
 
 MKPM_CORE_URL="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
 DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/risserlabs/community/mkpm-stable.git}"
+_MKPM_VERSION="1.0.0"
 
 __0="$0"
 __ARGS="$@"
@@ -98,7 +99,7 @@ main() {
         _REPO_NAME="$_PARAM1"
         _PACKAGE="$_PARAM2"
         if [ "$_REPO_NAME" = "" ]; then
-            if [ "$_PREPARE_INSTALLED" != "1" ]; then
+            if [ "$_INSTALL_REFCOUNT" = "" ] || [ "$_INSTALL_REFCOUNT" = "0" ]; then
                 _install
             fi
         else
@@ -153,6 +154,7 @@ _run() {
     exit $_CODE
 }
 
+_INSTALL_REFCOUNT=0
 _install() {
     _validate_mkpm_config
     if [ "$1" = "" ]; then
@@ -168,6 +170,7 @@ _install() {
                 _install "$_REPO_URI" "$_r" "$p"
             done
         done
+        _INSTALL_REFCOUNT=$(expr $_INSTALL_REFCOUNT + 1)
         return
     elif [ "$2" != "" ] && [ "$3" = "" ]; then
         _REPO_URI="$1"
@@ -297,16 +300,50 @@ _init() {
         exit 1
     fi
     rm -rf "$MKPM_ROOT"
+    _validate_mkpm_config
     if [ ! -f "$_CWD/Makefile" ]; then
-        cat <<EOF > "$_CWD/Makefile"
+        echo "generate ${LIGHT_GREEN}Makefile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        read _RES
+        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+            cat <<EOF > "$_CWD/Makefile"
 include \$(MKPM)/mkpm
 
 .PHONY: hello
 hello:
 	@\$(ECHO) Hello, world!
 EOF
+            _echo generated ${LIGHT_GREEN}Makefile${NOCOLOR}
+        fi
     fi
-    _validate_mkpm_config
+    printf "add cache to git [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    read _RES
+    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+        if [ ! -f "${PROJECT_ROOT}/.gitattributes" ] || ! (cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/\.cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'); then
+            printf "store cache on git with lfs [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+            read _RES
+            if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+                git lfs track '.mkpm/cache.tar.gz' >/dev/null
+            fi
+        fi
+    else
+        _GITIGNORE_CACHE=1
+    fi
+    if [ ! -f "${PROJECT_ROOT}/.gitignore" ] || ! (cat "${PROJECT_ROOT}/.gitignore" | grep -qE '^\.mkpm/mkpm'); then
+        printf "add ${LIGHT_GREEN}.gitignore${NOCOLOR} rules [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        read _RES
+        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+            cat <<EOF >> "${PROJECT_ROOT}/.gitignore"
+
+# mkpm
+.mkpm/mkpm
+EOF
+            if [ "$_GITIGNORE_CACHE" = "1" ] && ! (cat ${PROJECT_ROOT}/.gitignore | grep -qE '^\.mkpm/cache\.tar\.gz'); then
+                echo ".mkpm/cache.tar.gz" >> "${PROJECT_ROOT}/.gitignore"
+            fi
+            sed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
+            _echo "added ${LIGHT_GREEN}.gitignore${NOCOLOR} rules"
+        fi
+    fi
 }
 
 
@@ -395,7 +432,7 @@ _require_system_binary() {
     _SYSTEM_PACKAGE_NAME="$(_lookup_system_package_name "$_SYSTEM_BINARY")"
     _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_PACKAGE_NAME")"
     if ! ([ "$_ARGS" = "" ] && which "$_SYSTEM_BINARY" || "$_SYSTEM_BINARY" "$_ARGS") >/dev/null 2>&1; then
-        _echo $_SYSTEM_BINARY is not installed on your system >&2
+        _error $_SYSTEM_BINARY is not installed on your system
         printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
 
     ${GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${NOCOLOR}
@@ -730,8 +767,9 @@ while test $# -gt 0; do
             echo "mkpm [options] <TARGET> [...ARGS]"
             echo " "
             echo "options:"
-            echo "    -h, --help                    show brief help"
-            echo "    -s, --silent                  silent output"
+            echo "    -h, --help                            show brief help"
+            echo "    -s, --silent                          silent output"
+            echo "    -d, --debug                           debug output"
             echo " "
             echo "commands:"
             echo "    i install                             install all packages"
@@ -745,10 +783,15 @@ while test $# -gt 0; do
             echo "    rr repo-remove <REPO_NAME>            remove repo"
             echo "    reset                                 reset mkpm"
             echo "    init                                  initialize mkpm"
+            echo "    v version                             mkpm version"
             exit 0
         ;;
         -s|--silent)
             export _SILENT=1
+            shift
+        ;;
+        -d|--debug)
+            export MKPM_DEBUG=1
             shift
         ;;
         -*)
@@ -838,6 +881,10 @@ case "$1" in
     reset)
         export _COMMAND=reset
         shift
+    ;;
+    v|version)
+        _echo "$_MKPM_VERSION"
+        exit
     ;;
     *)
         export _COMMAND=run

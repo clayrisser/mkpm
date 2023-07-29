@@ -1,9 +1,6 @@
 # app
 /build
 
-# mkpm
-.mkpm/mkpm
-
 # pkg
 /.upstream
 *_*.orig.tar.xz
@@ -14,3 +11,6 @@
 *_*-*.debian.tar.xz
 *_*-*.dsc
 *_*-*.diff.*
+
+# mkpm
+.mkpm/mkpm
