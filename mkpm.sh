@@ -149,8 +149,22 @@ _run() {
     _TARGET="$1"
     shift
     _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
-    eval "$_ARGS_ENV_NAME=\"$@\" gmake \"$_TARGET\""
+    _debug "$_ARGS_ENV_NAME=\"$@\" gmake $_MAKE_FLAGS \"$_TARGET\""
+    _TMP_PIPE_DIR="$(mktemp -d)"
+    _TMP_PIPE="$_TMP_PIPE_DIR/stderr"
+    mkfifo "$_TMP_PIPE"
+    if [ "$MKPM_DEBUG" = "1" ]; then
+        cat < "$_TMP_PIPE" >&2 &
+        _PIPE_PID=$!
+    else
+        grep -v 'warning: overriding recipe for target' < "$_TMP_PIPE" | \
+            grep -v 'warning: ignoring old recipe for target' >&2 &
+        _PIPE_PID=$!
+    fi
+    eval "$_ARGS_ENV_NAME=\"$@\" gmake $_MAKE_FLAGS \"$_TARGET\"" 2> "$_TMP_PIPE"
     _CODE="$?"
+    wait "$_PIPE_PID"
+    rm -rf "$_TMP_PIPE_DIR"
     exit $_CODE
 }
 
@@ -213,6 +227,12 @@ _install() {
         _sponge "$MKPM_CONFIG" >/dev/null
     mkdir -p "$_MKPM_PACKAGES/$_PACKAGE_NAME"
     tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_MKPM_PACKAGES/$_PACKAGE_NAME" >/dev/null
+    echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > \
+        "$MKPM/$_PACKAGE_NAME"
+    echo ".PHONY: $_PACKAGE_NAME-%" > "$MKPM/-$_PACKAGE_NAME"
+    echo "$_PACKAGE_NAME-%:" >> "$MKPM/-$_PACKAGE_NAME"
+    echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> \
+        "$MKPM/-$_PACKAGE_NAME"
     _create_cache
     cd "$_CWD"
     _echo "installed ${_PACKAGE_NAME}=${_PACKAGE_VERSION}"
@@ -592,7 +612,7 @@ _remove_package() {
         "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null || true
     for r in $(_list_repos); do
         cat "$MKPM_CONFIG" | \
-            jq "del(.packages.${_r}.${_PACKAGE_NAME})" | \
+            jq "del(.packages.${r}.${_PACKAGE_NAME})" | \
             _sponge "$MKPM_CONFIG" >/dev/null
     done
 }
@@ -648,7 +668,7 @@ _validate_mkpm_config() {
 ## UTIL ##
 
 _echo() {
-    echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"
+    [ "$_SILENT" = "1" ] && true || echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"
 }
 
 _error() {
@@ -763,14 +783,14 @@ while test $# -gt 0; do
     case "$1" in
         -h|--help)
             echo "mkpm - makefile package manager"
-            echo " "
+            echo
             echo "mkpm [options] <TARGET> [...ARGS]"
-            echo " "
+            echo
             echo "options:"
             echo "    -h, --help                            show brief help"
             echo "    -s, --silent                          silent output"
             echo "    -d, --debug                           debug output"
-            echo " "
+            echo
             echo "commands:"
             echo "    i install                             install all packages"
             echo "    i install <PACKAGE>                   install a package from default git repo"
@@ -784,19 +804,26 @@ while test $# -gt 0; do
             echo "    reset                                 reset mkpm"
             echo "    init                                  initialize mkpm"
             echo "    v version                             mkpm version"
-            exit 0
+            exit
         ;;
         -s|--silent)
-            export _SILENT=1
+            if [ "$MKPM_DEBUG" != "1" ]; then
+                _SILENT=1
+            fi
+            _MAKE_FLAGS="-s"
             shift
         ;;
         -d|--debug)
             export MKPM_DEBUG=1
+            unset _SILENT
             shift
         ;;
         -*)
-            _error "invalid option $1"
-            exit 1
+            _MAKE_FLAGS=
+            while [ "$1" != "${1#-}" ]; do
+                _MAKE_FLAGS="${_MAKE_FLAGS} $1"
+                shift
+            done
         ;;
         *)
             break

@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 28-07-2023 11:43:24
+# Last Modified: 29-07-2023 16:48:31
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021
@@ -20,6 +20,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+.ONESHELL:
 .POSIX:
 
 export LC_ALL := C
@@ -120,6 +121,6 @@ include cmd.exe
 cmd.exe:
 	@$(ECHO) cmd.exe not supported 1>&2
 	@$(ECHO) if you are on Windows, please use WSL (Windows Subsystem for Linux) 1>&2
-	@$(ECHO) https://docs.microsoft.com/windows/wsl
+	@$(ECHO) https://docs.microsoft.com/windows/wsl 1>&2
 	@$(EXIT) 1
 endif

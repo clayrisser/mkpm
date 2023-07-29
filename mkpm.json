@@ -1,6 +1,8 @@
 {
   "packages": {
-    "default": {}
+    "default": {
+      "hello": "0.1.0"
+    }
   },
   "repos": {
     "default": "https://gitlab.com/risserlabs/community/mkpm-stable.git"
