@@ -181,9 +181,6 @@ main() {
     fi
 }
 
-
-## COMMANDS ##
-
 _run() {
     _TARGET="$1"
     shift
@@ -387,15 +384,15 @@ cat <<EOF > "$_CWD/Makefile"
 MKPM := ./mkpm
 .PHONY: %
 %:
-	@\$(MKPM) run \"\$@\" \$(ARGS)
+	@\$(MKPM) run "\$@" \$(ARGS)
 EOF
         fi
     fi
-    printf "add cache to git [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    printf "store mkpm cache on git [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
         if [ ! -f "${PROJECT_ROOT}/.gitattributes" ] || ! (cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/\.cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'); then
-            printf "store cache on git with lfs [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+            printf "use git lfs when storing mkpm cache [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
             read _RES
             if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                 git lfs track '.mkpm/cache.tar.gz' >/dev/null
@@ -420,10 +417,23 @@ EOF
             _echo "added ${LIGHT_GREEN}.gitignore${NOCOLOR} rules"
         fi
     fi
+    echo "add vscode settings [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    read _RES
+    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+        mkdir -p "${PROJECT_ROOT}/.vscode"
+        if [ ! -f "${PROJECT_ROOT}/.vscode/settings.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/settings.json" | jq -r '. | type')" != "object" ]; then
+            echo '{}' > "${PROJECT_ROOT}/.vscode/settings.json"
+        fi
+        if [ ! -f "${PROJECT_ROOT}/.vscode/extensions.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq -r '. | type')" != "object" ]; then
+            echo '{}' > "${PROJECT_ROOT}/.vscode/extensions.json"
+        fi
+        cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.recommendations += ["ms-vscode.makefile-tools"] | .recommendations |= unique' | \
+            _sponge "${PROJECT_ROOT}/.vscode/settings.json"
+        cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.["files.associations"] += { "Mkpmfile": "makefile" }' | \
+            _sponge "${PROJECT_ROOT}/.vscode/settings.json"
+    fi
+    _reset
 }
-
-
-## PREPARE ##
 
 _prepare() {
     if [ "$_MKPM_RESET_CACHE" = "1" ] || \
@@ -571,9 +581,6 @@ _ensure_mkpm_sh() {
     fi
 }
 
-
-## CACHE ##
-
 _create_cache() {
     cd "$MKPM"
     touch "$MKPM_ROOT/cache.tar.gz"
@@ -608,9 +615,6 @@ _reset_cache() {
 _is_repo_uri() {
     echo "$1" | grep -E '^(\w+://.+)|(git@.+:.+)$' >/dev/null 2>&1
 }
-
-
-## REPOS ##
 
 _lookup_default_repo() {
     for r in $(_list_repos); do
@@ -647,9 +651,6 @@ _update_repo() {
     cd "$_CWD"
 }
 
-
-## PACKAGES ##
-
 _list_packages() {
     _REPO="$1"
     for p in $(cat "$MKPM_CONFIG" | jq -r "(.packages.${_REPO} | keys)[]"); do
@@ -669,9 +670,6 @@ _remove_package() {
             _sponge "$MKPM_CONFIG" >/dev/null
     done
 }
-
-
-## CONFIG ##
 
 _validate_mkpm_config() {
     if [ ! -f "$MKPM_CONFIG" ] || [ "$(cat "$MKPM_CONFIG" | jq -r '. | type')" != "object" ]; then
@@ -717,9 +715,6 @@ _validate_mkpm_config() {
     fi
 }
 
-
-## UTIL ##
-
 _sponge() {
     if which sponge >/dev/null 2>&1; then
         sponge "$@"
@@ -759,7 +754,6 @@ _help() {
     echo "    reset                                 reset mkpm"
     echo "    init                                  initialize mkpm"
 }
-
 
 export ARCH=unknown
 export FLAVOR=unknown
