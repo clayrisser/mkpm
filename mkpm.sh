@@ -409,14 +409,14 @@ EOF
     printf "store mkpm cache on git [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-        if [ ! -f "${PROJECT_ROOT}/.gitattributes" ] || ! (cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/\.cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'); then
+        if [ ! -f "${PROJECT_ROOT}/.gitattributes" ] || ! (cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'); then
             printf "use git lfs when storing mkpm cache [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
             read _RES
             if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                 git lfs track '.mkpm/cache.tar.gz' >/dev/null
             fi
         fi
-        if cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/\.cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'; then
+        if cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'; then
             _echo storing mkpm cache on git using lfs
         else
             _echo storing mkpm cache on git
@@ -437,7 +437,7 @@ EOF
                 echo ".mkpm/cache.tar.gz" >> "${PROJECT_ROOT}/.gitignore"
             fi
             sed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
-            sed -i sed '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
+            sed -i '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
             _echo "added ${LIGHT_GREEN}.gitignore${NOCOLOR} rules"
         fi
     fi
