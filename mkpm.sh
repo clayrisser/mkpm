@@ -3,7 +3,7 @@
 DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/risserlabs/community/mkpm-stable.git}"
 MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk}"
 MKPM_SH_URL="${MKPM_BINARY:-https://example.com}"
-_MKPM_VERSION="1.0.0"
+MKPM_VERSION="<% MKPM_VERSION %>"
 
 __0="$0"
 __ARGS="$@"
@@ -939,7 +939,7 @@ case "$1" in
         shift
     ;;
     v|version)
-        _echo "$_MKPM_VERSION"
+        _echo "$MKPM_VERSION"
         exit
     ;;
     *)
