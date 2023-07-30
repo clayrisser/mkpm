@@ -376,6 +376,13 @@ _init() {
             _sponge "${PROJECT_ROOT}/.vscode/extensions.json" >/dev/null
         _echo "added vscode settings"
     fi
+    printf "add mkpm binary [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    read _RES
+    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+        download "${PROJECT_ROOT}/mkpm" "$MKPM_SH_URL" >/dev/null
+        chmod +x "${PROJECT_ROOT}/mkpm"
+        _echo added mkpm binary
+    fi
     if [ ! -f "$_CWD/Makefile" ] && [ ! -f "$_CWD/Mkpmfile" ]; then
         printf "generate ${LIGHT_GREEN}Mkpmfile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
@@ -397,7 +404,7 @@ cat <<EOF > "$_CWD/Makefile"
 .POSIX:
 .SILENT:
 
-MKPM := ./mkpm
+MKPM := $([ -f "${PROJECT_ROOT}/mkpm" ] && echo ./mkpm || echo mkpm)
 .PHONY: %
 %:
 	@\$(MKPM) run "\$@" \$(ARGS)
