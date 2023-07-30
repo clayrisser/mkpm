@@ -361,7 +361,7 @@ _init() {
     rm -rf "$MKPM_ROOT"
     _validate_mkpm_config
     if [ ! -f "$_CWD/Makefile" ] && [ ! -f "$_CWD/Mkpmfile" ]; then
-        echo "generate ${LIGHT_GREEN}Mkpmfile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        printf "generate ${LIGHT_GREEN}Mkpmfile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
             cat <<EOF > "$_CWD/Mkpmfile"
@@ -373,7 +373,7 @@ hello:
 EOF
             _echo generated ${LIGHT_GREEN}Mkpmfile${NOCOLOR}
         fi
-        echo "generate ${LIGHT_GREEN}Makefile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        printf "generate ${LIGHT_GREEN}Makefile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
 cat <<EOF > "$_CWD/Makefile"
@@ -386,6 +386,7 @@ MKPM := ./mkpm
 %:
 	@\$(MKPM) run "\$@" \$(ARGS)
 EOF
+            _echo generated ${LIGHT_GREEN}Makefile${NOCOLOR}
         fi
     fi
     printf "store mkpm cache on git [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
@@ -397,6 +398,11 @@ EOF
             if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                 git lfs track '.mkpm/cache.tar.gz' >/dev/null
             fi
+        fi
+        if cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/\.cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'; then
+            _echo storing mkpm cache on git using lfs
+        else
+            _echo storing mkpm cache on git
         fi
     else
         _GITIGNORE_CACHE=1
@@ -417,7 +423,7 @@ EOF
             _echo "added ${LIGHT_GREEN}.gitignore${NOCOLOR} rules"
         fi
     fi
-    echo "add vscode settings [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    printf "add vscode settings [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
         mkdir -p "${PROJECT_ROOT}/.vscode"
@@ -427,10 +433,11 @@ EOF
         if [ ! -f "${PROJECT_ROOT}/.vscode/extensions.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq -r '. | type')" != "object" ]; then
             echo '{}' > "${PROJECT_ROOT}/.vscode/extensions.json"
         fi
-        cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.recommendations += ["ms-vscode.makefile-tools"] | .recommendations |= unique' | \
-            _sponge "${PROJECT_ROOT}/.vscode/settings.json"
         cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.["files.associations"] += { "Mkpmfile": "makefile" }' | \
             _sponge "${PROJECT_ROOT}/.vscode/settings.json"
+        cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq '.recommendations += ["ms-vscode.makefile-tools"] | .recommendations |= unique' | \
+            _sponge "${PROJECT_ROOT}/.vscode/extensions.json"
+        _echo "added vscode settings"
     fi
     _reset
 }
@@ -558,23 +565,12 @@ _ensure_mkpm_mk() {
 }
 
 _ensure_mkpm_sh() {
-    if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
-        mkdir -p "$_MKPM_BIN"
-        if [ ! -f "$_MKPM_BIN/mkpm" ]; then
-            if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
-                _restore_from_cache
-            else
-                cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
-                _debug downloaded mkpm.sh
-            fi
-        fi
-        chmod +x "$_MKPM_BIN/mkpm"
-    elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
+    if [ ! -f "$_MKPM_BIN/mkpm" ]; then
         mkdir -p "$_MKPM_BIN"
         if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
             _restore_from_cache
         else
-            download "$_MKPM_BIN/mkpm" "$MKPM_BINARY" >/dev/null
+            download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
             _debug downloaded mkpm.sh
         fi
         chmod +x "$_MKPM_BIN/mkpm"
