@@ -3,7 +3,8 @@
     "default": {
       "gnu": "0.0.3",
       "hello": "0.1.0",
-      "mkchain": "0.1.1"
+      "mkchain": "0.1.1",
+      "pkg": "0.0.1"
     }
   },
   "repos": {

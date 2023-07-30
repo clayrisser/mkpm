@@ -58,16 +58,13 @@ if [ "$_SUPPORTS_COLORS" = "1" ]; then
 fi
 
 _is_mkpm_proxy_required() {
-    _ARGS="$@"
-    _1="$(echo "$_ARGS" | cut -d' ' -f1)"
     while test $# -gt 0; do
-        case "$_1" in
+        case "$1" in
             -h|--help)
                 return 1
             ;;
             -*)
-                _ARGS=$(echo "$_ARGS" | sed 's|^[^ ]\+ \?||g')
-                _1="$(echo "$_ARGS" | cut -d' ' -f1)"
+                shift
             ;;
             v|version|init)
                 return 1
@@ -77,7 +74,7 @@ _is_mkpm_proxy_required() {
             ;;
         esac
     done
-    [ "$_1" = "" ] && return 1 || true
+    [ "$1" = "" ] && return 1 || true
 }
 _MKPM_PROXY_REQUIRED=$(_is_mkpm_proxy_required "$@" && echo 1 || true)
 
