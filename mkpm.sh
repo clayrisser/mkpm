@@ -387,7 +387,7 @@ cat <<EOF > "$_CWD/Makefile"
 MKPM := ./mkpm
 .PHONY: %
 %:
-	@\$(MKPM) run \$@ \$(ARGS)
+	@\$(MKPM) run \"\$@\" \$(ARGS)
 EOF
         fi
     fi

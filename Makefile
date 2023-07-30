@@ -3,7 +3,7 @@
 # File Created: 30-07-2023 15:22:42
 # Author: Clay Risser
 # -----
-# Last Modified: 30-07-2023 15:47:43
+# Last Modified: 30-07-2023 15:59:02
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021 - 2023
@@ -27,4 +27,4 @@
 MKPM := ./mkpm
 .PHONY: %
 %:
-	@$(MKPM) run $@ $(ARGS)
+	@$(MKPM) run "$@" $(ARGS)
