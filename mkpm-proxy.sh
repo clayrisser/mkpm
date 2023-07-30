@@ -71,15 +71,15 @@ if [ "$PROJECT_ROOT" = "/" ]; then
         PROJECT_ROOT="$_CWD"
     fi
 fi
-_MKPM_ROOT="$PROJECT_ROOT/.mkpm"
-_MKPM="$_MKPM_ROOT/mkpm"
+MKPM_ROOT="$PROJECT_ROOT/.mkpm"
+MKPM="$MKPM_ROOT/mkpm"
 _MKPM_BIN="$MKPM/.bin"
 if [ ! -f "$_MKPM_BIN/mkpm" ]; then
     mkdir -p "$_MKPM_BIN"
-    if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
-        mkdir -p "$_MKPM"
-        cd "$_MKPM"
-        tar -xzf "$_MKPM_ROOT/cache.tar.gz"
+    if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
+        mkdir -p "$MKPM"
+        cd "$MKPM"
+        tar -xzf "$MKPM_ROOT/cache.tar.gz"
         cd "$_CWD"
         _debug restored cache
     else

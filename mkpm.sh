@@ -311,7 +311,7 @@ _upgrade() {
 }
 
 _reset() {
-    rm -rf "$_MKPM_ROOT" 2>/dev/null
+    rm -rf "$MKPM_ROOT" 2>/dev/null
     _ensure_mkpm_sh
     _prepare
     if [ "$_INSTALL_REFCOUNT" = "" ] || [ "$_INSTALL_REFCOUNT" = "0" ]; then
@@ -440,7 +440,7 @@ _prepare() {
         _ensure_dirs
         _validate_mkpm_config
         if [ ! -d "$_MKPM_PACKAGES" ]; then
-            if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+            if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
                 _restore_from_cache
             else
                 _install
@@ -540,7 +540,7 @@ _ensure_mkpm_sh() {
     if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
         mkdir -p "$_MKPM_BIN"
         if [ ! -f "$_MKPM_BIN/mkpm" ]; then
-            if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+            if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
                 _restore_from_cache
             else
                 cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
@@ -550,7 +550,7 @@ _ensure_mkpm_sh() {
         chmod +x "$_MKPM_BIN/mkpm"
     elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
         mkdir -p "$_MKPM_BIN"
-        if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+        if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
             _restore_from_cache
         else
             download "$_MKPM_BIN/mkpm" "$MKPM_BINARY" >/dev/null
@@ -565,8 +565,8 @@ _ensure_mkpm_sh() {
 
 _create_cache() {
     cd "$MKPM"
-    touch "$_MKPM_ROOT/cache.tar.gz"
-    tar --format=gnu --sort=name --mtime='1970-01-01 00:00:00 UTC' -czf "$_MKPM_ROOT/cache.tar.gz" \
+    touch "$MKPM_ROOT/cache.tar.gz"
+    tar --format=gnu --sort=name --mtime='1970-01-01 00:00:00 UTC' -czf "$MKPM_ROOT/cache.tar.gz" \
         --exclude '.tmp' \
         .
     cd "$_CWD"
@@ -574,11 +574,11 @@ _create_cache() {
 }
 
 _restore_from_cache() {
-    if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+    if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
         rm -rf "$MKPM"
         mkdir -p "$MKPM"
         cd "$MKPM"
-        tar -xzf "$_MKPM_ROOT/cache.tar.gz" >/dev/null
+        tar -xzf "$MKPM_ROOT/cache.tar.gz" >/dev/null
         cd "$_CWD"
         _debug restored cache
     fi
@@ -586,7 +586,7 @@ _restore_from_cache() {
 
 _reset_cache() {
     rm -rf \
-        "$_MKPM_ROOT/cache.tar.gz" \
+        "$MKPM_ROOT/cache.tar.gz" \
         "$MKPM/.prepared" \
         "$MKPM/mkpm" 2>/dev/null
     unset _MKPM_RESET_CACHE
@@ -838,7 +838,7 @@ if [ "$_SCRIPT_PATH" != "${_MKPM_BIN}/mkpm" ]; then
     if [ -f "${_MKPM_BIN}/mkpm" ] || [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
         if [ ! -f "$_MKPM_BIN/mkpm" ]; then
             mkdir -p "$_MKPM_BIN"
-            if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+            if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
                 _restore_from_cache
             else
                 download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
