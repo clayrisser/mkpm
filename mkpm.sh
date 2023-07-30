@@ -723,6 +723,31 @@ _sponge() {
     fi
 }
 
+_help() {
+    echo "mkpm - makefile package manager"
+    echo
+    echo "mkpm [options] <TARGET> [...ARGS]"
+    echo
+    echo "options:"
+    echo "    -h, --help                            show brief help"
+    echo "    -s, --silent                          silent output"
+    echo "    -d, --debug                           debug output"
+    echo
+    echo "commands:"
+    echo "    i install                             install all packages"
+    echo "    i install <PACKAGE>                   install a package from default git repo"
+    echo "    i install <REPO> <PACKAGE>            install a package from git repo"
+    echo "    r remove <PACKAGE>                    remove a package"
+    echo "    u upgrade                             upgrade all packages from default git repo"
+    echo "    u upgrade <REPO>                      upgrade all packages from git repo"
+    echo "    u upgrade <REPO> <PACKAGE>            upgrade a package from git repo"
+    echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
+    echo "    rr repo-remove <REPO_NAME>            remove repo"
+    echo "    reset                                 reset mkpm"
+    echo "    init                                  initialize mkpm"
+    echo "    v version                             mkpm version"
+}
+
 
 export ARCH=unknown
 export FLAVOR=unknown
@@ -827,35 +852,10 @@ if [ "$_SCRIPT_PATH" != "${_MKPM_BIN}/mkpm" ]; then
     fi
 fi
 
-if ! test $# -gt 0; then
-    set -- "-h"
-fi
-
 while test $# -gt 0; do
     case "$1" in
         -h|--help)
-            echo "mkpm - makefile package manager"
-            echo
-            echo "mkpm [options] <TARGET> [...ARGS]"
-            echo
-            echo "options:"
-            echo "    -h, --help                            show brief help"
-            echo "    -s, --silent                          silent output"
-            echo "    -d, --debug                           debug output"
-            echo
-            echo "commands:"
-            echo "    i install                             install all packages"
-            echo "    i install <PACKAGE>                   install a package from default git repo"
-            echo "    i install <REPO> <PACKAGE>            install a package from git repo"
-            echo "    r remove <PACKAGE>                    remove a package"
-            echo "    u upgrade                             upgrade all packages from default git repo"
-            echo "    u upgrade <REPO>                      upgrade all packages from git repo"
-            echo "    u upgrade <REPO> <PACKAGE>            upgrade a package from git repo"
-            echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
-            echo "    rr repo-remove <REPO_NAME>            remove repo"
-            echo "    reset                                 reset mkpm"
-            echo "    init                                  initialize mkpm"
-            echo "    v version                             mkpm version"
+            _help
             exit
         ;;
         -s|--silent)
@@ -968,6 +968,10 @@ case "$1" in
     *)
         export _COMMAND=run
         export _TARGET="$1"
+        if [ "$_TARGET" = "" ]; then
+            _help
+            exit
+        fi
         shift
     ;;
 esac
