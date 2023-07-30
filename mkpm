@@ -70,9 +70,10 @@ if [ ! -f "$_MKPM_BIN/mkpm" ]; then
         cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
         _debug downloaded mkpm.sh
     fi
+    chmod +x "$_MKPM_BIN/mkpm"
 elif [ "$PROJECT_ROOT/mkpm.sh" -nt "$_MKPM_BIN/mkpm" ]; then
     export _MKPM_RESET_CACHE=1
     cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
+    chmod +x "$_MKPM_BIN/mkpm"
 fi
-chmod +x "$_MKPM_BIN/mkpm"
 exec "$_MKPM_BIN/mkpm" "$@"

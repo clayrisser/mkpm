@@ -74,5 +74,4 @@ if [ ! -f "$_MKPM_BIN/mkpm" ]; then
     fi
     chmod +x "$_MKPM_BIN/mkpm"
 fi
-_ensure_mkpm_sh
 exec "$_MKPM_BIN/mkpm" "$@"
