@@ -1,6 +1,7 @@
 #!/bin/sh
 
-MKPM_SH_URL="${MKPM_BINARY:-https://example.com}"
+MKPM_VERSION="<% MKPM_VERSION %>"
+MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
 _is_ci() {
     for v in "JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"; do

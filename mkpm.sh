@@ -1,9 +1,9 @@
 #!/bin/sh
 
-DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/risserlabs/community/mkpm-stable.git}"
-MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk}"
-MKPM_SH_URL="${MKPM_BINARY:-https://example.com}"
 MKPM_VERSION="<% MKPM_VERSION %>"
+DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/risserlabs/community/mkpm-stable.git}"
+MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm.mk}"
+MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 
 __0="$0"
 __ARGS="$@"

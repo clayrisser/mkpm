@@ -32,6 +32,7 @@ upload:
     - cat install.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _install.sh
     - cat mkpm.mk | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm.mk
     - cat mkpm.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm.sh
+    - cat mkpm-proxy.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm-proxy.sh
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _mkpm.sh \
         ${PACKAGE_REGISTRY_URL}/mkpm.sh
@@ -42,7 +43,7 @@ upload:
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _install.sh \
         ${PACKAGE_REGISTRY_URL}/install.sh
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file mkpm-proxy.sh \
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _mkpm-proxy.sh \
         ${PACKAGE_REGISTRY_URL}/mkpm-proxy.sh
   # artifacts:
   #   paths:

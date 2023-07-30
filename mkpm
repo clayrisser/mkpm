@@ -1,6 +1,5 @@
 #!/bin/sh
 
-MKPM_SH_URL="${MKPM_BINARY:-https://example.com}"
 alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
 _is_ci() {
     for v in "JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"; do
@@ -40,13 +39,6 @@ _project_root() {
     echo "$(_project_root $_PARENT)"
     return
 }
-_restore_from_cache() {
-    mkdir -p "$MKPM"
-    cd "$MKPM"
-    tar -xzf "$_MKPM_ROOT/cache.tar.gz"
-    cd "$_CWD"
-    _debug restored cache
-}
 _is_mkpm_proxy_required() {
     _ARGS="$@"
     _1="$(echo "$_ARGS" | cut -d' ' -f1)"
@@ -80,28 +72,21 @@ fi
 export _MKPM_ROOT="$PROJECT_ROOT/.mkpm"
 export _MKPM="$_MKPM_ROOT/mkpm"
 export _MKPM_BIN="$_MKPM/.bin"
-if [ -f "$PROJECT_ROOT/mkpm.sh" ]; then
-    mkdir -p "$_MKPM_BIN"
-    if [ ! -f "$_MKPM_BIN/mkpm" ]; then
-        if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
-            _restore_from_cache
-        else
-            cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
-            _debug downloaded mkpm.sh
-        fi
-    elif [ "$PROJECT_ROOT/mkpm.sh" -nt "$_MKPM_BIN/mkpm" ]; then
-        export _MKPM_RESET_CACHE=1
-        cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
-    fi
-    chmod +x "$_MKPM_BIN/mkpm"
-elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
-    mkdir -p "$_MKPM_BIN"
+mkdir -p "$_MKPM_BIN"
+if [ ! -f "$_MKPM_BIN/mkpm" ]; then
     if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
-        _restore_from_cache
+        mkdir -p "$MKPM"
+        cd "$MKPM"
+        tar -xzf "$_MKPM_ROOT/cache.tar.gz"
+        cd "$_CWD"
+        _debug restored cache
     else
-        download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
+        cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
         _debug downloaded mkpm.sh
     fi
-    chmod +x "$_MKPM_BIN/mkpm"
+elif [ "$PROJECT_ROOT/mkpm.sh" -nt "$_MKPM_BIN/mkpm" ]; then
+    export _MKPM_RESET_CACHE=1
+    cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
 fi
+chmod +x "$_MKPM_BIN/mkpm"
 exec "$_MKPM_BIN/mkpm" "$@"
