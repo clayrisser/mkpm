@@ -436,6 +436,7 @@ EOF
                 echo ".mkpm/cache.tar.gz" >> "${PROJECT_ROOT}/.gitignore"
             fi
             sed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
+            sed -i sed '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
             _echo "added ${LIGHT_GREEN}.gitignore${NOCOLOR} rules"
         fi
     fi
