@@ -530,7 +530,7 @@ _ensure_mkpm_mk() {
             _create_cache
         fi
     elif [ ! -f "$MKPM/mkpm" ]; then
-        download "$MKPM/mkpm" "$MKPM/mkpm_URL" >/dev/null
+        download "$MKPM/mkpm" "$MKPM_MK_URL" >/dev/null
         _debug downloaded mkpm.mk
         _create_cache
     fi
