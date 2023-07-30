@@ -42,7 +42,7 @@ _project_root() {
 }
 export PROJECT_ROOT="$(_project_root)"
 if [ "$PROJECT_ROOT" = "/" ]; then
-    if [ "$1" = "init" ]; then
+    if [ "$1" = "init" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "" ]; then
         PROJECT_ROOT="$_CWD"
     else
         _error "not an mkpm project" && exit 1

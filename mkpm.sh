@@ -58,6 +58,14 @@ _debug() {
     [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true
 }
 
+_echo() {
+    [ "$_SILENT" = "1" ] && true || echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"
+}
+
+_error() {
+    echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2
+}
+
 _project_root() {
     _ROOT="$1"
     if [ "$_ROOT" = "" ]; then
@@ -79,7 +87,11 @@ if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
     export PROJECT_ROOT="$(_project_root)"
 fi
 if [ "$PROJECT_ROOT" = "/" ]; then
-    _error "not an mkpm project" && exit 1
+    if [ "$1" = "init" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "" ]; then
+        PROJECT_ROOT="$_CWD"
+    else
+        _error "not an mkpm project" && exit 1
+    fi
 fi
 _MKPM_ROOT_NAME=".mkpm"
 export MKPM_ROOT="$PROJECT_ROOT/$_MKPM_ROOT_NAME"
@@ -675,14 +687,6 @@ _validate_mkpm_config() {
 
 
 ## UTIL ##
-
-_echo() {
-    [ "$_SILENT" = "1" ] && true || echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"
-}
-
-_error() {
-    echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2
-}
 
 _sponge() {
     if which sponge >/dev/null 2>&1; then

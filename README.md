@@ -8,9 +8,9 @@ https://gitlab.com/risserlabs/community/mkpm-example
 
 ## Requirements
 
-* [GNU Make](https://www.gnu.org/software/make) >= 4.1
-* [Git](https://git-scm.com)
-* [Git LFS](https://git-lfs.com)
+- [GNU Make](https://www.gnu.org/software/make) >= 4.1
+- [Git](https://git-scm.com)
+- [Git LFS](https://git-lfs.com)
 
 ## Install
 
@@ -20,7 +20,7 @@ initializing new mkpm projects, installing new mkpm packages and updating mkpm p
 You can install it with the following command.
 
 ```sh
-$(curl --version >/dev/null 2>/dev/null && echo curl -L || echo wget -O-) https://gitlab.com/risserlabs/community/mkpm/-/raw/main/install.sh 2>/dev/null | sh
+$(curl --version >/dev/null 2>/dev/null && echo curl -L || echo wget -O-) https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/1.0.0/install.sh 2>/dev/null | sh
 ```
 
 ![](assets/mkpm.png)
@@ -117,6 +117,7 @@ also wanted to bring your own packages, you would simply add a new repo with a n
 For example, you could call it _howdy_.
 
 _mkpm.mk_
+
 ```makefile
 export MKPM_REPO_HOWDY := \ # the name of the repo must be post-fixed to the end in all caps
 	https://gitlab.com/risserlabs/howdy-mkpm-packages.git
