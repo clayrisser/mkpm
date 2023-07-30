@@ -360,6 +360,22 @@ _repo_remove() {
 _init() {
     rm -rf "$MKPM_ROOT"
     _validate_mkpm_config
+    printf "add vscode settings [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    read _RES
+    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+        mkdir -p "${PROJECT_ROOT}/.vscode"
+        if [ ! -f "${PROJECT_ROOT}/.vscode/settings.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/settings.json" | jq -r '. | type')" != "object" ]; then
+            echo '{}' > "${PROJECT_ROOT}/.vscode/settings.json"
+        fi
+        if [ ! -f "${PROJECT_ROOT}/.vscode/extensions.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq -r '. | type')" != "object" ]; then
+            echo '{}' > "${PROJECT_ROOT}/.vscode/extensions.json"
+        fi
+        cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.["files.associations"] += { "Mkpmfile": "makefile" }' | \
+            _sponge "${PROJECT_ROOT}/.vscode/settings.json" >/dev/null
+        cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq '.recommendations += ["ms-vscode.makefile-tools"] | .recommendations |= unique' | \
+            _sponge "${PROJECT_ROOT}/.vscode/extensions.json" >/dev/null
+        _echo "added vscode settings"
+    fi
     if [ ! -f "$_CWD/Makefile" ] && [ ! -f "$_CWD/Mkpmfile" ]; then
         printf "generate ${LIGHT_GREEN}Mkpmfile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
@@ -422,22 +438,6 @@ EOF
             sed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
             _echo "added ${LIGHT_GREEN}.gitignore${NOCOLOR} rules"
         fi
-    fi
-    printf "add vscode settings [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
-    read _RES
-    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-        mkdir -p "${PROJECT_ROOT}/.vscode"
-        if [ ! -f "${PROJECT_ROOT}/.vscode/settings.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/settings.json" | jq -r '. | type')" != "object" ]; then
-            echo '{}' > "${PROJECT_ROOT}/.vscode/settings.json"
-        fi
-        if [ ! -f "${PROJECT_ROOT}/.vscode/extensions.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq -r '. | type')" != "object" ]; then
-            echo '{}' > "${PROJECT_ROOT}/.vscode/extensions.json"
-        fi
-        cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.["files.associations"] += { "Mkpmfile": "makefile" }' | \
-            _sponge "${PROJECT_ROOT}/.vscode/settings.json"
-        cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq '.recommendations += ["ms-vscode.makefile-tools"] | .recommendations |= unique' | \
-            _sponge "${PROJECT_ROOT}/.vscode/extensions.json"
-        _echo "added vscode settings"
     fi
     _reset
 }
