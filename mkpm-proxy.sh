@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MKPM_BINARY=https://example.com
+MKPM_SH_URL="${MKPM_BINARY:-https://example.com}"
 alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
 _is_ci() {
     for v in "JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"; do
@@ -60,7 +60,7 @@ if [ ! -f "$_MKPM_BIN/mkpm" ]; then
         cd "$_CWD"
         _debug restored cache
     else
-        download "$_MKPM_BIN/mkpm" "$MKPM_BINARY" >/dev/null
+        download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
         _debug downloaded mkpm.sh
     fi
     chmod +x "$_MKPM_BIN/mkpm"

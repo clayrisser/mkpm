@@ -1,12 +1,14 @@
 #!/bin/sh
 
-MKPM_CORE_URL="https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk"
 DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/risserlabs/community/mkpm-stable.git}"
+MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/29276259/packages/generic/mkpm/0.3.0/bootstrap.mk}"
+MKPM_SH_URL="${MKPM_BINARY:-https://example.com}"
 _MKPM_VERSION="1.0.0"
 
 __0="$0"
 __ARGS="$@"
 
+alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
 alias gmake="$(gmake --version >/dev/null 2>&1 && echo gmake || echo make)"
 alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
 alias which="command -v"
@@ -23,8 +25,8 @@ _is_ci() {
 
 _CWD="$(pwd)"
 _USER_ID=$(id -u $USER)
-_TMP_PATH="${XDG_RUNTIME_DIR:-$([ -d "/run/user/$_USER_ID" ] && \
-    echo "/run/user/$_USER_ID" || echo ${TMP:-${TEMP:-/tmp}})}/mkpm/$$"
+_SCRIPT_NAME="$(basename "$0")"
+_SCRIPT_PATH="$(dirname "$(readlink -f "$0")")/$_SCRIPT_NAME"
 _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 _REPOS_PATH="$_STATE_PATH/repos"
 _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
@@ -696,6 +698,21 @@ _sponge() {
     fi
 }
 
+_mkpm_proxy() {
+    if [ ! -f "$_MKPM_BIN/mkpm" ]; then
+        mkdir -p "$_MKPM_BIN"
+        if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+            _restore_from_cache
+        else
+            download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
+            _debug downloaded mkpm.sh
+        fi
+        chmod +x "$_MKPM_BIN/mkpm"
+    fi
+    _ensure_mkpm_sh
+    exec "$_MKPM_BIN/mkpm" "$@"
+}
+
 
 export ARCH=unknown
 export FLAVOR=unknown
@@ -780,6 +797,11 @@ else
 fi
 if [ "$FLAVOR" = "unknown" ]; then
     FLAVOR="$OS"
+fi
+
+if [ "$_SCRIPT_PATH" != "${_MKPM_BIN}/mkpm" ]; then
+    exec _mkpm_proxy "$@"
+    exit $?
 fi
 
 if ! test $# -gt 0; then
