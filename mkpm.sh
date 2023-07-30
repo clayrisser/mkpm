@@ -10,6 +10,7 @@ __0="$0"
 __ARGS="$@"
 
 alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
+alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
 alias gmake="$(gmake --version >/dev/null 2>&1 && echo gmake || echo make)"
 alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
 alias which="command -v"
@@ -31,29 +32,29 @@ _SCRIPT_PATH="$(dirname "$(readlink -f "$0")")/$_SCRIPT_NAME"
 _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 _REPOS_PATH="$_STATE_PATH/repos"
 _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
-_CI="$(_is_ci && echo 1 || true)"
+_SUPPORTS_COLORS=$([ "$(tput colors 2>/dev/null)" -ge 8 ] && echo 1 || true)
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 export GIT_LFS_SKIP_SMUDGE=1
 export LC_ALL=C
 
-if [ "$_CI" = "" ]; then
-    export NOCOLOR='\e[0m'
-    export WHITE='\e[1;37m'
-    export BLACK='\e[0;30m'
-    export RED='\e[0;31m'
-    export GREEN='\e[0;32m'
-    export YELLOW='\e[0;33m'
-    export BLUE='\e[0;34m'
-    export PURPLE='\e[0;35m'
-    export CYAN='\e[0;36m'
-    export LIGHT_GRAY='\e[0;37m'
-    export DARK_GRAY='\e[1;30m'
-    export LIGHT_RED='\e[1;31m'
-    export LIGHT_GREEN='\e[1;32m'
-    export LIGHT_YELLOW='\e[1;33m'
-    export LIGHT_BLUE='\e[1;34m'
-    export LIGHT_PURPLE='\e[1;35m'
-    export LIGHT_CYAN='\e[1;36m'
+if [ "$_SUPPORTS_COLORS" = "1" ]; then
+    export NOCOLOR='\033[0m'
+    export WHITE='\033[1;37m'
+    export BLACK='\033[0;30m'
+    export RED='\033[31m'
+    export GREEN='\033[32m'
+    export YELLOW='\033[33m'
+    export BLUE='\033[34m'
+    export PURPLE='\033[35m'
+    export CYAN='\033[36m'
+    export LIGHT_GRAY='\033[37m'
+    export DARK_GRAY='\033[1;30m'
+    export LIGHT_RED='\033[1;31m'
+    export LIGHT_GREEN='\033[1;32m'
+    export LIGHT_YELLOW='\033[1;33m'
+    export LIGHT_BLUE='\033[1;34m'
+    export LIGHT_PURPLE='\033[1;35m'
+    export LIGHT_CYAN='\033[1;36m'
 fi
 
 _is_mkpm_proxy_required() {
@@ -80,17 +81,11 @@ _is_mkpm_proxy_required() {
 }
 _MKPM_PROXY_REQUIRED=$(_is_mkpm_proxy_required "$@" && echo 1 || true)
 
-_debug() {
-    [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true
-}
+_debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true; }
 
-_echo() {
-    [ "$_SILENT" = "1" ] && true || echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"
-}
+_echo() { [ "$_SILENT" = "1" ] && true || echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"; }
 
-_error() {
-    echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2
-}
+_error() { echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2; }
 
 _project_root() {
     _ROOT="$1"

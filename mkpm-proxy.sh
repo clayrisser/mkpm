@@ -3,17 +3,13 @@
 MKPM_VERSION="<% MKPM_VERSION %>"
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
-for v in "JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"; do
-    if [ "$v" != "" ] && [ "$v" != "0" ] && [ "$(echo $v | tr '[:upper:]' '[:lower:]')" != "false" ]; then
-        _CI=1
-        break
-    fi
-done
+alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
+_SUPPORTS_COLORS=$([ "$(tput colors 2>/dev/null)" -ge 8 ] && echo 1 || true)
 _CWD="$(pwd)"
-if [ "$_CI" = "" ]; then
-    export NOCOLOR='\e[0m'
-    export RED='\e[0;31m'
-    export YELLOW='\e[0;33m'
+if [ "$_SUPPORTS_COLORS" = "1" ]; then
+    export NOCOLOR='\033[0m'
+    export RED='\033[31m'
+    export YELLOW='\033[33m'
 fi
 _error() { echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2; }
 _debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true; }
