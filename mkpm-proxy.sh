@@ -40,25 +40,31 @@ _project_root() {
     echo "$(_project_root $_PARENT)"
     return
 }
-_is_mkpm_proxy() {
-    ([ "$1" = "init" ] || [ "$1" = "" ]) && exit 1
+_is_mkpm_proxy_required() {
+    _ARGS="$@"
+    _1="$(echo "$_ARGS" | cut -d' ' -f1)"
     while test $# -gt 0; do
-        case "$1" in
+        case "$_1" in
             -h|--help)
-                exit 1
+                return 1
             ;;
             -*)
-                shift
+                _ARGS=$(echo "$_ARGS" | sed 's|^[^ ]\+ \?||g')
+                _1="$(echo "$_ARGS" | cut -d' ' -f1)"
+            ;;
+            v|version|init)
+                return 1
             ;;
             *)
                 break
             ;;
         esac
     done
+    [ "$_1" = "" ] && return 1 || true
 }
 export PROJECT_ROOT="$(_project_root)"
 if [ "$PROJECT_ROOT" = "/" ]; then
-    if _is_mkpm_proxy "$@"; then
+    if _is_mkpm_proxy_required "$@"; then
         _error "not an mkpm project" && exit 1
     else
         PROJECT_ROOT="$_CWD"

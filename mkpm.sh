@@ -54,6 +54,30 @@ if [ "$_CI" = "" ]; then
     export LIGHT_CYAN='\e[1;36m'
 fi
 
+_is_mkpm_proxy_required() {
+    _ARGS="$@"
+    _1="$(echo "$_ARGS" | cut -d' ' -f1)"
+    while test $# -gt 0; do
+        case "$_1" in
+            -h|--help)
+                return 1
+            ;;
+            -*)
+                _ARGS=$(echo "$_ARGS" | sed 's|^[^ ]\+ \?||g')
+                _1="$(echo "$_ARGS" | cut -d' ' -f1)"
+            ;;
+            v|version|init)
+                return 1
+            ;;
+            *)
+                break
+            ;;
+        esac
+    done
+    [ "$_1" = "" ] && return 1 || true
+}
+_MKPM_PROXY_REQUIRED=$(_is_mkpm_proxy_required "$@" && echo 1 || true)
+
 _debug() {
     [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true
 }
@@ -87,7 +111,7 @@ if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
     export PROJECT_ROOT="$(_project_root)"
 fi
 if [ "$PROJECT_ROOT" = "/" ]; then
-    if _is_mkpm_proxy "$@"; then
+    if [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
         _error "not an mkpm project" && exit 1
     else
         PROJECT_ROOT="$_CWD"
@@ -493,9 +517,6 @@ _ensure_dirs() {
     if [ ! -d "$MKPM/.bin" ]; then
         mkdir -p "$MKPM/.bin"
     fi
-    if [ ! -d "$MKPM/.pkgs" ]; then
-        mkdir -p "$MKPM/.pkgs"
-    fi
     if [ ! -d "$MKPM/.tmp" ]; then
         mkdir -p "$MKPM/.tmp"
     fi
@@ -702,38 +723,6 @@ _sponge() {
     fi
 }
 
-_is_mkpm_proxy() {
-    ([ "$1" = "init" ] || [ "$1" = "" ]) && exit 1
-    while test $# -gt 0; do
-        case "$1" in
-            -h|--help)
-                exit 1
-            ;;
-            -*)
-                shift
-            ;;
-            *)
-                break
-            ;;
-        esac
-    done
-}
-
-_mkpm_proxy() {
-    if [ ! -f "$_MKPM_BIN/mkpm" ]; then
-        mkdir -p "$_MKPM_BIN"
-        if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
-            _restore_from_cache
-        else
-            download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
-            _debug downloaded mkpm.sh
-        fi
-        chmod +x "$_MKPM_BIN/mkpm"
-    fi
-    _ensure_mkpm_sh
-    exec "$_MKPM_BIN/mkpm" "$@"
-}
-
 
 export ARCH=unknown
 export FLAVOR=unknown
@@ -821,8 +810,21 @@ if [ "$FLAVOR" = "unknown" ]; then
 fi
 
 if [ "$_SCRIPT_PATH" != "${_MKPM_BIN}/mkpm" ]; then
-    exec _mkpm_proxy "$@"
-    exit $?
+    if [ -f "${_MKPM_BIN}/mkpm" ] || [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
+        if [ ! -f "$_MKPM_BIN/mkpm" ]; then
+            mkdir -p "$_MKPM_BIN"
+            if [ -f "$_MKPM_ROOT/cache.tar.gz" ]; then
+                _restore_from_cache
+            else
+                download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
+                _debug downloaded mkpm.sh
+            fi
+            chmod +x "$_MKPM_BIN/mkpm"
+        fi
+        _ensure_mkpm_sh
+        _debug "proxied ${LIGHT_GREEN}$_MKPM_BIN/mkpm $@${NOCOLOR}"
+        exec "$_MKPM_BIN/mkpm" "$@"
+    fi
 fi
 
 if ! test $# -gt 0; then
