@@ -172,6 +172,10 @@ main() {
             _error "mkpm already initialized"
             exit 1
         fi
+        if [ ! -f "$_CWD/.git/HEAD" ]; then
+            _error "init must be run from the root of a git project"
+            exit 1
+        fi
         _prepare
         _init
     else
@@ -360,10 +364,6 @@ _repo_remove() {
 }
 
 _init() {
-    if [ ! -f "$_CWD/.git/HEAD" ]; then
-        _error "init must be run from the root of a git project"
-        exit 1
-    fi
     rm -rf "$MKPM_ROOT"
     _validate_mkpm_config
     if [ ! -f "$_CWD/Makefile" ] && [ ! -f "$_CWD/Mkpmfile" ]; then
