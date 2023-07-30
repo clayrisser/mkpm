@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 29-07-2023 17:11:47
+# Last Modified: 30-07-2023 15:50:48
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021
@@ -24,6 +24,8 @@ include $(MKPM)/mkpm
 include $(MKPM)/hello
 include $(MKPM)/gnu
 # include $(MKPM)/mkchain
+
+MKPM_VERSION=1.0.0
 
 export USER ?= nobody
 export EMAIL ?= clayrisser@gmail.com
@@ -62,6 +64,7 @@ install: | sudo \
 	/usr/local/bin/mkpm
 /usr/local/bin/mkpm: mkpm.sh
 	@$(SUDO) $(CP) $< $@
+	@$(CAT) $< | $(SED) "s|<% MKPM_VERSION %>|$(MKPM_VERSION)|g" | $(SUDO) $(TEE) $@ >$(NULL)
 	@$(SUDO) $(CHMOD) +x $@
 
 .PHONY: uninstall

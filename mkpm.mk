@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 30-07-2023 05:11:55
+# Last Modified: 30-07-2023 15:26:34
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021
@@ -22,6 +22,7 @@
 
 .ONESHELL:
 .POSIX:
+.SILENT:
 
 export MKPM_VERSION := <% MKPM_VERSION %>
 

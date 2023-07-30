@@ -130,9 +130,6 @@ export _MKPM_TMP="$MKPM/.tmp"
 
 main() {
     if [ "$_COMMAND" = "install" ]; then
-        if [ ! -f "$MKPM/.prepared" ]; then
-            _PREPARE_INSTALLED=1
-        fi
         _prepare
         _REPO_NAME="$_PARAM1"
         _PACKAGE="$_PARAM2"
@@ -378,6 +375,20 @@ hello:
 	@\$(ECHO) Hello, world!
 EOF
             _echo generated ${LIGHT_GREEN}Mkpmfile${NOCOLOR}
+        fi
+        echo "generate ${LIGHT_GREEN}Makefile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        read _RES
+        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+cat <<EOF > "$_CWD/Makefile"
+.ONESHELL:
+.POSIX:
+.SILENT:
+
+MKPM := ./mkpm
+.PHONY: %
+%:
+	@\$(MKPM) run \$@ \$(ARGS)
+EOF
         fi
     fi
     printf "add cache to git [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
@@ -734,18 +745,19 @@ _help() {
     echo "    -d, --debug                           debug output"
     echo
     echo "commands:"
-    echo "    i install                             install all packages"
-    echo "    i install <PACKAGE>                   install a package from default git repo"
-    echo "    i install <REPO> <PACKAGE>            install a package from git repo"
-    echo "    r remove <PACKAGE>                    remove a package"
-    echo "    u upgrade                             upgrade all packages from default git repo"
-    echo "    u upgrade <REPO>                      upgrade all packages from git repo"
-    echo "    u upgrade <REPO> <PACKAGE>            upgrade a package from git repo"
-    echo "    ra repo-add <REPO_NAME> <REPO_URI>    add repo"
-    echo "    rr repo-remove <REPO_NAME>            remove repo"
+    echo "    r|run <TARGET>                        run a target"
+    echo "    u|upgrade                             upgrade all packages from default git repo"
+    echo "    u|upgrade <REPO>                      upgrade all packages from git repo"
+    echo "    u|upgrade <REPO> <PACKAGE>            upgrade a package from git repo"
+    echo "    v|version                             mkpm version"
+    echo "    i|install                             install all packages"
+    echo "    i|install <PACKAGE>                   install a package from default git repo"
+    echo "    i|install <REPO> <PACKAGE>            install a package from git repo"
+    echo "    rm|remove <PACKAGE>                   remove a package"
+    echo "    ra|repo-add <REPO_NAME> <REPO_URI>    add repo"
+    echo "    rr|repo-remove <REPO_NAME>            remove repo"
     echo "    reset                                 reset mkpm"
     echo "    init                                  initialize mkpm"
-    echo "    v version                             mkpm version"
 }
 
 
@@ -884,26 +896,37 @@ while test $# -gt 0; do
 done
 
 case "$1" in
+    r|run)
+        export _COMMAND=run
+        shift
+        if test $# -gt 0; then
+            export _TARGET="$1"
+            shift
+        else
+            _error "no target specified"
+            exit 1
+        fi
+    ;;
     i|install)
         export _COMMAND=install
         shift
         if test $# -gt 0; then
-            export _PARAM1=$1
+            export _PARAM1="$1"
             shift
             if test $# -gt 0; then
-                export _PARAM2=$1
+                export _PARAM2="$1"
                 shift
             else
-                export _PARAM2=$_PARAM1
+                export _PARAM2="$_PARAM1"
                 export _PARAM1="$(_lookup_default_repo)"
             fi
         fi
     ;;
-    r|remove)
+    rm|remove)
         export _COMMAND=remove
         shift
         if test $# -gt 0; then
-            export _PARAM1=$1
+            export _PARAM1="$1"
             shift
         else
             _error "no package specified"
@@ -914,13 +937,13 @@ case "$1" in
         export _COMMAND=upgrade
         shift
         if test $# -gt 0; then
-            export _PARAM1=$1
+            export _PARAM1="$1"
             shift
         else
             export _PARAM1="$(_lookup_default_repo)"
         fi
         if test $# -gt 0; then
-            export _PARAM2=$1
+            export _PARAM2="$1"
             shift
         fi
     ;;
@@ -928,14 +951,14 @@ case "$1" in
         export _COMMAND=repo-add
         shift
         if test $# -gt 0; then
-            export _PARAM1=$1
+            export _PARAM1="$1"
             shift
         else
             _error "no repo name specified"
             exit 1
         fi
         if test $# -gt 0; then
-            export _PARAM2=$1
+            export _PARAM2="$1"
             shift
         else
             _error "no repo uri specified"
@@ -946,7 +969,7 @@ case "$1" in
         export _COMMAND=repo-remove
         shift
         if test $# -gt 0; then
-            export _PARAM1=$1
+            export _PARAM1="$1"
             shift
         else
             _error "no repo name specified"
