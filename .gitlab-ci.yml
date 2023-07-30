@@ -29,14 +29,18 @@ upload:
   #   - build
   script:
     # - export DEB=$(ls | grep -E '\.deb$')
-    - cat mkpm.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm.sh
+    - cat install.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _install.sh
     - cat mkpm.mk | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm.mk
+    - cat mkpm.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm.sh
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _mkpm.sh \
         ${PACKAGE_REGISTRY_URL}/mkpm.sh
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _mkpm.mk \
         ${PACKAGE_REGISTRY_URL}/mkpm.mk
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _install.sh \
+        ${PACKAGE_REGISTRY_URL}/install.sh
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file mkpm-proxy.sh \
         ${PACKAGE_REGISTRY_URL}/mkpm-proxy.sh
@@ -58,7 +62,8 @@ release:
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
         --assets-link "{\"name\":\"mkpm-proxy.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm-proxy.sh\"}" \
         --assets-link "{\"name\":\"mkpm.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.sh\"}" \
-        --assets-link "{\"name\":\"mkpm.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.mk\"}"
+        --assets-link "{\"name\":\"mkpm.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.mk\"}" \
+        --assets-link "{\"name\":\"install.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/install.sh\"}"
 
 pages:
   stage: publish
