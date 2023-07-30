@@ -15,12 +15,8 @@ if [ "$_CI" = "" ]; then
     export RED='\e[0;31m'
     export YELLOW='\e[0;33m'
 fi
-_error() {
-    echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2
-}
-_debug() {
-    [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true
-}
+_error() { echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2; }
+_debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true; }
 _project_root() {
     _ROOT="$1"
     if [ "$_ROOT" = "" ]; then
