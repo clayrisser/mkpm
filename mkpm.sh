@@ -4,6 +4,7 @@ MKPM_VERSION="<% MKPM_VERSION %>"
 DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/risserlabs/community/mkpm-stable.git}"
 MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm.mk}"
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
+MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm-proxy.sh}"
 
 __0="$0"
 __ARGS="$@"
@@ -31,6 +32,7 @@ _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 _REPOS_PATH="$_STATE_PATH/repos"
 _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 _CI="$(_is_ci && echo 1 || true)"
+_MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 export GIT_LFS_SKIP_SMUDGE=1
 export LC_ALL=C
 
@@ -379,7 +381,7 @@ _init() {
     printf "add mkpm binary [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-        download "${PROJECT_ROOT}/mkpm" "$MKPM_SH_URL" >/dev/null
+        download "${PROJECT_ROOT}/mkpm" "$MKPM_PROXY_SH_URL" >/dev/null
         chmod +x "${PROJECT_ROOT}/mkpm"
         _echo added mkpm binary
     fi
@@ -452,7 +454,7 @@ EOF
 
 _prepare() {
     if [ "$_MKPM_RESET_CACHE" = "1" ] || \
-        ([ -f "$PROJECT_ROOT/mkpm.mk" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
+        ([ "$_MKPM_TEST" = "1" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
         _reset_cache
         exit $?
     fi
@@ -559,7 +561,7 @@ _ensure_dirs() {
 }
 
 _ensure_mkpm_mk() {
-    if [ -f "$PROJECT_ROOT/mkpm.mk" ]; then
+    if [ "$_MKPM_TEST" = "1" ]; then
         if [ ! -f "$MKPM/mkpm" ] || [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]; then
             cp "$PROJECT_ROOT/mkpm.mk" "$MKPM/mkpm"
             _debug downloaded mkpm.mk
@@ -573,7 +575,18 @@ _ensure_mkpm_mk() {
 }
 
 _ensure_mkpm_sh() {
-    if [ ! -f "$_MKPM_BIN/mkpm" ]; then
+    if [ "$_MKPM_TEST" = "1" ]; then
+        mkdir -p "$_MKPM_BIN"
+        if [ ! -f "$_MKPM_BIN/mkpm" ]; then
+            if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
+                _restore_from_cache
+            else
+                cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
+                _debug downloaded mkpm.sh
+            fi
+        fi
+        chmod +x "$_MKPM_BIN/mkpm"
+    elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
         mkdir -p "$_MKPM_BIN"
         if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
             _restore_from_cache
