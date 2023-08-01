@@ -571,22 +571,23 @@ _publish() {
         exit 1
     fi
     _REPO_URI="$(_lookup_repo_uri $_PACKAGE_REPO)"
-    _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
+    _REPO_PATH="$(mktemp -d)/repo"
     _echo "publishing package $_PACKAGE_NAME=$_PACKAGE_VERSION to repo $_REPO_URI"
     if [ ! -d "$_REPO_PATH" ]; then
-        git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || exit 1
+        git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
     fi
     cd "$_REPO_PATH"
     git config advice.detachedHead false >/dev/null
     git config lfs.locksverify true >/dev/null
-    git fetch -q --depth 1 --tags || exit 1
+    git fetch -q --depth 1 --tags || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
     mkdir -p "$_PACKAGE_NAME"
     cp "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
     git add "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
-    git commit "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -m "Publish $_PACKAGE_NAME version $_PACKAGE_VERSION" || exit 1
+    git commit "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -m "Publish $_PACKAGE_NAME version $_PACKAGE_VERSION" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
     git tag "$_PACKAGE_NAME/$_PACKAGE_VERSION"
-    git push || exit 1
-    git push --tags
+    git push || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
+    git push --tags || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
+    rm -rf "$_REPO_PATH" 2>/dev/null || true
 }
 
 _PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
