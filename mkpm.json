@@ -1,4 +1,9 @@
 {
+  "name": "mkpm",
+  "version": "0.0.1",
+  "description": "example mkpm package",
+  "author": "Clay Risser <clayrisser@gmail.com>",
+  "repo": "https://gitlab.com/risserlabs/community/mkpm-stable.git",
   "packages": {
     "default": {
       "gnu": "0.0.3",

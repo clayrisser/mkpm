@@ -33,7 +33,6 @@ _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 _REPOS_PATH="$_STATE_PATH/repos"
 _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
 _SUPPORTS_COLORS=$([ "$(tput colors 2>/dev/null)" -ge 8 ] && echo 1 || true)
-_MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 export GIT_LFS_SKIP_SMUDGE=1
 export LC_ALL=C
 
@@ -93,12 +92,12 @@ _project_root() {
         echo "$_ROOT"
         return
     fi
-    _PARENT="$(echo "$_ROOT" | sed 's|\/[^\/]\+$||g')"
+    _PARENT="$(echo "$_ROOT" | gsed 's|\/[^\/]\+$||g')"
     if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
         echo "/"
         return
     fi
-    echo "$(_project_root $_PARENT)"
+    echo "$(_project_root "$_PARENT")"
     return
 }
 if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
@@ -121,6 +120,9 @@ _debug MKPM_ROOT=\"$MKPM_ROOT\"
 export _MKPM_BIN="$MKPM/.bin"
 export _MKPM_PACKAGES="$MKPM/.pkgs"
 export _MKPM_TMP="$MKPM/.tmp"
+
+_MKPM_PACKAGE=$([ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.repo // ""')" = "" ] && true || echo 1)
+_MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 
 main() {
     if [ "$_COMMAND" = "install" ]; then
@@ -156,7 +158,6 @@ main() {
         _prepare
         _repo_remove $_PARAM1
     elif [ "$_COMMAND" = "reset" ]; then
-        _prepare
         _reset
     elif [ "$_COMMAND" = "init" ]; then
         if [ "$_COMMAND" = "init" ] && [ -f "$MKPM_CONFIG" ]; then
@@ -169,6 +170,13 @@ main() {
         fi
         _prepare
         _init
+    elif [ "$_COMMAND" = "pack" ]; then
+        _prepare
+        _pack
+    elif [ "$_COMMAND" = "publish" ]; then
+        _prepare
+        _pack
+        _publish
     else
         _prepare
         _run "$_TARGET" "$@"
@@ -178,7 +186,7 @@ main() {
 _run() {
     _TARGET="$1"
     shift
-    _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
+    _ARGS_ENV_NAME="$(echo "$_TARGET" | gsed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
     _MAKEFILE="Mkpmfile"
     if [ ! -f "$_MAKEFILE" ]; then
         _MAKEFILE="Makefile"
@@ -353,7 +361,6 @@ _repo_remove() {
 
 _init() {
     rm -rf "$MKPM_ROOT"
-    _validate_mkpm_config
     printf "add vscode settings [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
@@ -436,12 +443,14 @@ EOF
             if [ "$_GITIGNORE_CACHE" = "1" ] && ! (cat ${PROJECT_ROOT}/.gitignore | grep -qE '^\.mkpm/cache\.tar\.gz'); then
                 echo ".mkpm/cache.tar.gz" >> "${PROJECT_ROOT}/.gitignore"
             fi
-            sed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
-            sed -i '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
+            gsed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
+            gsed -i '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
             _echo "added ${LIGHT_GREEN}.gitignore${NOCOLOR} rules"
         fi
     fi
+    _validate_mkpm_config
     _reset
+    _echo "initialized mkpm project"
 }
 
 _prepare() {
@@ -497,6 +506,87 @@ _lookup_system_package_name() {
             echo "$_BINARY"
         ;;
     esac
+}
+
+_pack() {
+    _PACKAGE_NAME=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.name // ""')
+    if [ "$_PACKAGE_NAME" = "" ]; then
+        _error missing mkpm package name
+        exit 1
+    fi
+    if [ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.version // ""')" = "" ]; then
+        _error missing mkpm package version
+        exit 1
+    fi
+    if [ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.description // ""')" = "" ]; then
+        _error missing mkpm package description
+        exit 1
+    fi
+    if [ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.author // ""')" = "" ]; then
+        _error missing mkpm package author
+        exit 1
+    fi
+    if [ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.repo // ""')" = "" ]; then
+        _error missing mkpm package repo
+        exit 1
+    fi
+    if [ ! -f "$PROJECT_ROOT/main.mk" ]; then
+        _error missing main.mk
+        exit 1
+    fi
+    _PACK_DIR="$(mktemp -d)"
+    rm -rf "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz"
+    cp "$MKPM_CONFIG" "$_PACK_DIR/mkpm.json"
+    if [ -f "$PROJECT_ROOT/LICENSE" ]; then
+        cp "$PROJECT_ROOT/LICENSE" "$_PACK_DIR/LICENSE"
+    fi
+    for f in $(cat "$MKPM_CONFIG" | jq -r '(.files // [])[]'); do
+        if [ -f "$PROJECT_ROOT/$f" ]; then
+            mkdir -p "$_PACK_DIR/$f"
+            rm -rf "$_PACK_DIR/$f"
+            cp "$PROJECT_ROOT/$f" "$_PACK_DIR/$f"
+        fi
+    done
+    cp "$PROJECT_ROOT/main.mk" "$_PACK_DIR/main.mk"
+	tar -cvzf "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" -C "$_PACK_DIR" . | \
+        gsed 's|^\.\/||g' | sed '/^$/d' >$([ "$_SILENT" = "1" ] && echo '/dev/null' || echo '/dev/stdout')
+    rm -rf "$_PACK_DIR"
+    _echo "packaged $_PACKAGE_NAME.tar.gz"
+}
+
+_publish() {
+    _PACKAGE_NAME=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.name // ""')
+    _PACKAGE_VERSION=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.version // ""')
+    _PACKAGE_REPO=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.repo // ""')
+    if [ "$_PACKAGE_NAME" = "" ]; then
+        _error missing mkpm package name
+        exit 1
+    fi
+    if [ "$_PACKAGE_VERSION" = "" ]; then
+        _error missing mkpm package version
+        exit 1
+    fi
+    if [ "$_PACKAGE_REPO" = "" ]; then
+        _error missing mkpm package repo
+        exit 1
+    fi
+    _REPO_URI="$(_lookup_repo_uri $_PACKAGE_REPO)"
+    _REPO_PATH=$(_lookup_repo_path $_REPO_URI)
+    _echo "publishing package $_PACKAGE_NAME=$_PACKAGE_VERSION to repo $_REPO_URI"
+    if [ ! -d "$_REPO_PATH" ]; then
+        git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || exit 1
+    fi
+    cd "$_REPO_PATH"
+    git config advice.detachedHead false >/dev/null
+    git config lfs.locksverify true >/dev/null
+    git fetch -q --depth 1 --tags || exit 1
+    mkdir -p "$_PACKAGE_NAME"
+    cp "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
+    git add "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
+    git commit "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -m "Publish $_PACKAGE_NAME version $_PACKAGE_VERSION" || exit 1
+    git tag "$_PACKAGE_NAME/$_PACKAGE_VERSION"
+    git push || exit 1
+    git push --tags
 }
 
 _PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
@@ -702,7 +792,7 @@ _validate_mkpm_config() {
     done
     _ERR=
     for r in $(echo "$(_list_repos) $(cat "$MKPM_CONFIG" | jq -r '(.packages | keys)[]')" | tr ' ' '\n' | \
-        sort | uniq -c | grep -E "^\s+1\s" | sed 's|\s\+[0-9]\+\s||g'); do
+        sort | uniq -c | grep -E "^\s+1\s" | gsed 's|\s\+[0-9]\+\s||g'); do
         _PACKAGES="$(_list_packages "$r")"
         if [ "$_PACKAGES" = "" ]; then
             cat "$MKPM_CONFIG" | \
@@ -715,7 +805,7 @@ _validate_mkpm_config() {
             done
         fi
     done
-    for p in $(cat "$MKPM_CONFIG" | jq -r '.packages[] | keys[]' | sort | uniq -c | grep -vE "^\s+1\s" | sed 's|\s\+[0-9]\+\s||g'); do
+    for p in $(cat "$MKPM_CONFIG" | jq -r '.packages[] | keys[]' | sort | uniq -c | grep -vE "^\s+1\s" | gsed 's|\s\+[0-9]\+\s||g'); do
         _error "package ${LIGHT_CYAN}$p${NOCOLOR} exists more than once"
         _ERR=1
     done
@@ -762,6 +852,10 @@ _help() {
     echo "    rr|repo-remove <REPO_NAME>            remove repo"
     echo "    reset                                 reset mkpm"
     echo "    init                                  initialize mkpm"
+    if [ "$_MKPM_PACKAGE" = "1" ]; then
+        echo "    pack                                  pack mkpm module"
+        echo "    publish                               pack and publish mkpm module"
+    fi
 }
 
 export ARCH=unknown
@@ -990,6 +1084,24 @@ case "$1" in
     v|version)
         _echo "$MKPM_VERSION"
         exit
+    ;;
+    pack)
+        if [ "$_MKPM_PACKAGE" = "1" ]; then
+            export _COMMAND=pack
+        else
+            export _COMMAND=run
+            export _TARGET=pack
+        fi
+        shift
+    ;;
+    publish)
+        if [ "$_MKPM_PACKAGE" = "1" ]; then
+            export _COMMAND=publish
+        else
+            export _COMMAND=run
+            export _TARGET=publish
+        fi
+        shift
     ;;
     *)
         export _COMMAND=run

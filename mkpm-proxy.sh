@@ -27,7 +27,7 @@ _project_root() {
         echo "/"
         return
     fi
-    echo "$(_project_root $_PARENT)"
+    echo "$(_project_root "$_PARENT")"
     return
 }
 _is_mkpm_proxy_required() {
