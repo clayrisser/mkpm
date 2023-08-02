@@ -432,17 +432,38 @@ EOF
     else
         _GITIGNORE_CACHE=1
     fi
-    if [ ! -f "${PROJECT_ROOT}/.editorconfig" ] || ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]'); then
+    if [ ! -f "${PROJECT_ROOT}/.editorconfig" ] || \
+        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]') || \
+        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{m,M}akefile\]') || \
+        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[\*.mk\]'); then
         printf "add ${LIGHT_GREEN}.editorconfig${NOCOLOR} rules [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-            cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
-
+            echo >> "${PROJECT_ROOT}/.editorconfig"
+            if ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]'); then
+                cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
 [Mkpmfile]
 charset = utf-8
 indent_size = 4
 indent_style = tab
 EOF
+            fi
+            fi ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{m,M}akefile\]'); then
+                cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
+[{m,M}akefile]
+charset = utf-8
+indent_size = 4
+indent_style = tab
+EOF
+            fi
+            if ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[\*.mk\]'); then
+                cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
+[*.mk]
+charset = utf-8
+indent_size = 4
+indent_style = tab
+EOF
+            fi
             gsed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.editorconfig"
             gsed -i '1{/^$/d;}' "${PROJECT_ROOT}/.editorconfig"
         fi
