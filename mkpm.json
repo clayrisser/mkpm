@@ -7,6 +7,6 @@
     }
   },
   "repos": {
-    "default": "https://gitlab.com/bitspur/community/mkpm-stable.git"
+    "default": "https://gitlab.com/bitspur/mkpm/packages.git"
   }
 }

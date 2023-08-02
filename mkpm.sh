@@ -1,10 +1,10 @@
 #!/bin/sh
 
 MKPM_VERSION="<% MKPM_VERSION %>"
-DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/bitspur/community/mkpm-packages.git}"
-MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm.mk}"
-MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
-MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/${MKPM_VERSION}/mkpm-proxy.sh}"
+DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/bitspur/mkpm/packages.git}"
+MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.mk}"
+MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
+MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm-proxy.sh}"
 
 __0="$0"
 __ARGS="$@"
