@@ -59,9 +59,6 @@ fi
 _is_mkpm_proxy_required() {
     while test $# -gt 0; do
         case "$1" in
-            -)
-                return 1
-            ;;
             -h|--help)
                 return 1
             ;;
@@ -439,7 +436,7 @@ EOF
         printf "add ${LIGHT_GREEN}.editorconfig${NOCOLOR} rules [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-            cat <<EOF >> "${PROJECT_ROOT}/.gitignore"
+            cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
 
 [Mkpmfile]
 charset = utf-8
