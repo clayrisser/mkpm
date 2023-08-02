@@ -434,7 +434,7 @@ EOF
     fi
     if [ ! -f "${PROJECT_ROOT}/.editorconfig" ] || \
         ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]') || \
-        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{m,M}akefile\]') || \
+        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{M,m}akefile{,\.\*}\]') || \
         ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[\*.mk\]'); then
         printf "add ${LIGHT_GREEN}.editorconfig${NOCOLOR} rules [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
         read _RES
@@ -448,9 +448,9 @@ indent_size = 4
 indent_style = tab
 EOF
             fi
-            if ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{m,M}akefile\]'); then
+            if ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{M,m}akefile{,\.\*}\]'); then
                 cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
-[{m,M}akefile]
+[{M,m}akefile{,.*}]
 charset = utf-8
 indent_size = 4
 indent_style = tab
@@ -894,10 +894,8 @@ _help() {
     echo "    rr|repo-remove <REPO_NAME>            remove repo"
     echo "    reset                                 reset mkpm"
     echo "    init                                  initialize mkpm"
-    if [ "$_MKPM_PACKAGE" = "1" ]; then
-        echo "    pack                                  pack mkpm module"
-        echo "    publish                               pack and publish mkpm module"
-    fi
+    echo "    pack                                  pack mkpm module"
+    echo "    publish                               pack and publish mkpm module"
 }
 
 export ARCH=unknown
@@ -1040,17 +1038,6 @@ done
 
 if [ "$_IS_MKPM_COMMAND" = "1" ]; then
     case "$1" in
-        r|run)
-            export _COMMAND=run
-            shift
-            if test $# -gt 0; then
-                export _TARGET="$1"
-                shift
-            else
-                _error "no target specified"
-                exit 1
-            fi
-        ;;
         i|install)
             export _COMMAND=install
             shift
@@ -1133,21 +1120,11 @@ if [ "$_IS_MKPM_COMMAND" = "1" ]; then
             exit
         ;;
         pack)
-            if [ "$_MKPM_PACKAGE" = "1" ]; then
-                export _COMMAND=pack
-            else
-                export _COMMAND=run
-                export _TARGET=pack
-            fi
+            export _COMMAND=pack
             shift
         ;;
         publish)
-            if [ "$_MKPM_PACKAGE" = "1" ]; then
-                export _COMMAND=publish
-            else
-                export _COMMAND=run
-                export _TARGET=publish
-            fi
+            export _COMMAND=publish
             shift
         ;;
         *)
