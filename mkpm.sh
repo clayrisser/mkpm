@@ -125,7 +125,7 @@ export _MKPM_BIN="$MKPM/.bin"
 export _MKPM_PACKAGES="$MKPM/.pkgs"
 export _MKPM_TMP="$MKPM/.tmp"
 
-_MKPM_PACKAGE=$([ "$(cat "$PROJECT_ROOT/mkpm.json" 2>/dev/null | jq -r '.repo // ""')" = "" ] && true || echo 1)
+_MKPM_PACKAGE=$([ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.repo // ""')" = "" ] && true || echo 1)
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 
 main() {
@@ -268,7 +268,7 @@ _install() {
         exit 1
     fi
     _remove_package "$_PACKAGE_NAME"
-    cat "$MKPM_CONFIG" | \
+    cat "$MKPM_CONFIG" 2>/dev/null | \
         jq ".packages.${_REPO_NAME} += { \"${_PACKAGE_NAME}\": \"${_PACKAGE_VERSION}\" }" | \
         _sponge "$MKPM_CONFIG" >/dev/null
     mkdir -p "$_MKPM_PACKAGES/$_PACKAGE_NAME"
@@ -335,10 +335,10 @@ _repo_add() {
         _error "invalid repo uri $_REPO_URI"
         exit 1
     fi
-    cat "$MKPM_CONFIG" | \
+    cat "$MKPM_CONFIG" 2>/dev/null | \
         jq ".repos += { \"${_REPO_NAME}\": \"${_REPO_URI}\" }" | \
         _sponge "$MKPM_CONFIG" >/dev/null
-    cat "$MKPM_CONFIG" | \
+    cat "$MKPM_CONFIG" 2>/dev/null | \
         jq ".packages.${_REPO_NAME} += {}" | \
         _sponge "$MKPM_CONFIG" >/dev/null
     _echo "added repo $_REPO_NAME"
@@ -354,10 +354,10 @@ _repo_remove() {
     for p in $(_list_packages "$_REPO_NAME"); do
         _remove_package "$p"
     done
-    cat "$MKPM_CONFIG" | \
+    cat "$MKPM_CONFIG" 2>/dev/null | \
         jq "del(.repos.${_REPO_NAME})" | \
         _sponge "$MKPM_CONFIG" >/dev/null
-    cat "$MKPM_CONFIG" | \
+    cat "$MKPM_CONFIG" 2>/dev/null | \
         jq "del(.packages.${_REPO_NAME})" | \
         _sponge "$MKPM_CONFIG" >/dev/null
     _echo "removed repo $_REPO_NAME"
@@ -528,24 +528,24 @@ _lookup_system_package_name() {
 }
 
 _pack() {
-    _PACKAGE_NAME=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.name // ""')
+    _PACKAGE_NAME=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.name // ""')
     if [ "$_PACKAGE_NAME" = "" ]; then
         _error missing mkpm package name
         exit 1
     fi
-    if [ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.version // ""')" = "" ]; then
+    if [ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.version // ""')" = "" ]; then
         _error missing mkpm package version
         exit 1
     fi
-    if [ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.description // ""')" = "" ]; then
+    if [ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.description // ""')" = "" ]; then
         _error missing mkpm package description
         exit 1
     fi
-    if [ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.author // ""')" = "" ]; then
+    if [ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.author // ""')" = "" ]; then
         _error missing mkpm package author
         exit 1
     fi
-    if [ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.repo // ""')" = "" ]; then
+    if [ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.repo // ""')" = "" ]; then
         _error missing mkpm package repo
         exit 1
     fi
@@ -559,7 +559,7 @@ _pack() {
     if [ -f "$PROJECT_ROOT/LICENSE" ]; then
         cp "$PROJECT_ROOT/LICENSE" "$_PACK_DIR/LICENSE"
     fi
-    for f in $(cat "$MKPM_CONFIG" | jq -r '(.files // [])[]'); do
+    for f in $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '(.files // [])[]'); do
         if [ -f "$PROJECT_ROOT/$f" ]; then
             mkdir -p "$_PACK_DIR/$f"
             rm -rf "$_PACK_DIR/$f"
@@ -579,9 +579,9 @@ _publish() {
         rm -rf "$_REPO_PATH" 2>/dev/null
         exit $1
     }
-    _PACKAGE_NAME=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.name // ""')
-    _PACKAGE_VERSION=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.version // ""')
-    _PACKAGE_REPO=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.repo // ""')
+    _PACKAGE_NAME=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.name // ""')
+    _PACKAGE_VERSION=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.version // ""')
+    _PACKAGE_REPO=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.repo // ""')
     if [ "$_PACKAGE_NAME" = "" ]; then
         _error missing mkpm package name
         exit 1
@@ -747,12 +747,12 @@ _lookup_default_repo() {
 }
 
 _list_repos() {
-    cat "$MKPM_CONFIG" | jq -r '(.repos | keys)[]'
+    cat "$MKPM_CONFIG" 2>/dev/null | jq -r '(.repos | keys)[]'
 }
 
 _lookup_repo_uri() {
     _REPO="$1"
-    cat "$MKPM_CONFIG" | jq -r ".repos.$_REPO // \"\""
+    cat "$MKPM_CONFIG" 2>/dev/null | jq -r ".repos.$_REPO // \"\""
 }
 
 _lookup_repo_path() {
@@ -776,7 +776,7 @@ _update_repo() {
 
 _list_packages() {
     _REPO="$1"
-    for p in $(cat "$MKPM_CONFIG" | jq -r "(.packages.${_REPO} | keys)[]"); do
+    for p in $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r "(.packages.${_REPO} | keys)[]"); do
         echo "$p"
     done
 }
@@ -788,38 +788,38 @@ _remove_package() {
         "$MKPM/-$_PACKAGE_NAME" \
         "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null
     for r in $(_list_repos); do
-        cat "$MKPM_CONFIG" | \
+        cat "$MKPM_CONFIG" 2>/dev/null | \
             jq "del(.packages.${r}.${_PACKAGE_NAME})" | \
             _sponge "$MKPM_CONFIG" >/dev/null
     done
 }
 
 _validate_mkpm_config() {
-    if [ ! -f "$MKPM_CONFIG" ] || [ "$(cat "$MKPM_CONFIG" | jq -r '. | type')" != "object" ]; then
+    if [ ! -f "$MKPM_CONFIG" ] || [ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '. | type')" != "object" ]; then
         echo '{}' > "$MKPM_CONFIG"
     fi
-    cat "$MKPM_CONFIG" | \
+    cat "$MKPM_CONFIG" 2>/dev/null | \
         jq ".packages += {}" | \
         _sponge "$MKPM_CONFIG" >/dev/null
-    cat "$MKPM_CONFIG" | \
+    cat "$MKPM_CONFIG" 2>/dev/null | \
         jq ".repos += {}" | \
         _sponge "$MKPM_CONFIG" >/dev/null
-    if [ "$(cat "$MKPM_CONFIG" | jq '.repos | length')" = "0" ]; then
-        cat "$MKPM_CONFIG" | \
+    if [ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq '.repos | length')" = "0" ]; then
+        cat "$MKPM_CONFIG" 2>/dev/null | \
             jq ".repos += {\"default\": \"${DEFAULT_REPO}\"}" | \
             _sponge "$MKPM_CONFIG" >/dev/null
     fi
     for r in $(_list_repos); do
-        cat "$MKPM_CONFIG" | \
+        cat "$MKPM_CONFIG" 2>/dev/null | \
             jq ".packages.${r} += {}" | \
             _sponge "$MKPM_CONFIG" >/dev/null
     done
     _ERR=
-    for r in $(echo "$(_list_repos) $(cat "$MKPM_CONFIG" | jq -r '(.packages | keys)[]')" | tr ' ' '\n' | \
+    for r in $(echo "$(_list_repos) $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '(.packages | keys)[]')" | tr ' ' '\n' | \
         sort | uniq -c | grep -E "^\s+1\s" | gsed 's|\s\+[0-9]\+\s||g'); do
         _PACKAGES="$(_list_packages "$r")"
         if [ "$_PACKAGES" = "" ]; then
-            cat "$MKPM_CONFIG" | \
+            cat "$MKPM_CONFIG" 2>/dev/null | \
                 jq "del(.packages.${r})" | \
                 _sponge "$MKPM_CONFIG" >/dev/null
         else
@@ -829,7 +829,7 @@ _validate_mkpm_config() {
             done
         fi
     done
-    for p in $(cat "$MKPM_CONFIG" | jq -r '.packages[] | keys[]' | sort | uniq -c | grep -vE "^\s+1\s" | gsed 's|\s\+[0-9]\+\s||g'); do
+    for p in $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.packages[] | keys[]' | sort | uniq -c | grep -vE "^\s+1\s" | gsed 's|\s\+[0-9]\+\s||g'); do
         _error "package ${LIGHT_CYAN}$p${NOCOLOR} exists more than once"
         _ERR=1
     done
