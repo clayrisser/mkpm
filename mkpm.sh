@@ -583,7 +583,7 @@ _publish() {
     cp "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
     git add "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
     git commit "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -m "Publish $_PACKAGE_NAME version $_PACKAGE_VERSION" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
-    git tag "$_PACKAGE_NAME/$_PACKAGE_VERSION"
+    git tag "$_PACKAGE_NAME/$_PACKAGE_VERSION" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
     git push || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
     git push --tags || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
     rm -rf "$_REPO_PATH" 2>/dev/null || true
