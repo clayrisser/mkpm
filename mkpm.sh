@@ -121,7 +121,7 @@ export _MKPM_BIN="$MKPM/.bin"
 export _MKPM_PACKAGES="$MKPM/.pkgs"
 export _MKPM_TMP="$MKPM/.tmp"
 
-_MKPM_PACKAGE=$([ "$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.repo // ""')" = "" ] && true || echo 1)
+_MKPM_PACKAGE=$([ "$(cat "$PROJECT_ROOT/mkpm.json" 2>/dev/null | jq -r '.repo // ""')" = "" ] && true || echo 1)
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 
 main() {
@@ -837,6 +837,7 @@ _help() {
     echo "mkpm - makefile package manager"
     echo
     echo "mkpm [options] <TARGET> [...ARGS]"
+    echo "mkpm [options] - <COMMAND> [...ARGS]"
     echo
     echo "options:"
     echo "    -h, --help                            show brief help"
@@ -844,7 +845,6 @@ _help() {
     echo "    -d, --debug                           debug output"
     echo
     echo "commands:"
-    echo "    r|run <TARGET>                        run a target"
     echo "    u|upgrade                             upgrade all packages from default git repo"
     echo "    u|upgrade <REPO>                      upgrade all packages from git repo"
     echo "    u|upgrade <REPO> <PACKAGE>            upgrade a package from git repo"
@@ -968,6 +968,10 @@ fi
 
 while test $# -gt 0; do
     case "$1" in
+        -)
+            _IS_MKPM_COMMAND=1
+            shift
+        ;;
         -h|--help)
             _help
             exit
@@ -997,126 +1001,137 @@ while test $# -gt 0; do
     esac
 done
 
-case "$1" in
-    r|run)
-        export _COMMAND=run
-        shift
-        if test $# -gt 0; then
-            export _TARGET="$1"
+if [ "$_IS_MKPM_COMMAND" = "1" ]; then
+    case "$1" in
+        r|run)
+            export _COMMAND=run
             shift
-        else
-            _error "no target specified"
-            exit 1
-        fi
-    ;;
-    i|install)
-        export _COMMAND=install
-        shift
-        if test $# -gt 0; then
-            export _PARAM1="$1"
+            if test $# -gt 0; then
+                export _TARGET="$1"
+                shift
+            else
+                _error "no target specified"
+                exit 1
+            fi
+        ;;
+        i|install)
+            export _COMMAND=install
             shift
+            if test $# -gt 0; then
+                export _PARAM1="$1"
+                shift
+                if test $# -gt 0; then
+                    export _PARAM2="$1"
+                    shift
+                else
+                    export _PARAM2="$_PARAM1"
+                    export _PARAM1="$(_lookup_default_repo)"
+                fi
+            fi
+        ;;
+        rm|remove)
+            export _COMMAND=remove
+            shift
+            if test $# -gt 0; then
+                export _PARAM1="$1"
+                shift
+            else
+                _error "no package specified"
+                exit 1
+            fi
+        ;;
+        u|upgrade)
+            export _COMMAND=upgrade
+            shift
+            if test $# -gt 0; then
+                export _PARAM1="$1"
+                shift
+            else
+                export _PARAM1="$(_lookup_default_repo)"
+            fi
+            if test $# -gt 0; then
+                export _PARAM2="$1"
+                shift
+            fi
+        ;;
+        ra|repo-add)
+            export _COMMAND=repo-add
+            shift
+            if test $# -gt 0; then
+                export _PARAM1="$1"
+                shift
+            else
+                _error "no repo name specified"
+                exit 1
+            fi
             if test $# -gt 0; then
                 export _PARAM2="$1"
                 shift
             else
-                export _PARAM2="$_PARAM1"
-                export _PARAM1="$(_lookup_default_repo)"
+                _error "no repo uri specified"
+                exit 1
             fi
-        fi
-    ;;
-    rm|remove)
-        export _COMMAND=remove
-        shift
-        if test $# -gt 0; then
-            export _PARAM1="$1"
+        ;;
+        rr|repo-remove)
+            export _COMMAND=repo-remove
             shift
-        else
-            _error "no package specified"
-            exit 1
-        fi
-    ;;
-    u|upgrade)
-        export _COMMAND=upgrade
-        shift
-        if test $# -gt 0; then
-            export _PARAM1="$1"
+            if test $# -gt 0; then
+                export _PARAM1="$1"
+                shift
+            else
+                _error "no repo name specified"
+                exit 1
+            fi
+        ;;
+        init)
+            export _COMMAND=init
             shift
-        else
-            export _PARAM1="$(_lookup_default_repo)"
-        fi
-        if test $# -gt 0; then
-            export _PARAM2="$1"
+        ;;
+        reset)
+            export _COMMAND=reset
             shift
-        fi
-    ;;
-    ra|repo-add)
-        export _COMMAND=repo-add
-        shift
-        if test $# -gt 0; then
-            export _PARAM1="$1"
-            shift
-        else
-            _error "no repo name specified"
-            exit 1
-        fi
-        if test $# -gt 0; then
-            export _PARAM2="$1"
-            shift
-        else
-            _error "no repo uri specified"
-            exit 1
-        fi
-    ;;
-    rr|repo-remove)
-        export _COMMAND=repo-remove
-        shift
-        if test $# -gt 0; then
-            export _PARAM1="$1"
-            shift
-        else
-            _error "no repo name specified"
-            exit 1
-        fi
-    ;;
-    init)
-        export _COMMAND=init
-        shift
-    ;;
-    reset)
-        export _COMMAND=reset
-        shift
-    ;;
-    v|version)
-        _echo "$MKPM_VERSION"
-        exit
-    ;;
-    pack)
-        if [ "$_MKPM_PACKAGE" = "1" ]; then
-            export _COMMAND=pack
-        else
-            export _COMMAND=run
-            export _TARGET=pack
-        fi
-        shift
-    ;;
-    publish)
-        if [ "$_MKPM_PACKAGE" = "1" ]; then
-            export _COMMAND=publish
-        else
-            export _COMMAND=run
-            export _TARGET=publish
-        fi
-        shift
-    ;;
-    *)
-        export _COMMAND=run
-        export _TARGET="$1"
-        if [ "$_TARGET" = "" ]; then
-            _help
+        ;;
+        v|version)
+            _echo "$MKPM_VERSION"
             exit
-        fi
+        ;;
+        pack)
+            if [ "$_MKPM_PACKAGE" = "1" ]; then
+                export _COMMAND=pack
+            else
+                export _COMMAND=run
+                export _TARGET=pack
+            fi
+            shift
+        ;;
+        publish)
+            if [ "$_MKPM_PACKAGE" = "1" ]; then
+                export _COMMAND=publish
+            else
+                export _COMMAND=run
+                export _TARGET=publish
+            fi
+            shift
+        ;;
+        *)
+            export _COMMAND=run
+            export _TARGET="$1"
+            if [ "$_TARGET" = "" ]; then
+                _help
+                exit
+            else
+                shift
+            fi
+        ;;
+    esac
+else
+    export _COMMAND=run
+    export _TARGET="$1"
+    if [ "$_TARGET" = "" ]; then
+        export _TARGET=help
+    else
         shift
-    ;;
-esac
+    fi
+fi
 
 main "$@"

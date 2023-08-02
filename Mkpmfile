@@ -3,7 +3,7 @@
 # File Created: 26-09-2021 00:47:48
 # Author: Clay Risser
 # -----
-# Last Modified: 30-07-2023 15:50:48
+# Last Modified: 02-08-2023 06:25:02
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021
@@ -83,5 +83,9 @@ clean: ##
 .PHONY: purge
 purge: clean ##
 	@$(GIT) clean -fXd
+
+.PHONY: help
+help:
+	@$(ECHO) help not implemented
 
 -include $(call actions)
