@@ -570,11 +570,10 @@ _publish() {
         _error missing mkpm package repo
         exit 1
     fi
-    _REPO_URI="$(_lookup_repo_uri $_PACKAGE_REPO)"
     _REPO_PATH="$(mktemp -d)/repo"
-    _echo "publishing package $_PACKAGE_NAME=$_PACKAGE_VERSION to repo $_REPO_URI"
+    _echo "publishing package $_PACKAGE_NAME=$_PACKAGE_VERSION to repo $_PACKAGE_REPO"
     if [ ! -d "$_REPO_PATH" ]; then
-        git clone -q --depth 1 "$_REPO_URI" "$_REPO_PATH" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
+        git clone -q --depth 1 "$_PACKAGE_REPO" "$_REPO_PATH" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
     fi
     cd "$_REPO_PATH"
     git config advice.detachedHead false >/dev/null
