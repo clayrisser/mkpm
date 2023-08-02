@@ -555,6 +555,11 @@ _pack() {
 }
 
 _publish() {
+    _exit() {
+        cd "$_CWD"
+        rm -rf "$_REPO_PATH" 2>/dev/null
+        exit $1
+    }
     _PACKAGE_NAME=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.name // ""')
     _PACKAGE_VERSION=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.version // ""')
     _PACKAGE_REPO=$(cat "$PROJECT_ROOT/mkpm.json" | jq -r '.repo // ""')
@@ -573,20 +578,20 @@ _publish() {
     _REPO_PATH="$(mktemp -d)/repo"
     _echo "publishing package $_PACKAGE_NAME=$_PACKAGE_VERSION to repo $_PACKAGE_REPO"
     if [ ! -d "$_REPO_PATH" ]; then
-        git clone -q --depth 1 "$_PACKAGE_REPO" "$_REPO_PATH" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
+        git clone -q --depth 1 "$_PACKAGE_REPO" "$_REPO_PATH" || _exit 1
     fi
     cd "$_REPO_PATH"
     git config advice.detachedHead false >/dev/null
     git config lfs.locksverify true >/dev/null
-    git fetch -q --depth 1 --tags || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
+    git fetch -q --depth 1 --tags || _exit 1
     mkdir -p "$_PACKAGE_NAME"
     cp "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
     git add "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
-    git commit "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -m "Publish $_PACKAGE_NAME version $_PACKAGE_VERSION" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
-    git tag "$_PACKAGE_NAME/$_PACKAGE_VERSION" || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
-    git push || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
-    git push --tags || (rm -rf "$_REPO_PATH" 2>/dev/null; exit 1)
-    rm -rf "$_REPO_PATH" 2>/dev/null || true
+    git commit "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -m "Publish $_PACKAGE_NAME version $_PACKAGE_VERSION" || _exit 1
+    git tag "$_PACKAGE_NAME/$_PACKAGE_VERSION" || _exit 1
+    git push || _exit 1
+    git push --tags || _exit 1
+    _exit
 }
 
 _PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
