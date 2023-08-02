@@ -448,7 +448,7 @@ indent_size = 4
 indent_style = tab
 EOF
             fi
-            fi ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{m,M}akefile\]'); then
+            if ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{m,M}akefile\]'); then
                 cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
 [{m,M}akefile]
 charset = utf-8
