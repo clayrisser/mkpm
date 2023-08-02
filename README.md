@@ -23,7 +23,7 @@ You can install it with the following command.
 $(curl --version >/dev/null 2>/dev/null && echo curl -L || echo wget -O-) https://gitlab.com/api/v4/projects/33018371/packages/generic/mkpm/1.0.0/install.sh 2>/dev/null | sh
 ```
 
-->![](assets/mkpm.png)<-
+![](assets/mkpm.png)
 
 ## Usage
 
