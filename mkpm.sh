@@ -59,6 +59,9 @@ fi
 _is_mkpm_proxy_required() {
     while test $# -gt 0; do
         case "$1" in
+            -)
+                return 1
+            ;;
             -h|--help)
                 return 1
             ;;
@@ -108,6 +111,7 @@ if [ "$PROJECT_ROOT" = "/" ]; then
         _error "not an mkpm project" && exit 1
     else
         PROJECT_ROOT="$_CWD"
+        _IS_MKPM_COMMAND=1
     fi
 fi
 _MKPM_ROOT_NAME=".mkpm"
@@ -408,7 +412,7 @@ cat <<EOF > "$_CWD/Makefile"
 MKPM := $([ -f "${PROJECT_ROOT}/mkpm" ] && echo ./mkpm || echo mkpm)
 .PHONY: %
 %:
-	@\$(MKPM) run "\$@" \$(ARGS)
+	@\$(MKPM) "\$@" \$(ARGS)
 EOF
             _echo generated ${LIGHT_GREEN}Makefile${NOCOLOR}
         fi
@@ -430,6 +434,21 @@ EOF
         fi
     else
         _GITIGNORE_CACHE=1
+    fi
+    if [ ! -f "${PROJECT_ROOT}/.editorconfig" ] || ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]'); then
+        printf "add ${LIGHT_GREEN}.editorconfig${NOCOLOR} rules [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        read _RES
+        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+            cat <<EOF >> "${PROJECT_ROOT}/.gitignore"
+
+[Mkpmfile]
+charset = utf-8
+indent_size = 4
+indent_style = tab
+EOF
+            gsed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.editorconfig"
+            gsed -i '1{/^$/d;}' "${PROJECT_ROOT}/.editorconfig"
+        fi
     fi
     if [ ! -f "${PROJECT_ROOT}/.gitignore" ] || ! (cat "${PROJECT_ROOT}/.gitignore" | grep -qE '^\.mkpm/mkpm'); then
         printf "add ${LIGHT_GREEN}.gitignore${NOCOLOR} rules [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
@@ -1114,14 +1133,8 @@ if [ "$_IS_MKPM_COMMAND" = "1" ]; then
             shift
         ;;
         *)
-            export _COMMAND=run
-            export _TARGET="$1"
-            if [ "$_TARGET" = "" ]; then
-                _help
-                exit
-            else
-                shift
-            fi
+            _help
+            exit
         ;;
     esac
 else
