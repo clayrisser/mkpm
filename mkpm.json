@@ -1,10 +1,6 @@
 {
   "packages": {
-    "default": {
-      "gnu": "0.2.1",
-      "hello": "0.2.1",
-      "mkchain": "0.0.15"
-    }
+    "default": {}
   },
   "repos": {
     "default": "https://gitlab.com/bitspur/mkpm/packages.git"

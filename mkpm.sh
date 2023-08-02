@@ -600,6 +600,8 @@ _publish() {
     _PACKAGE_NAME=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.name // ""')
     _PACKAGE_VERSION=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.version // ""')
     _PACKAGE_REPO=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.repo // ""')
+    _PACKAGE_DESCRIPTION=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.description // ""')
+    _PACKAGE_AUTHOR=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.author // ""')
     if [ "$_PACKAGE_NAME" = "" ]; then
         _error missing mkpm package name
         exit 1
@@ -610,6 +612,14 @@ _publish() {
     fi
     if [ "$_PACKAGE_REPO" = "" ]; then
         _error missing mkpm package repo
+        exit 1
+    fi
+    if [ "$_PACKAGE_DESCRIPTION" = "" ]; then
+        _error missing mkpm package description
+        exit 1
+    fi
+    if [ "$_PACKAGE_AUTHOR" = "" ]; then
+        _error missing mkpm package author
         exit 1
     fi
     _REPO_PATH="$(mktemp -d)/repo"
@@ -623,6 +633,7 @@ _publish() {
     git fetch -q --depth 1 --tags || _exit 1
     mkdir -p "$_PACKAGE_NAME"
     cp "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
+    _write_package_to_readme "README.md" "$_PACKAGE_NAME" "$_PACKAGE_REPO" "$_PACKAGE_VERSION" "$_PACKAGE_DESCRIPTION" "$_PACKAGE_AUTHOR"
     git add "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
     git commit "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -m "Publish $_PACKAGE_NAME version $_PACKAGE_VERSION" || _exit 1
     git tag "$_PACKAGE_NAME/$_PACKAGE_VERSION" || _exit 1
@@ -854,6 +865,60 @@ _validate_mkpm_config() {
     if [ "$_ERR" = "1" ]; then
         exit 1
     fi
+}
+
+_write_package_to_readme() {
+    _README_MD="$1"
+    _PACKAGE_NAME="$2"
+    _PACKAGE_REPO="$3"
+    _PACKAGE_VERSION="$4"
+    _PACKAGE_DESCRIPTION="$5"
+    _PACKAGE_AUTHOR="$6"
+    if [ ! -f "$_README_MD" ]; then
+        cat <<EOF > "$_README_MD"
+# mkpm packages
+
+> mkpm packages
+EOF
+    fi
+    if ! (cat "$_README_MD" | grep -qE '^\|[^|]*Package[^|]*\|[^|]*Version[^|]*\|[^|]*Description[^|]*\|[^|]*Author[^|]*\|'); then
+        cat <<EOF >> "$_README_MD"
+## Packages
+
+| Package | Version | Description | Author |
+| ------- | ------- | ----------- | ------ |
+EOF
+    fi
+    if cat "$_README_MD" | grep -qE "^\|[^|]*${_PACKAGE_NAME}[^|]*\|[^|]*\|[^|]*\|[^|]*\|"; then
+        sed -i "s/^|[^|]*${_PACKAGE_NAME}[^|]*|[^|]*|[^|]*|[^|]*|/| [${_PACKAGE_NAME}]($(echo "$_PACKAGE_REPO" | sed 's|/|\\\/|g')) | ${_PACKAGE_VERSION} | ${_PACKAGE_DESCRIPTION} | ${_PACKAGE_AUTHOR} |/g" "$_README_MD"
+    else
+        python3 -c "
+import re
+filename = '$_README_MD'
+new_row = '| [${_PACKAGE_NAME}](${_PACKAGE_REPO}) | ${_PACKAGE_VERSION} | ${_PACKAGE_DESCRIPTION} | ${_PACKAGE_AUTHOR} |'
+with open(filename, 'r') as file:
+    lines = file.readlines()
+in_table = False
+table = []
+for i, line in enumerate(lines):
+    if re.match(r'\|.*\|', line.strip()):
+        if not in_table:
+            in_table = True
+        table.append(line)
+    else:
+        if in_table:
+            lines[i] = new_row + '\n' + line
+            in_table = False
+            table = []
+if in_table:
+    lines.append(new_row + '\n')
+with open(filename, 'w') as file:
+    file.writelines(lines)
+"
+    fi
+    pandoc -f markdown -t gfm -o "$_README_MD" "$_README_MD"
+    sed -i 's/|-/| /g' "$_README_MD"
+    sed -i 's/-|/ |/g' "$_README_MD"
 }
 
 _sponge() {
