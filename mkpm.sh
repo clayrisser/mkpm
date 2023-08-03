@@ -115,12 +115,14 @@ _MKPM_ROOT_NAME=".mkpm"
 export MKPM_ROOT="$PROJECT_ROOT/$_MKPM_ROOT_NAME"
 export MKPM="$MKPM_ROOT/mkpm"
 export MKPM_CONFIG="$PROJECT_ROOT/mkpm.json"
+export MKPM_BIN="$MKPM/.bin"
+export MKPM_TMP="$MKPM/.tmp"
 _debug PROJECT_ROOT=\"$PROJECT_ROOT\"
 _debug MKPM_CONFIG=\"$MKPM_CONFIG\"
 _debug MKPM_ROOT=\"$MKPM_ROOT\"
-export _MKPM_BIN="$MKPM/.bin"
+_debug MKPM_BIN=\"$MKPM_BIN\"
+_debug MKPM_TMP=\"$MKPM_TMP\"
 export _MKPM_PACKAGES="$MKPM/.pkgs"
-export _MKPM_TMP="$MKPM/.tmp"
 
 _MKPM_PACKAGE=$([ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.repo // ""')" = "" ] && true || echo 1)
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
@@ -740,25 +742,25 @@ _ensure_mkpm_mk() {
 
 _ensure_mkpm_sh() {
     if [ "$_MKPM_TEST" = "1" ]; then
-        mkdir -p "$_MKPM_BIN"
-        if [ ! -f "$_MKPM_BIN/mkpm" ]; then
+        mkdir -p "$MKPM_BIN"
+        if [ ! -f "$MKPM_BIN/mkpm" ]; then
             if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
                 _restore_from_cache
             else
-                cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
+                cp "$PROJECT_ROOT/mkpm.sh" "$MKPM_BIN/mkpm"
                 _debug downloaded mkpm.sh
             fi
         fi
-        chmod +x "$_MKPM_BIN/mkpm"
-    elif [ ! -f "$_MKPM_BIN/mkpm" ]; then
-        mkdir -p "$_MKPM_BIN"
+        chmod +x "$MKPM_BIN/mkpm"
+    elif [ ! -f "$MKPM_BIN/mkpm" ]; then
+        mkdir -p "$MKPM_BIN"
         if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
             _restore_from_cache
         else
-            download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
+            download "$MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
             _debug downloaded mkpm.sh
         fi
-        chmod +x "$_MKPM_BIN/mkpm"
+        chmod +x "$MKPM_BIN/mkpm"
     fi
 }
 
@@ -1077,21 +1079,21 @@ if [ "$FLAVOR" = "unknown" ]; then
     FLAVOR="$OS"
 fi
 
-if [ "$_SCRIPT_PATH" != "${_MKPM_BIN}/mkpm" ]; then
-    if [ -f "${_MKPM_BIN}/mkpm" ] || [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
-        if [ ! -f "$_MKPM_BIN/mkpm" ]; then
-            mkdir -p "$_MKPM_BIN"
+if [ "$_SCRIPT_PATH" != "${MKPM_BIN}/mkpm" ]; then
+    if [ -f "${MKPM_BIN}/mkpm" ] || [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
+        if [ ! -f "$MKPM_BIN/mkpm" ]; then
+            mkdir -p "$MKPM_BIN"
             if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
                 _restore_from_cache
             else
-                download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
+                download "$MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
                 _debug downloaded mkpm.sh
             fi
-            chmod +x "$_MKPM_BIN/mkpm"
+            chmod +x "$MKPM_BIN/mkpm"
         fi
         _ensure_mkpm_sh
-        _debug "proxied ${LIGHT_GREEN}$_MKPM_BIN/mkpm $@${NOCOLOR}"
-        exec "$_MKPM_BIN/mkpm" "$@"
+        _debug "proxied ${LIGHT_GREEN}$MKPM_BIN/mkpm $@${NOCOLOR}"
+        exec "$MKPM_BIN/mkpm" "$@"
     fi
 fi
 

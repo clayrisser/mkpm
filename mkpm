@@ -57,9 +57,9 @@ if [ "$PROJECT_ROOT" = "/" ]; then
 fi
 export MKPM_ROOT="$PROJECT_ROOT/.mkpm"
 export MKPM="$MKPM_ROOT/mkpm"
-export _MKPM_BIN="$MKPM/.bin"
-mkdir -p "$_MKPM_BIN"
-if [ ! -f "$_MKPM_BIN/mkpm" ]; then
+export MKPM_BIN="$MKPM/.bin"
+mkdir -p "$MKPM_BIN"
+if [ ! -f "$MKPM_BIN/mkpm" ]; then
     if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
         mkdir -p "$MKPM"
         cd "$MKPM"
@@ -67,13 +67,13 @@ if [ ! -f "$_MKPM_BIN/mkpm" ]; then
         cd "$_CWD"
         _debug restored cache
     else
-        cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
+        cp "$PROJECT_ROOT/mkpm.sh" "$MKPM_BIN/mkpm"
         _debug downloaded mkpm.sh
     fi
-    chmod +x "$_MKPM_BIN/mkpm"
-elif [ "$PROJECT_ROOT/mkpm.sh" -nt "$_MKPM_BIN/mkpm" ]; then
+    chmod +x "$MKPM_BIN/mkpm"
+elif [ "$PROJECT_ROOT/mkpm.sh" -nt "$MKPM_BIN/mkpm" ]; then
     export _MKPM_RESET_CACHE=1
-    cp "$PROJECT_ROOT/mkpm.sh" "$_MKPM_BIN/mkpm"
-    chmod +x "$_MKPM_BIN/mkpm"
+    cp "$PROJECT_ROOT/mkpm.sh" "$MKPM_BIN/mkpm"
+    chmod +x "$MKPM_BIN/mkpm"
 fi
-exec "$_MKPM_BIN/mkpm" "$@"
+exec "$MKPM_BIN/mkpm" "$@"
