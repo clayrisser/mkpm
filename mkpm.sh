@@ -635,8 +635,9 @@ _publish() {
     git fetch -q --depth 1 --tags || _exit 1
     mkdir -p "$_PACKAGE_NAME"
     cp "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
-    _write_package_to_readme "README.md" "$_PACKAGE_NAME" "$_PACKAGE_REPO" "$_PACKAGE_VERSION" "$_PACKAGE_DESCRIPTION" "$_PACKAGE_AUTHOR"
+    _write_package_to_readme "$_REPO_PATH/README.md" "$_PACKAGE_NAME" "$_PACKAGE_REPO" "$_PACKAGE_VERSION" "$_PACKAGE_DESCRIPTION" "$_PACKAGE_AUTHOR"
     git add "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz"
+    git add "$_REPO_PATH/README.md"
     git commit "$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -m "Publish $_PACKAGE_NAME version $_PACKAGE_VERSION" || _exit 1
     git tag "$_PACKAGE_NAME/$_PACKAGE_VERSION" || _exit 1
     git push || _exit 1
