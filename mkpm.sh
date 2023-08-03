@@ -592,6 +592,8 @@ _pack() {
 }
 
 _publish() {
+    _require_system_binary python3
+    _require_system_binary pandoc
     _exit() {
         cd "$_CWD"
         rm -rf "$_REPO_PATH" 2>/dev/null
@@ -651,10 +653,25 @@ _lookup_system_package_install_command() {
             echo "$PKG_MANAGER add --no-cache $_PACKAGE"
         ;;
         brew)
-            echo "$PKG_MANAGER install $_PACKAGE"
+            case "$PKG_MANAGER" in
+                python3)
+                    echo "$PKG_MANAGER install python"
+                ;;
+                *)
+                    echo "$PKG_MANAGER install $_PACKAGE"
+                ;;
         ;;
         choco)
             echo "$PKG_MANAGER install /y $_PACKAGE"
+        ;;
+        apt-get)
+            case "$PKG_MANAGER" in
+                python3)
+                    echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y python3-minimal"
+                ;;
+                *)
+                    echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
+                ;;
         ;;
         *)
             echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
@@ -882,12 +899,12 @@ _write_package_to_readme() {
 EOF
     fi
     if ! (cat "$_README_MD" | grep -qE '^\|[^|]*Package[^|]*\|[^|]*Version[^|]*\|[^|]*Description[^|]*\|[^|]*Author[^|]*\|'); then
-        cat <<EOF >> "$_README_MD"
+        echo "
 ## Packages
 
 | Package | Version | Description | Author |
 | ------- | ------- | ----------- | ------ |
-EOF
+" >> "$_README_MD"
     fi
     if cat "$_README_MD" | grep -qE "^\|[^|]*${_PACKAGE_NAME}[^|]*\|[^|]*\|[^|]*\|[^|]*\|"; then
         sed -i "s/^|[^|]*${_PACKAGE_NAME}[^|]*|[^|]*|[^|]*|[^|]*|/| [${_PACKAGE_NAME}]($(echo "$_PACKAGE_REPO" | sed 's|/|\\\/|g')) | ${_PACKAGE_VERSION} | ${_PACKAGE_DESCRIPTION} | ${_PACKAGE_AUTHOR} |/g" "$_README_MD"
