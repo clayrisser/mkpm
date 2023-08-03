@@ -3,7 +3,7 @@
 # File Created: 04-12-2021 02:15:12
 # Author: Clay Risser
 # -----
-# Last Modified: 30-07-2023 15:26:34
+# Last Modified: 03-08-2023 05:33:04
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021
@@ -29,14 +29,14 @@ export MKPM_VERSION := <% MKPM_VERSION %>
 export LC_ALL := C
 export MAKESHELL ?= $(SHELL)
 
+export ECHO := echo
+export TRUE := true
+export WHICH := command -v
+
 export BANG := \!
 export NULL := /dev/null
 export NOFAIL := 2>$(NULL) || $(TRUE)
 export NOOUT := >$(NULL) 2>&1
-
-export ECHO := echo
-export TRUE := true
-export WHICH := command -v
 
 define ternary
 $(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
