@@ -660,6 +660,7 @@ _lookup_system_package_install_command() {
                 *)
                     echo "$PKG_MANAGER install $_PACKAGE"
                 ;;
+            esac
         ;;
         choco)
             echo "$PKG_MANAGER install /y $_PACKAGE"
@@ -672,6 +673,7 @@ _lookup_system_package_install_command() {
                 *)
                     echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
                 ;;
+            esac
         ;;
         *)
             echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
@@ -887,7 +889,7 @@ _validate_mkpm_config() {
 _write_package_to_readme() {
     _README_MD="$1"
     _PACKAGE_NAME="$2"
-    _PACKAGE_REPO="$3"
+    _PACKAGE_REPO="$(echo "$3" | sed 's|git\@\([^:]\+\):|https:\/\/\1\/|')"
     _PACKAGE_VERSION="$4"
     _PACKAGE_DESCRIPTION="$5"
     _PACKAGE_AUTHOR="$6"
