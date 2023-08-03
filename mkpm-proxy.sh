@@ -59,9 +59,9 @@ if [ "$PROJECT_ROOT" = "/" ]; then
 fi
 MKPM_ROOT="$PROJECT_ROOT/.mkpm"
 MKPM="$MKPM_ROOT/mkpm"
-_MKPM_BIN="$MKPM/.bin"
-if [ ! -f "$_MKPM_BIN/mkpm" ]; then
-    mkdir -p "$_MKPM_BIN"
+MKPM_BIN="$MKPM/.bin"
+if [ ! -f "$MKPM_BIN/mkpm" ]; then
+    mkdir -p "$MKPM_BIN"
     if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
         mkdir -p "$MKPM"
         cd "$MKPM"
@@ -69,9 +69,9 @@ if [ ! -f "$_MKPM_BIN/mkpm" ]; then
         cd "$_CWD"
         _debug restored cache
     else
-        download "$_MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
+        download "$MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
         _debug downloaded mkpm.sh
     fi
-    chmod +x "$_MKPM_BIN/mkpm"
+    chmod +x "$MKPM_BIN/mkpm"
 fi
-exec "$_MKPM_BIN/mkpm" "$@"
+exec "$MKPM_BIN/mkpm" "$@"
