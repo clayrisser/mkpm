@@ -371,13 +371,8 @@ _init() {
         if [ ! -f "${PROJECT_ROOT}/.vscode/settings.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/settings.json" | jq -r '. | type')" != "object" ]; then
             echo '{}' > "${PROJECT_ROOT}/.vscode/settings.json"
         fi
-        if [ ! -f "${PROJECT_ROOT}/.vscode/extensions.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq -r '. | type')" != "object" ]; then
-            echo '{}' > "${PROJECT_ROOT}/.vscode/extensions.json"
-        fi
         cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.["files.associations"] += { "Mkpmfile": "makefile" }' | \
             _sponge "${PROJECT_ROOT}/.vscode/settings.json" >/dev/null
-        cat "${PROJECT_ROOT}/.vscode/extensions.json" | jq '.recommendations += ["ms-vscode.makefile-tools"] | .recommendations |= unique' | \
-            _sponge "${PROJECT_ROOT}/.vscode/extensions.json" >/dev/null
         _echo "added vscode settings"
     fi
     printf "add mkpm binary [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
