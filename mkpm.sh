@@ -32,7 +32,7 @@ _SCRIPT_PATH="$(dirname "$(readlink -f "$0")")/$_SCRIPT_NAME"
 _STATE_PATH="${XDG_STATE_HOME:-$HOME/.local/state}/mkpm"
 _REPOS_PATH="$_STATE_PATH/repos"
 _REPOS_LIST_PATH="$_STATE_PATH/repos.list"
-_SUPPORTS_COLORS=$( (which tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null)" -ge 8 ]) && echo 1 || true)
+_SUPPORTS_COLORS=$( (which tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]) && echo 1 || true)
 export GIT_LFS_SKIP_SMUDGE=1
 export LC_ALL=C
 

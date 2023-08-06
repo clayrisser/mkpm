@@ -4,7 +4,7 @@ MKPM_VERSION="<% MKPM_VERSION %>"
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
 alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
-_SUPPORTS_COLORS=$( (which tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null)" -ge 8 ]) && echo 1 || true)
+_SUPPORTS_COLORS=$( (which tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]) && echo 1 || true)
 _CWD="$(pwd)"
 if [ "$_SUPPORTS_COLORS" = "1" ]; then
     export NOCOLOR='\033[0m'
