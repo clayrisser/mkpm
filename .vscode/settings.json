@@ -163,5 +163,8 @@
   "psi-header.license-reference": {
     "uri": "../LICENSE",
     "uriIsLocalFile": true
+  },
+  "files.associations": {
+    "Mkpmfile": "makefile"
   }
 }
