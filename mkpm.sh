@@ -12,7 +12,6 @@ __ARGS="$@"
 alias which="command -v"
 alias download="$(which curl >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
 alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
-alias make="$(which gmake >/dev/null 2>&1 && echo gmake || echo make)"
 alias sed="$(which gsed >/dev/null 2>&1 && echo gsed || echo sed)"
 alias tar="$(which gtar >/dev/null 2>&1 && echo gtar || echo tar)"
 
@@ -172,7 +171,6 @@ main() {
             _error "init must be run from the root of a git project"
             exit 1
         fi
-
         _prepare
         _init
     elif [ "$_COMMAND" = "pack" ]; then
@@ -191,12 +189,17 @@ main() {
 _run() {
     _TARGET="$1"
     shift
+    if [ "$PLATFORM" = "darwin" ]; then
+        _MAKE="$(which remake >/dev/null 2>&1 && echo remake || echo make)"
+    else
+        _MAKE="$(which gmake >/dev/null 2>&1 && echo gmake || echo make)"
+    fi
     _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
     _MAKEFILE="Mkpmfile"
     if [ ! -f "$_MAKEFILE" ]; then
         _MAKEFILE="Makefile"
     fi
-    _debug "$_ARGS_ENV_NAME=\"$@\" make -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
+    _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
     _TMP_PIPE_DIR="$(mktemp -d)"
     _TMP_PIPE="$_TMP_PIPE_DIR/stderr"
     mkfifo "$_TMP_PIPE"
@@ -208,7 +211,7 @@ _run() {
             grep -v 'warning: ignoring old recipe for target' >&2 &
         _PIPE_PID=$!
     fi
-    eval "$_ARGS_ENV_NAME=\"$@\" make -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\"" 2> "$_TMP_PIPE"
+    eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\"" 2> "$_TMP_PIPE"
     _CODE="$?"
     wait "$_PIPE_PID"
     rm -rf "$_TMP_PIPE_DIR"
@@ -508,7 +511,7 @@ _prepare() {
             _require_system_binary tar --version
         fi
         if [ "$PLATFORM" = "darwin" ]; then
-            _require_system_binary gmake --version
+            _require_system_binary remake --version
         else
             _require_system_binary make --version
         fi
@@ -533,6 +536,29 @@ _prepare() {
 _lookup_system_package_name() {
     _BINARY="$1"
     case "$_BINARY" in
+        gtar)
+            case "$PKG_MANAGER" in
+                brew)
+                    echo gnu-tar
+                ;;
+                *)
+                    echo "$_BINARY"
+                ;;
+            esac
+        ;;
+        python3)
+            case "$PKG_MANAGER" in
+                brew)
+                    echo python
+                ;;
+                apt-get)
+                    echo python3-minimal
+                ;;
+                *)
+                    echo "$_BINARY"
+                ;;
+            esac
+        ;;
         *)
             echo "$_BINARY"
         ;;
@@ -651,39 +677,16 @@ _publish() {
 _PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
 _lookup_system_package_install_command() {
     _BINARY="$1"
-    _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || "$2")"
+    _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || echo "$2")"
     case "$PKG_MANAGER" in
         apk)
             echo "$PKG_MANAGER add --no-cache $_PACKAGE"
         ;;
         brew)
-            case "$_PACKAGE" in
-                gmake)
-                    echo "$PKG_MANAGER install make"
-                ;;
-                gtar)
-                    echo "$PKG_MANAGER install gnu-tar"
-                ;;
-                python3)
-                    echo "$PKG_MANAGER install python"
-                ;;
-                *)
-                    echo "$PKG_MANAGER install $_PACKAGE"
-                ;;
-            esac
+            echo "$PKG_MANAGER install $_PACKAGE"
         ;;
         choco)
             echo "$PKG_MANAGER install /y $_PACKAGE"
-        ;;
-        apt-get)
-            case "$_PACKAGE" in
-                python3)
-                    echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y python3-minimal"
-                ;;
-                *)
-                    echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
-                ;;
-            esac
         ;;
         *)
             echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
@@ -696,7 +699,7 @@ _require_system_binary() {
     shift
     _ARGS="$@"
     _SYSTEM_PACKAGE_NAME="$(_lookup_system_package_name "$_SYSTEM_BINARY")"
-    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_PACKAGE_NAME")"
+    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_BINARY" "$_SYSTEM_PACKAGE_NAME")"
     if ! ([ "$_ARGS" = "" ] && which "$_SYSTEM_BINARY" || "$_SYSTEM_BINARY" "$_ARGS") >/dev/null 2>&1; then
         _error $_SYSTEM_BINARY is not installed on your system
         printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
