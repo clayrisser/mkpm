@@ -3,7 +3,7 @@
 # File Created: 01-08-2023 09:35:38
 # Author: Clay Risser
 # -----
-# Last Modified: 01-08-2023 09:35:39
+# Last Modified: 28-08-2023 23:46:26
 # Modified By: Clay Risser
 # -----
 # BitSpur (c) Copyright 2021 - 2023
@@ -19,4 +19,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
