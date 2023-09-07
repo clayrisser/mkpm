@@ -310,7 +310,6 @@ _upgrade() {
     _update_repo "$_REPO_URI" "$_REPO_PATH" "$_REPO_NAME"
     if [ "$_PACKAGE_NAME" = "" ]; then
         for p in $(_list_packages "$_REPO_NAME"); do
-            echo _install "$_REPO_URI" "$_REPO_NAME" "$p"
             _install "$_REPO_URI" "$_REPO_NAME" "$p"
         done
     else
