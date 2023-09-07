@@ -37,23 +37,23 @@ export GIT_LFS_SKIP_SMUDGE=1
 export LC_ALL=C
 
 if [ "$_SUPPORTS_COLORS" = "1" ]; then
-    export NOCOLOR='\033[0m'
-    export WHITE='\033[1;37m'
-    export BLACK='\033[0;30m'
-    export RED='\033[31m'
-    export GREEN='\033[32m'
-    export YELLOW='\033[33m'
-    export BLUE='\033[34m'
-    export PURPLE='\033[35m'
-    export CYAN='\033[36m'
-    export LIGHT_GRAY='\033[37m'
-    export DARK_GRAY='\033[1;30m'
-    export LIGHT_RED='\033[1;31m'
-    export LIGHT_GREEN='\033[1;32m'
-    export LIGHT_YELLOW='\033[1;33m'
-    export LIGHT_BLUE='\033[1;34m'
-    export LIGHT_PURPLE='\033[1;35m'
-    export LIGHT_CYAN='\033[1;36m'
+    export C_END='\033[0m'
+    export C_WHITE='\033[1;37m'
+    export C_BLACK='\033[0;30m'
+    export C_RED='\033[31m'
+    export C_GREEN='\033[32m'
+    export C_YELLOW='\033[33m'
+    export C_BLUE='\033[34m'
+    export C_PURPLE='\033[35m'
+    export C_CYAN='\033[36m'
+    export C_LIGHT_GRAY='\033[37m'
+    export C_DARK_GRAY='\033[1;30m'
+    export C_LIGHT_RED='\033[1;31m'
+    export C_LIGHT_GREEN='\033[1;32m'
+    export C_LIGHT_YELLOW='\033[1;33m'
+    export C_LIGHT_BLUE='\033[1;34m'
+    export C_LIGHT_PURPLE='\033[1;35m'
+    export C_LIGHT_CYAN='\033[1;36m'
 fi
 
 _is_mkpm_proxy_required() {
@@ -77,11 +77,11 @@ _is_mkpm_proxy_required() {
 }
 _MKPM_PROXY_REQUIRED=$(_is_mkpm_proxy_required "$@" && echo 1 || true)
 
-_debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true; }
+_debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${C_YELLOW}MKPM [D]:${C_END} $@" || true; }
 
-_echo() { [ "$_SILENT" = "1" ] && true || echo "${LIGHT_CYAN}MKPM [I]:${NOCOLOR} $@"; }
+_echo() { [ "$_SILENT" = "1" ] && true || echo "${C_LIGHT_CYAN}MKPM [I]:${C_END} $@"; }
 
-_error() { echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2; }
+_error() { echo "${C_RED}MKPM [E]:${C_END} $@" 1>&2; }
 
 _project_root() {
     _ROOT="$1"
@@ -364,7 +364,7 @@ _repo_remove() {
 
 _init() {
     rm -rf "$MKPM_ROOT"
-    printf "add vscode settings [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    printf "add vscode settings [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
         mkdir -p "${PROJECT_ROOT}/.vscode"
@@ -375,7 +375,7 @@ _init() {
             _sponge "${PROJECT_ROOT}/.vscode/settings.json" >/dev/null
         _echo "added vscode settings"
     fi
-    printf "add mkpm binary [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    printf "add mkpm binary [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
         download "${PROJECT_ROOT}/mkpm" "$MKPM_PROXY_SH_URL" >/dev/null
@@ -383,7 +383,7 @@ _init() {
         _echo added mkpm binary
     fi
     if [ ! -f "$_CWD/Makefile" ] && [ ! -f "$_CWD/Mkpmfile" ]; then
-        printf "generate ${LIGHT_GREEN}Mkpmfile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        printf "generate ${C_LIGHT_GREEN}Mkpmfile${C_END} [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
             cat <<EOF > "$_CWD/Mkpmfile"
@@ -393,9 +393,9 @@ include \$(MKPM)/mkpm
 hello:
 	@\$(ECHO) Hello, world!
 EOF
-            _echo generated ${LIGHT_GREEN}Mkpmfile${NOCOLOR}
+            _echo generated ${C_LIGHT_GREEN}Mkpmfile${C_END}
         fi
-        printf "generate ${LIGHT_GREEN}Makefile${NOCOLOR} [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        printf "generate ${C_LIGHT_GREEN}Makefile${C_END} [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
 cat <<EOF > "$_CWD/Makefile"
@@ -408,14 +408,14 @@ MKPM := $([ -f "${PROJECT_ROOT}/mkpm" ] && echo ./mkpm || echo mkpm)
 %:
 	@\$(MKPM) "\$@" \$(ARGS)
 EOF
-            _echo generated ${LIGHT_GREEN}Makefile${NOCOLOR}
+            _echo generated ${C_LIGHT_GREEN}Makefile${C_END}
         fi
     fi
-    printf "store mkpm cache on git [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+    printf "store mkpm cache on git [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
         if [ ! -f "${PROJECT_ROOT}/.gitattributes" ] || ! (cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'); then
-            printf "use git lfs when storing mkpm cache [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+            printf "use git lfs when storing mkpm cache [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
             read _RES
             if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                 git lfs track '.mkpm/cache.tar.gz' >/dev/null
@@ -433,7 +433,7 @@ EOF
         ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]') || \
         ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{M,m}akefile{,\.\*}\]') || \
         ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[\*.mk\]'); then
-        printf "add ${LIGHT_GREEN}.editorconfig${NOCOLOR} rules [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        printf "add ${C_LIGHT_GREEN}.editorconfig${C_END} rules [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
             echo >> "${PROJECT_ROOT}/.editorconfig"
@@ -466,7 +466,7 @@ EOF
         fi
     fi
     if [ ! -f "${PROJECT_ROOT}/.gitignore" ] || ! (cat "${PROJECT_ROOT}/.gitignore" | grep -qE '^\.mkpm/mkpm'); then
-        printf "add ${LIGHT_GREEN}.gitignore${NOCOLOR} rules [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+        printf "add ${C_LIGHT_GREEN}.gitignore${C_END} rules [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
             cat <<EOF >> "${PROJECT_ROOT}/.gitignore"
@@ -479,7 +479,7 @@ EOF
             fi
             gsed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
             gsed -i '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
-            _echo "added ${LIGHT_GREEN}.gitignore${NOCOLOR} rules"
+            _echo "added ${C_LIGHT_GREEN}.gitignore${C_END} rules"
         fi
     fi
     _validate_mkpm_config
@@ -698,9 +698,9 @@ _require_system_binary() {
         _error $_SYSTEM_BINARY is not installed on your system
         printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
 
-    ${GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${NOCOLOR}
+    ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
 
-install for me [${GREEN}Y${NOCOLOR}|${RED}n${NOCOLOR}]: "
+install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
             $_SYSTEM_PACKAGE_INSTALL_COMMAND
@@ -879,13 +879,13 @@ _validate_mkpm_config() {
                 _sponge "$MKPM_CONFIG" >/dev/null
         else
             for p in $_PACKAGES; do
-                _error "package ${LIGHT_CYAN}$p${NOCOLOR} missing ${LIGHT_CYAN}$r${NOCOLOR} repo"
+                _error "package ${C_LIGHT_CYAN}$p${C_END} missing ${C_LIGHT_CYAN}$r${C_END} repo"
                 _ERR=1
             done
         fi
     done
     for p in $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.packages[] | keys[]' | sort | uniq -c | grep -vE "^\s+1\s" | gsed 's|\s\+[0-9]\+\s||g'); do
-        _error "package ${LIGHT_CYAN}$p${NOCOLOR} exists more than once"
+        _error "package ${C_LIGHT_CYAN}$p${C_END} exists more than once"
         _ERR=1
     done
     if [ "$_ERR" = "1" ]; then
@@ -1087,7 +1087,7 @@ if [ "$_SCRIPT_PATH" != "${MKPM_BIN}/mkpm" ]; then
             chmod +x "$MKPM_BIN/mkpm"
         fi
         _ensure_mkpm_sh
-        _debug "proxied ${LIGHT_GREEN}$MKPM_BIN/mkpm $@${NOCOLOR}"
+        _debug "proxied ${C_LIGHT_GREEN}$MKPM_BIN/mkpm $@${C_END}"
         exec "$MKPM_BIN/mkpm" "$@"
     fi
 fi

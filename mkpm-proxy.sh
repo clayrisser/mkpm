@@ -7,12 +7,12 @@ alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
 _SUPPORTS_COLORS=$( (which tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]) && echo 1 || true)
 _CWD="$(pwd)"
 if [ "$_SUPPORTS_COLORS" = "1" ]; then
-    export NOCOLOR='\033[0m'
-    export RED='\033[31m'
-    export YELLOW='\033[33m'
+    export C_END='\033[0m'
+    export C_RED='\033[31m'
+    export C_YELLOW='\033[33m'
 fi
-_error() { echo "${RED}MKPM [E]:${NOCOLOR} $@" 1>&2; }
-_debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${YELLOW}MKPM [D]:${NOCOLOR} $@" || true; }
+_error() { echo "${C_RED}MKPM [E]:${C_END} $@" 1>&2; }
+_debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${C_YELLOW}MKPM [D]:${C_END} $@" || true; }
 _project_root() {
     _ROOT="$1"
     if [ "$_ROOT" = "" ]; then
