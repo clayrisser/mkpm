@@ -9,11 +9,11 @@ MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/48207
 __0="$0"
 __ARGS="$@"
 
-alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
-alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
-alias gmake="$(gmake --version >/dev/null 2>&1 && echo gmake || echo make)"
-alias gsed="$(gsed --version >/dev/null 2>&1 && echo gsed || echo sed)"
 alias which="command -v"
+alias download="$(which curl >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
+alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
+alias sed="$(which gsed >/dev/null 2>&1 && echo gsed || echo sed)"
+alias tar="$(which gtar >/dev/null 2>&1 && echo gtar || echo tar)"
 
 _is_ci() {
     _CI_ENVS="JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"
@@ -92,7 +92,7 @@ _project_root() {
         echo "$_ROOT"
         return
     fi
-    _PARENT="$(echo "$_ROOT" | gsed 's|\/[^\/]\+$||g')"
+    _PARENT="$(dirname "$_ROOT")"
     if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
         echo "/"
         return
@@ -189,12 +189,17 @@ main() {
 _run() {
     _TARGET="$1"
     shift
-    _ARGS_ENV_NAME="$(echo "$_TARGET" | gsed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
+    if [ "$PLATFORM" = "darwin" ]; then
+        _MAKE="$(which remake >/dev/null 2>&1 && echo remake || echo make)"
+    else
+        _MAKE="$(which gmake >/dev/null 2>&1 && echo gmake || echo make)"
+    fi
+    _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
     _MAKEFILE="Mkpmfile"
     if [ ! -f "$_MAKEFILE" ]; then
         _MAKEFILE="Makefile"
     fi
-    _debug "$_ARGS_ENV_NAME=\"$@\" gmake -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
+    _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
     _TMP_PIPE_DIR="$(mktemp -d)"
     _TMP_PIPE="$_TMP_PIPE_DIR/stderr"
     mkfifo "$_TMP_PIPE"
@@ -206,7 +211,7 @@ _run() {
             grep -v 'warning: ignoring old recipe for target' >&2 &
         _PIPE_PID=$!
     fi
-    eval "$_ARGS_ENV_NAME=\"$@\" gmake -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\"" 2> "$_TMP_PIPE"
+    eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\"" 2> "$_TMP_PIPE"
     _CODE="$?"
     wait "$_PIPE_PID"
     rm -rf "$_TMP_PIPE_DIR"
@@ -245,12 +250,12 @@ _install() {
     _REPO_NAME="$2"
     _PACKAGE="$3"
     _PACKAGE_NAME="$(echo $_PACKAGE | cut -d'=' -f1)"
-    _PACKAGE_VERSION="$(echo $_PACKAGE | gsed 's|^[^=]*||g' | gsed 's|^=||g')"
+    _PACKAGE_VERSION="$(echo $_PACKAGE | sed 's|^[^=]*||g' | sed 's|^=||g')"
     _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
         _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | \
-            gsed "s|${_PACKAGE_NAME}/||g" | \
+            sed "s|${_PACKAGE_NAME}/||g" | \
             sort -t "." -k1,1n -k2,2n -k3,3n | tail -n1)
     fi
     if [ "$_PACKAGE_VERSION" = "" ]; then
@@ -363,6 +368,7 @@ _repo_remove() {
 }
 
 _init() {
+    _SED="$(which gsed >/dev/null 2>&1 && echo gsed || echo sed)"
     rm -rf "$MKPM_ROOT"
     printf "add vscode settings [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
     read _RES
@@ -461,8 +467,8 @@ indent_size = 4
 indent_style = tab
 EOF
             fi
-            gsed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.editorconfig"
-            gsed -i '1{/^$/d;}' "${PROJECT_ROOT}/.editorconfig"
+            $_SED -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.editorconfig"
+            $_SED -i '1{/^$/d;}' "${PROJECT_ROOT}/.editorconfig"
         fi
     fi
     if [ ! -f "${PROJECT_ROOT}/.gitignore" ] || ! (cat "${PROJECT_ROOT}/.gitignore" | grep -qE '^\.mkpm/mkpm'); then
@@ -477,8 +483,8 @@ EOF
             if [ "$_GITIGNORE_CACHE" = "1" ] && ! (cat ${PROJECT_ROOT}/.gitignore | grep -qE '^\.mkpm/cache\.tar\.gz'); then
                 echo ".mkpm/cache.tar.gz" >> "${PROJECT_ROOT}/.gitignore"
             fi
-            gsed -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
-            gsed -i '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
+            $_SED -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
+            $_SED -i '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
             _echo "added ${C_LIGHT_GREEN}.gitignore${C_END} rules"
         fi
     fi
@@ -489,7 +495,7 @@ EOF
 
 _prepare() {
     if [ "$_MKPM_RESET_CACHE" = "1" ] || \
-        ([ "$_MKPM_TEST" = "1" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
+        ([ "$_MKPM_TEST" = "1" ] && [ -f "$MKPM/mkpm" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
         _reset_cache
         exit $?
     fi
@@ -499,9 +505,13 @@ _prepare() {
         _require_system_binary git-lfs
         _require_system_binary grep
         _require_system_binary jq
-        _require_system_binary tar
         if [ "$PLATFORM" = "darwin" ]; then
-            _require_system_binary gmake --version
+            _require_system_binary gtar --version
+        else
+            _require_system_binary tar --version
+        fi
+        if [ "$PLATFORM" = "darwin" ]; then
+            _require_system_binary remake --version
         else
             _require_system_binary make --version
         fi
@@ -526,10 +536,23 @@ _prepare() {
 _lookup_system_package_name() {
     _BINARY="$1"
     case "$_BINARY" in
-        gmake)
+        gtar)
             case "$PKG_MANAGER" in
                 brew)
-                    echo remake
+                    echo gnu-tar
+                ;;
+                *)
+                    echo "$_BINARY"
+                ;;
+            esac
+        ;;
+        python3)
+            case "$PKG_MANAGER" in
+                brew)
+                    echo python
+                ;;
+                apt-get)
+                    echo python3-minimal
                 ;;
                 *)
                     echo "$_BINARY"
@@ -587,7 +610,7 @@ _pack() {
     done
     cp "$PROJECT_ROOT/main.mk" "$_PACK_DIR/main.mk"
 	tar -cvzf "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" -C "$_PACK_DIR" . | \
-        gsed 's|^\.\/||g' | sed '/^$/d' >$([ "$_SILENT" = "1" ] && echo '/dev/null' || echo '/dev/stdout')
+        sed 's|^\.\/||g' | sed '/^$/d' >$([ "$_SILENT" = "1" ] && echo '/dev/null' || echo '/dev/stdout')
     rm -rf "$_PACK_DIR"
     _echo "packaged $_PACKAGE_NAME.tar.gz"
 }
@@ -654,33 +677,16 @@ _publish() {
 _PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
 _lookup_system_package_install_command() {
     _BINARY="$1"
-    _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || "$2")"
+    _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || echo "$2")"
     case "$PKG_MANAGER" in
         apk)
             echo "$PKG_MANAGER add --no-cache $_PACKAGE"
         ;;
         brew)
-            case "$PKG_MANAGER" in
-                python3)
-                    echo "$PKG_MANAGER install python"
-                ;;
-                *)
-                    echo "$PKG_MANAGER install $_PACKAGE"
-                ;;
-            esac
+            echo "$PKG_MANAGER install $_PACKAGE"
         ;;
         choco)
             echo "$PKG_MANAGER install /y $_PACKAGE"
-        ;;
-        apt-get)
-            case "$PKG_MANAGER" in
-                python3)
-                    echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y python3-minimal"
-                ;;
-                *)
-                    echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
-                ;;
-            esac
         ;;
         *)
             echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
@@ -693,7 +699,7 @@ _require_system_binary() {
     shift
     _ARGS="$@"
     _SYSTEM_PACKAGE_NAME="$(_lookup_system_package_name "$_SYSTEM_BINARY")"
-    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_PACKAGE_NAME")"
+    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_BINARY" "$_SYSTEM_PACKAGE_NAME")"
     if ! ([ "$_ARGS" = "" ] && which "$_SYSTEM_BINARY" || "$_SYSTEM_BINARY" "$_ARGS") >/dev/null 2>&1; then
         _error $_SYSTEM_BINARY is not installed on your system
         printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
@@ -760,9 +766,10 @@ _ensure_mkpm_sh() {
 }
 
 _create_cache() {
+    _TAR="$(which gtar >/dev/null 2>&1 && echo gtar || echo tar)"
     cd "$MKPM"
     touch "$MKPM_ROOT/cache.tar.gz"
-    tar --format=gnu --sort=name --mtime='1970-01-01 00:00:00 UTC' -czf "$MKPM_ROOT/cache.tar.gz" \
+    $_TAR --format=gnu --sort=name --mtime='1970-01-01 00:00:00 UTC' -czf "$MKPM_ROOT/cache.tar.gz" \
         --exclude '.tmp' \
         .
     cd "$_CWD"
@@ -811,7 +818,7 @@ _lookup_repo_uri() {
 }
 
 _lookup_repo_path() {
-    echo "$_REPOS_PATH/$(echo "$1" | md5sum | cut -d ' ' -f1)"
+    echo "$_REPOS_PATH/$(echo "$1" | (md5sum 2>/dev/null || md5) | cut -d ' ' -f1)"
 }
 
 _update_repo() {
@@ -871,7 +878,7 @@ _validate_mkpm_config() {
     done
     _ERR=
     for r in $(echo "$(_list_repos) $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '(.packages | keys)[]')" | tr ' ' '\n' | \
-        sort | uniq -c | grep -E "^\s+1\s" | gsed 's|\s\+[0-9]\+\s||g'); do
+        sort | uniq -c | grep -E "^\s+1\s" | sed 's|\s\+[0-9]\+\s||g'); do
         _PACKAGES="$(_list_packages "$r")"
         if [ "$_PACKAGES" = "" ]; then
             cat "$MKPM_CONFIG" 2>/dev/null | \
@@ -884,7 +891,7 @@ _validate_mkpm_config() {
             done
         fi
     done
-    for p in $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.packages[] | keys[]' | sort | uniq -c | grep -vE "^\s+1\s" | gsed 's|\s\+[0-9]\+\s||g'); do
+    for p in $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.packages[] | keys[]' | sort | uniq -c | grep -vE "^\s+1\s" | sed 's|\s\+[0-9]\+\s||g'); do
         _error "package ${C_LIGHT_CYAN}$p${C_END} exists more than once"
         _ERR=1
     done
@@ -1071,7 +1078,7 @@ else
     fi
 fi
 if [ "$FLAVOR" = "unknown" ]; then
-    FLAVOR="$OS"
+    FLAVOR="$PLATFORM"
 fi
 
 if [ "$_SCRIPT_PATH" != "${MKPM_BIN}/mkpm" ]; then
