@@ -318,7 +318,9 @@ _upgrade() {
 }
 
 _reset() {
-    rm -rf "$MKPM_ROOT" 2>/dev/null
+    rm -rf "$MKPM_ROOT" "${PROJECT_ROOT}/mkpm" 2>/dev/null
+    download "${PROJECT_ROOT}/mkpm" "$MKPM_PROXY_SH_URL" >/dev/null
+    chmod +x "${PROJECT_ROOT}/mkpm"
     _ensure_mkpm_sh
     _prepare
     if [ "$_INSTALL_REFCOUNT" = "" ] || [ "$_INSTALL_REFCOUNT" = "0" ]; then
