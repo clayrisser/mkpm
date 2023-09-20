@@ -5,75 +5,75 @@ alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
 _SUPPORTS_COLORS=$( (which tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]) && echo 1 || true)
 _CWD="$(pwd)"
 if [ "$_SUPPORTS_COLORS" = "1" ]; then
-    export C_END='\033[0m'
-    export C_RED='\033[31m'
-    export C_YELLOW='\033[33m'
+	export C_END='\033[0m'
+	export C_RED='\033[31m'
+	export C_YELLOW='\033[33m'
 fi
 _error() { echo "${C_RED}MKPM [E]:${C_END} $@" 1>&2; }
 _debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${C_YELLOW}MKPM [D]:${C_END} $@" || true; }
 _project_root() {
-    _ROOT="$1"
-    if [ "$_ROOT" = "" ]; then
-        _ROOT="$(pwd)"
-    fi
-    if [ -f "$_ROOT/mkpm.json" ]; then
-        echo "$_ROOT"
-        return
-    fi
-    _PARENT="$(echo "$_ROOT" | sed 's|\/[^\/]\+$||g')"
-    if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
-        echo "/"
-        return
-    fi
-    echo "$(_project_root "$_PARENT")"
-    return
+	_ROOT="$1"
+	if [ "$_ROOT" = "" ]; then
+		_ROOT="$(pwd)"
+	fi
+	if [ -f "$_ROOT/mkpm.json" ]; then
+		echo "$_ROOT"
+		return
+	fi
+	_PARENT="$(echo "$_ROOT" | sed 's|\/[^\/]\+$||g')"
+	if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
+		echo "/"
+		return
+	fi
+	echo "$(_project_root "$_PARENT")"
+	return
 }
 _is_mkpm_proxy_required() {
-    while test $# -gt 0; do
-        case "$1" in
-            -h|--help)
-                return 1
-            ;;
-            -*)
-                shift
-            ;;
-            v|version|init)
-                return 1
-            ;;
-            *)
-                break
-            ;;
-        esac
-    done
-    [ "$1" = "" ] && return 1 || true
+	while test $# -gt 0; do
+		case "$1" in
+		-h | --help)
+			return 1
+			;;
+		-*)
+			shift
+			;;
+		v | version | init)
+			return 1
+			;;
+		*)
+			break
+			;;
+		esac
+	done
+	[ "$1" = "" ] && return 1 || true
 }
 export PROJECT_ROOT="$(_project_root)"
 if [ "$PROJECT_ROOT" = "/" ]; then
-    if _is_mkpm_proxy_required "$@"; then
-        _error "not an mkpm project" && exit 1
-    else
-        PROJECT_ROOT="$_CWD"
-    fi
+	if _is_mkpm_proxy_required "$@"; then
+		_error "not an mkpm project" && exit 1
+	else
+		PROJECT_ROOT="$_CWD"
+	fi
 fi
 export MKPM_ROOT="$PROJECT_ROOT/.mkpm"
 export MKPM="$MKPM_ROOT/mkpm"
 export MKPM_BIN="$MKPM/.bin"
 mkdir -p "$MKPM_BIN"
 if [ ! -f "$MKPM_BIN/mkpm" ]; then
-    if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
-        mkdir -p "$MKPM"
-        cd "$MKPM"
-        tar -xzf "$MKPM_ROOT/cache.tar.gz"
-        cd "$_CWD"
-        _debug restored cache
-    else
-        cp "$PROJECT_ROOT/mkpm.sh" "$MKPM_BIN/mkpm"
-        _debug downloaded mkpm.sh
-    fi
-    chmod +x "$MKPM_BIN/mkpm"
+	if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
+		mkdir -p "$MKPM"
+		cd "$MKPM"
+		tar -xzf "$MKPM_ROOT/cache.tar.gz"
+		cd "$_CWD"
+		_debug restored cache
+	else
+		cp "$PROJECT_ROOT/mkpm.sh" "$MKPM_BIN/mkpm"
+		_debug downloaded mkpm.sh
+	fi
+	chmod +x "$MKPM_BIN/mkpm"
 elif [ "$PROJECT_ROOT/mkpm.sh" -nt "$MKPM_BIN/mkpm" ]; then
-    export _MKPM_RESET_CACHE=1
-    cp "$PROJECT_ROOT/mkpm.sh" "$MKPM_BIN/mkpm"
-    chmod +x "$MKPM_BIN/mkpm"
+	export _MKPM_RESET_CACHE=1
+	cp "$PROJECT_ROOT/mkpm.sh" "$MKPM_BIN/mkpm"
+	chmod +x "$MKPM_BIN/mkpm"
 fi
 exec "$MKPM_BIN/mkpm" "$@"

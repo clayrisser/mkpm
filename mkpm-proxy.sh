@@ -33,17 +33,17 @@ _project_root() {
 _is_mkpm_proxy_required() {
     while test $# -gt 0; do
         case "$1" in
-            -h|--help)
-                return 1
+        -h | --help)
+            return 1
             ;;
-            -*)
-                shift
+        -*)
+            shift
             ;;
-            v|version|init)
-                return 1
+        v | version | init)
+            return 1
             ;;
-            *)
-                break
+        *)
+            break
             ;;
         esac
     done

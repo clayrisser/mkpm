@@ -19,6 +19,10 @@ indent_style = tab
 charset = utf-8
 indent_size = 4
 indent_style = tab
+[mkpm]
+charset = utf-8
+indent_size = 4
+indent_style = tab
 
 [Dockerfile]
 charset = utf-8
