@@ -59,17 +59,17 @@ fi
 _is_mkpm_proxy_required() {
     while test $# -gt 0; do
         case "$1" in
-            -h|--help)
-                return 1
+        -h | --help)
+            return 1
             ;;
-            -*)
-                shift
+        -*)
+            shift
             ;;
-            v|version|init)
-                return 1
+        v | version | init)
+            return 1
             ;;
-            *)
-                break
+        *)
+            break
             ;;
         esac
     done
@@ -200,22 +200,7 @@ _run() {
         _MAKEFILE="Makefile"
     fi
     _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
-    _TMP_PIPE_DIR="$(mktemp -d)"
-    _TMP_PIPE="$_TMP_PIPE_DIR/stderr"
-    mkfifo "$_TMP_PIPE"
-    if [ "$MKPM_DEBUG" = "1" ]; then
-        cat < "$_TMP_PIPE" >&2 &
-        _PIPE_PID=$!
-    else
-        grep -v 'warning: overriding recipe for target' < "$_TMP_PIPE" | \
-            grep -v 'warning: ignoring old recipe for target' >&2 &
-        _PIPE_PID=$!
-    fi
-    eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\"" 2> "$_TMP_PIPE"
-    _CODE="$?"
-    wait "$_PIPE_PID"
-    rm -rf "$_TMP_PIPE_DIR"
-    exit $_CODE
+    eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
 }
 
 _INSTALL_REFCOUNT=0
@@ -254,8 +239,8 @@ _install() {
     _REPO_PATH="$(_lookup_repo_path $_REPO_URI)"
     cd "$_REPO_PATH" || exit 1
     if [ "$_PACKAGE_VERSION" = "" ]; then
-        _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" | \
-            sed "s|${_PACKAGE_NAME}/||g" | \
+        _PACKAGE_VERSION=$(git tag | grep -E "${_PACKAGE_NAME}/" |
+            sed "s|${_PACKAGE_NAME}/||g" |
             sort -t "." -k1,1n -k2,2n -k3,3n | tail -n1)
     fi
     if [ "$_PACKAGE_VERSION" = "" ]; then
@@ -272,15 +257,15 @@ _install() {
         exit 1
     fi
     _remove_package "$_PACKAGE_NAME"
-    cat "$MKPM_CONFIG" 2>/dev/null | \
-        jq ".packages.${_REPO_NAME} += { \"${_PACKAGE_NAME}\": \"${_PACKAGE_VERSION}\" }" | \
+    cat "$MKPM_CONFIG" 2>/dev/null |
+        jq ".packages.${_REPO_NAME} += { \"${_PACKAGE_NAME}\": \"${_PACKAGE_VERSION}\" }" |
         _sponge "$MKPM_CONFIG" >/dev/null
     mkdir -p "$_MKPM_PACKAGES/$_PACKAGE_NAME"
     tar -xzf "$_REPO_PATH/$_PACKAGE_NAME/$_PACKAGE_NAME.tar.gz" -C "$_MKPM_PACKAGES/$_PACKAGE_NAME" >/dev/null
     echo 'include $(MKPM)'"/.pkgs/$_PACKAGE_NAME/main.mk" > \
         "$MKPM/$_PACKAGE_NAME"
-    echo ".PHONY: $_PACKAGE_NAME-%" > "$MKPM/-$_PACKAGE_NAME"
-    echo "$_PACKAGE_NAME-%:" >> "$MKPM/-$_PACKAGE_NAME"
+    echo ".PHONY: $_PACKAGE_NAME-%" >"$MKPM/-$_PACKAGE_NAME"
+    echo "$_PACKAGE_NAME-%:" >>"$MKPM/-$_PACKAGE_NAME"
     echo '	@$(MAKE) -s -f $(MKPM)/.pkgs/'"$_PACKAGE_NAME/main.mk "'$(subst '"$_PACKAGE_NAME-,,$"'@)' >> \
         "$MKPM/-$_PACKAGE_NAME"
     _create_cache
@@ -340,11 +325,11 @@ _repo_add() {
         _error "invalid repo uri $_REPO_URI"
         exit 1
     fi
-    cat "$MKPM_CONFIG" 2>/dev/null | \
-        jq ".repos += { \"${_REPO_NAME}\": \"${_REPO_URI}\" }" | \
+    cat "$MKPM_CONFIG" 2>/dev/null |
+        jq ".repos += { \"${_REPO_NAME}\": \"${_REPO_URI}\" }" |
         _sponge "$MKPM_CONFIG" >/dev/null
-    cat "$MKPM_CONFIG" 2>/dev/null | \
-        jq ".packages.${_REPO_NAME} += {}" | \
+    cat "$MKPM_CONFIG" 2>/dev/null |
+        jq ".packages.${_REPO_NAME} += {}" |
         _sponge "$MKPM_CONFIG" >/dev/null
     _echo "added repo $_REPO_NAME"
     _install "$_REPO_URI" "$_REPO_NAME"
@@ -359,11 +344,11 @@ _repo_remove() {
     for p in $(_list_packages "$_REPO_NAME"); do
         _remove_package "$p"
     done
-    cat "$MKPM_CONFIG" 2>/dev/null | \
-        jq "del(.repos.${_REPO_NAME})" | \
+    cat "$MKPM_CONFIG" 2>/dev/null |
+        jq "del(.repos.${_REPO_NAME})" |
         _sponge "$MKPM_CONFIG" >/dev/null
-    cat "$MKPM_CONFIG" 2>/dev/null | \
-        jq "del(.packages.${_REPO_NAME})" | \
+    cat "$MKPM_CONFIG" 2>/dev/null |
+        jq "del(.packages.${_REPO_NAME})" |
         _sponge "$MKPM_CONFIG" >/dev/null
     _echo "removed repo $_REPO_NAME"
 }
@@ -376,9 +361,9 @@ _init() {
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
         mkdir -p "${PROJECT_ROOT}/.vscode"
         if [ ! -f "${PROJECT_ROOT}/.vscode/settings.json" ] || [ "$(cat "${PROJECT_ROOT}/.vscode/settings.json" | jq -r '. | type')" != "object" ]; then
-            echo '{}' > "${PROJECT_ROOT}/.vscode/settings.json"
+            echo '{}' >"${PROJECT_ROOT}/.vscode/settings.json"
         fi
-        cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.["files.associations"] += { "Mkpmfile": "makefile" }' | \
+        cat "${PROJECT_ROOT}/.vscode/settings.json" | jq '.["files.associations"] += { "Mkpmfile": "makefile" }' |
             _sponge "${PROJECT_ROOT}/.vscode/settings.json" >/dev/null
         _echo "added vscode settings"
     fi
@@ -393,7 +378,7 @@ _init() {
         printf "generate ${C_LIGHT_GREEN}Mkpmfile${C_END} [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-            cat <<EOF > "$_CWD/Mkpmfile"
+            cat <<EOF >"$_CWD/Mkpmfile"
 include \$(MKPM)/mkpm
 
 .PHONY: hello
@@ -405,7 +390,7 @@ EOF
         printf "generate ${C_LIGHT_GREEN}Makefile${C_END} [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-cat <<EOF > "$_CWD/Makefile"
+            cat <<EOF >"$_CWD/Makefile"
 .ONESHELL:
 .POSIX:
 .SILENT:
@@ -436,16 +421,16 @@ EOF
     else
         _GITIGNORE_CACHE=1
     fi
-    if [ ! -f "${PROJECT_ROOT}/.editorconfig" ] || \
-        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]') || \
-        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{M,m}akefile{,\.\*}\]') || \
+    if [ ! -f "${PROJECT_ROOT}/.editorconfig" ] ||
+        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]') ||
+        ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{M,m}akefile{,\.\*}\]') ||
         ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[\*.mk\]'); then
         printf "add ${C_LIGHT_GREEN}.editorconfig${C_END} rules [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-            echo >> "${PROJECT_ROOT}/.editorconfig"
+            echo >>"${PROJECT_ROOT}/.editorconfig"
             if ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[Mkpmfile\]'); then
-                cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
+                cat <<EOF >>"${PROJECT_ROOT}/.editorconfig"
 [Mkpmfile]
 charset = utf-8
 indent_size = 4
@@ -453,7 +438,7 @@ indent_style = tab
 EOF
             fi
             if ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[{M,m}akefile{,\.\*}\]'); then
-                cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
+                cat <<EOF >>"${PROJECT_ROOT}/.editorconfig"
 [{M,m}akefile{,.*}]
 charset = utf-8
 indent_size = 4
@@ -461,7 +446,7 @@ indent_style = tab
 EOF
             fi
             if ! (cat "${PROJECT_ROOT}/.editorconfig" | grep -qE '^\[\*.mk\]'); then
-                cat <<EOF >> "${PROJECT_ROOT}/.editorconfig"
+                cat <<EOF >>"${PROJECT_ROOT}/.editorconfig"
 [*.mk]
 charset = utf-8
 indent_size = 4
@@ -476,13 +461,13 @@ EOF
         printf "add ${C_LIGHT_GREEN}.gitignore${C_END} rules [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-            cat <<EOF >> "${PROJECT_ROOT}/.gitignore"
+            cat <<EOF >>"${PROJECT_ROOT}/.gitignore"
 
 # mkpm
 .mkpm/mkpm
 EOF
             if [ "$_GITIGNORE_CACHE" = "1" ] && ! (cat ${PROJECT_ROOT}/.gitignore | grep -qE '^\.mkpm/cache\.tar\.gz'); then
-                echo ".mkpm/cache.tar.gz" >> "${PROJECT_ROOT}/.gitignore"
+                echo ".mkpm/cache.tar.gz" >>"${PROJECT_ROOT}/.gitignore"
             fi
             $_SED -i ':a;N;$!ba;s/\n\n\+/\n\n/g'i "${PROJECT_ROOT}/.gitignore"
             $_SED -i '1{/^$/d;}' "${PROJECT_ROOT}/.gitignore"
@@ -495,7 +480,7 @@ EOF
 }
 
 _prepare() {
-    if [ "$_MKPM_RESET_CACHE" = "1" ] || \
+    if [ "$_MKPM_RESET_CACHE" = "1" ] ||
         ([ "$_MKPM_TEST" = "1" ] && [ -f "$MKPM/mkpm" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
         _reset_cache
         exit $?
@@ -537,31 +522,31 @@ _prepare() {
 _lookup_system_package_name() {
     _BINARY="$1"
     case "$_BINARY" in
-        gtar)
-            case "$PKG_MANAGER" in
-                brew)
-                    echo gnu-tar
-                ;;
-                *)
-                    echo "$_BINARY"
-                ;;
-            esac
-        ;;
-        python3)
-            case "$PKG_MANAGER" in
-                brew)
-                    echo python
-                ;;
-                apt-get)
-                    echo python3-minimal
-                ;;
-                *)
-                    echo "$_BINARY"
-                ;;
-            esac
-        ;;
+    gtar)
+        case "$PKG_MANAGER" in
+        brew)
+            echo gnu-tar
+            ;;
         *)
             echo "$_BINARY"
+            ;;
+        esac
+        ;;
+    python3)
+        case "$PKG_MANAGER" in
+        brew)
+            echo python
+            ;;
+        apt-get)
+            echo python3-minimal
+            ;;
+        *)
+            echo "$_BINARY"
+            ;;
+        esac
+        ;;
+    *)
+        echo "$_BINARY"
         ;;
     esac
 }
@@ -610,7 +595,7 @@ _pack() {
         fi
     done
     cp "$PROJECT_ROOT/main.mk" "$_PACK_DIR/main.mk"
-	tar -cvzf "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" -C "$_PACK_DIR" . | \
+    tar -cvzf "$PROJECT_ROOT/$_PACKAGE_NAME.tar.gz" -C "$_PACK_DIR" . |
         sed 's|^\.\/||g' | sed '/^$/d' >$([ "$_SILENT" = "1" ] && echo '/dev/null' || echo '/dev/stdout')
     rm -rf "$_PACK_DIR"
     _echo "packaged $_PACKAGE_NAME.tar.gz"
@@ -680,17 +665,17 @@ _lookup_system_package_install_command() {
     _BINARY="$1"
     _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || echo "$2")"
     case "$PKG_MANAGER" in
-        apk)
-            echo "$PKG_MANAGER add --no-cache $_PACKAGE"
+    apk)
+        echo "$PKG_MANAGER add --no-cache $_PACKAGE"
         ;;
-        brew)
-            echo "$PKG_MANAGER install $_PACKAGE"
+    brew)
+        echo "$PKG_MANAGER install $_PACKAGE"
         ;;
-        choco)
-            echo "$PKG_MANAGER install /y $_PACKAGE"
+    choco)
+        echo "$PKG_MANAGER install /y $_PACKAGE"
         ;;
-        *)
-            echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
+    *)
+        echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
         ;;
     esac
 }
@@ -851,39 +836,39 @@ _remove_package() {
         "$MKPM/-$_PACKAGE_NAME" \
         "$_MKPM_PACKAGES/$_PACKAGE_NAME" 2>/dev/null
     for r in $(_list_repos); do
-        cat "$MKPM_CONFIG" 2>/dev/null | \
-            jq "del(.packages.${r}.${_PACKAGE_NAME})" | \
+        cat "$MKPM_CONFIG" 2>/dev/null |
+            jq "del(.packages.${r}.${_PACKAGE_NAME})" |
             _sponge "$MKPM_CONFIG" >/dev/null
     done
 }
 
 _validate_mkpm_config() {
     if [ ! -f "$MKPM_CONFIG" ] || [ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '. | type')" != "object" ]; then
-        echo '{}' > "$MKPM_CONFIG"
+        echo '{}' >"$MKPM_CONFIG"
     fi
-    cat "$MKPM_CONFIG" 2>/dev/null | \
-        jq ".packages += {}" | \
+    cat "$MKPM_CONFIG" 2>/dev/null |
+        jq ".packages += {}" |
         _sponge "$MKPM_CONFIG" >/dev/null
-    cat "$MKPM_CONFIG" 2>/dev/null | \
-        jq ".repos += {}" | \
+    cat "$MKPM_CONFIG" 2>/dev/null |
+        jq ".repos += {}" |
         _sponge "$MKPM_CONFIG" >/dev/null
     if [ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq '.repos | length')" = "0" ]; then
-        cat "$MKPM_CONFIG" 2>/dev/null | \
-            jq ".repos += {\"default\": \"${DEFAULT_REPO}\"}" | \
+        cat "$MKPM_CONFIG" 2>/dev/null |
+            jq ".repos += {\"default\": \"${DEFAULT_REPO}\"}" |
             _sponge "$MKPM_CONFIG" >/dev/null
     fi
     for r in $(_list_repos); do
-        cat "$MKPM_CONFIG" 2>/dev/null | \
-            jq ".packages.${r} += {}" | \
+        cat "$MKPM_CONFIG" 2>/dev/null |
+            jq ".packages.${r} += {}" |
             _sponge "$MKPM_CONFIG" >/dev/null
     done
     _ERR=
-    for r in $(echo "$(_list_repos) $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '(.packages | keys)[]')" | tr ' ' '\n' | \
+    for r in $(echo "$(_list_repos) $(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '(.packages | keys)[]')" | tr ' ' '\n' |
         sort | uniq -c | grep -E "^\s+1\s" | sed 's|\s\+[0-9]\+\s||g'); do
         _PACKAGES="$(_list_packages "$r")"
         if [ "$_PACKAGES" = "" ]; then
-            cat "$MKPM_CONFIG" 2>/dev/null | \
-                jq "del(.packages.${r})" | \
+            cat "$MKPM_CONFIG" 2>/dev/null |
+                jq "del(.packages.${r})" |
                 _sponge "$MKPM_CONFIG" >/dev/null
         else
             for p in $_PACKAGES; do
@@ -909,7 +894,7 @@ _write_package_to_readme() {
     _PACKAGE_DESCRIPTION="$5"
     _PACKAGE_AUTHOR="$6"
     if [ ! -f "$_README_MD" ]; then
-        cat <<EOF > "$_README_MD"
+        cat <<EOF >"$_README_MD"
 # mkpm packages
 
 > mkpm packages
@@ -921,7 +906,7 @@ EOF
 
 | Package | Version | Description | Author |
 | ------- | ------- | ----------- | ------ |
-" >> "$_README_MD"
+" >>"$_README_MD"
     fi
     if cat "$_README_MD" | grep -qE "^\|[^|]*${_PACKAGE_NAME}[^|]*\|[^|]*\|[^|]*\|[^|]*\|"; then
         sed -i "s/^|[^|]*${_PACKAGE_NAME}[^|]*|[^|]*|[^|]*|[^|]*|/| [${_PACKAGE_NAME}]($(echo "${_PACKAGE_SOURCE}" | sed 's|/|\\\/|g')) | ${_PACKAGE_VERSION} | ${_PACKAGE_DESCRIPTION} | ${_PACKAGE_AUTHOR} |/g" "$_README_MD"
@@ -961,8 +946,8 @@ _sponge() {
     else
         if [ -p /dev/stdin ]; then
             _TMP_FILE=$(mktemp)
-            cat > "$_TMP_FILE"
-            cat "$_TMP_FILE" > "$1"
+            cat >"$_TMP_FILE"
+            cat "$_TMP_FILE" >"$1"
             rm -f "$_TMP_FILE"
         fi
         cat "$1"
@@ -1002,33 +987,33 @@ export FLAVOR=unknown
 export PKG_MANAGER=unknown
 export PLATFORM=unknown
 if [ "$OS" = "Windows_NT" ]; then
-	export HOME="${HOMEDRIVE}${HOMEPATH}"
-	PLATFORM=win32
-	FLAVOR=win64
-	ARCH="$PROCESSOR_ARCHITECTURE"
-	PKG_MANAGER=choco
+    export HOME="${HOMEDRIVE}${HOMEPATH}"
+    PLATFORM=win32
+    FLAVOR=win64
+    ARCH="$PROCESSOR_ARCHITECTURE"
+    PKG_MANAGER=choco
     if [ "$ARCH" = "AMD64" ]; then
-		ARCH=amd64
+        ARCH=amd64
     elif [ "$ARCH" = "ARM64" ]; then
-		ARCH=arm64
+        ARCH=arm64
     fi
     if [ "$PROCESSOR_ARCHITECTURE" = "x86" ]; then
-		ARCH=amd64
+        ARCH=amd64
         if [ "$PROCESSOR_ARCHITEW6432" = "" ]; then
-			ARCH=x86
-			FLAVOR=win32
+            ARCH=x86
+            FLAVOR=win32
         fi
     fi
 else
-	PLATFORM=$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
-	ARCH=$( ( dpkg --print-architecture 2>/dev/null || uname -m 2>/dev/null || arch 2>/dev/null || echo unknown) | \
+    PLATFORM=$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+    ARCH=$( (dpkg --print-architecture 2>/dev/null || uname -m 2>/dev/null || arch 2>/dev/null || echo unknown) |
         tr '[:upper:]' '[:lower:]' 2>/dev/null)
     if [ "$ARCH" = "i386" ] || [ "$ARCH" = "i686" ]; then
-		ARCH=386
+        ARCH=386
     elif [ "$ARCH" = "x86_64" ]; then
-		ARCH=amd64
+        ARCH=amd64
     fi
-	if [ "$PLATFORM" = "linux" ]; then
+    if [ "$PLATFORM" = "linux" ]; then
         if [ -f /system/bin/adb ]; then
             if [ "$(getprop --help >/dev/null 2>/dev/null && echo 1 || echo 0)" = "1" ]; then
                 PLATFORM=android
@@ -1049,32 +1034,32 @@ else
                 fi
             fi
             if [ "$FLAVOR" = "rhel" ]; then
-				PKG_MANAGER=$(which microdnf >/dev/null 2>&1 && echo microdnf || \
+                PKG_MANAGER=$(which microdnf >/dev/null 2>&1 && echo microdnf ||
                     echo $(which dnf >/dev/null 2>&1 && echo dnf || echo yum))
             elif [ "$FLAVOR" = "suse" ]; then
-				PKG_MANAGER=zypper
+                PKG_MANAGER=zypper
             elif [ "$FLAVOR" = "debian" ]; then
-				PKG_MANAGER=apt-get
+                PKG_MANAGER=apt-get
             elif [ "$FLAVOR" = "ubuntu" ]; then
-				PKG_MANAGER=apt-get
+                PKG_MANAGER=apt-get
             elif [ "$FLAVOR" = "alpine" ]; then
-				PKG_MANAGER=apk
+                PKG_MANAGER=apk
             fi
         fi
-	elif [ "$PLATFORM" = "darwin" ]; then
-		PKG_MANAGER=brew
+    elif [ "$PLATFORM" = "darwin" ]; then
+        PKG_MANAGER=brew
     else
         if (echo "$PLATFORM" | grep -q 'MSYS'); then
-			PLATFORM=win32
-			FLAVOR=msys
-			PKG_MANAGER=pacman
+            PLATFORM=win32
+            FLAVOR=msys
+            PKG_MANAGER=pacman
         elif (echo "$PLATFORM" | grep -q 'MINGW'); then
-			PLATFORM=win32
-			FLAVOR=msys
-			PKG_MANAGER=mingw-get
+            PLATFORM=win32
+            FLAVOR=msys
+            PKG_MANAGER=mingw-get
         elif (echo "$PLATFORM" | grep -q 'CYGWIN'); then
-			PLATFORM=win32
-			FLAVOR=cygwin
+            PLATFORM=win32
+            FLAVOR=cygwin
         fi
     fi
 fi
@@ -1102,133 +1087,133 @@ fi
 
 while test $# -gt 0; do
     case "$1" in
-        -)
-            _IS_MKPM_COMMAND=1
+    -)
+        _IS_MKPM_COMMAND=1
+        shift
+        ;;
+    -h | --help)
+        _help
+        exit
+        ;;
+    -s | --silent)
+        if [ "$MKPM_DEBUG" != "1" ]; then
+            _SILENT=1
+        fi
+        _MAKE_FLAGS="-s"
+        shift
+        ;;
+    -d | --debug)
+        export MKPM_DEBUG=1
+        unset _SILENT
+        shift
+        ;;
+    -*)
+        _MAKE_FLAGS=
+        while [ "$1" != "${1#-}" ]; do
+            _MAKE_FLAGS="${_MAKE_FLAGS} $1"
             shift
+        done
         ;;
-        -h|--help)
-            _help
-            exit
-        ;;
-        -s|--silent)
-            if [ "$MKPM_DEBUG" != "1" ]; then
-                _SILENT=1
-            fi
-            _MAKE_FLAGS="-s"
-            shift
-        ;;
-        -d|--debug)
-            export MKPM_DEBUG=1
-            unset _SILENT
-            shift
-        ;;
-        -*)
-            _MAKE_FLAGS=
-            while [ "$1" != "${1#-}" ]; do
-                _MAKE_FLAGS="${_MAKE_FLAGS} $1"
-                shift
-            done
-        ;;
-        *)
-            break
+    *)
+        break
         ;;
     esac
 done
 
 if [ "$_IS_MKPM_COMMAND" = "1" ]; then
     case "$1" in
-        i|install)
-            export _COMMAND=install
+    i | install)
+        export _COMMAND=install
+        shift
+        if test $# -gt 0; then
+            export _PARAM1="$1"
             shift
             if test $# -gt 0; then
-                export _PARAM1="$1"
-                shift
-                if test $# -gt 0; then
-                    export _PARAM2="$1"
-                    shift
-                else
-                    export _PARAM2="$_PARAM1"
-                    export _PARAM1="$(_lookup_default_repo)"
-                fi
-            fi
-        ;;
-        rm|remove)
-            export _COMMAND=remove
-            shift
-            if test $# -gt 0; then
-                export _PARAM1="$1"
+                export _PARAM2="$1"
                 shift
             else
-                _error "no package specified"
-                exit 1
-            fi
-        ;;
-        u|upgrade)
-            export _COMMAND=upgrade
-            shift
-            if test $# -gt 0; then
-                export _PARAM1="$1"
-                shift
-            else
+                export _PARAM2="$_PARAM1"
                 export _PARAM1="$(_lookup_default_repo)"
             fi
-            if test $# -gt 0; then
-                export _PARAM2="$1"
-                shift
-            fi
+        fi
         ;;
-        ra|repo-add)
-            export _COMMAND=repo-add
+    rm | remove)
+        export _COMMAND=remove
+        shift
+        if test $# -gt 0; then
+            export _PARAM1="$1"
             shift
-            if test $# -gt 0; then
-                export _PARAM1="$1"
-                shift
-            else
-                _error "no repo name specified"
-                exit 1
-            fi
-            if test $# -gt 0; then
-                export _PARAM2="$1"
-                shift
-            else
-                _error "no repo uri specified"
-                exit 1
-            fi
+        else
+            _error "no package specified"
+            exit 1
+        fi
         ;;
-        rr|repo-remove)
-            export _COMMAND=repo-remove
+    u | upgrade)
+        export _COMMAND=upgrade
+        shift
+        if test $# -gt 0; then
+            export _PARAM1="$1"
             shift
-            if test $# -gt 0; then
-                export _PARAM1="$1"
-                shift
-            else
-                _error "no repo name specified"
-                exit 1
-            fi
-        ;;
-        init)
-            export _COMMAND=init
+        else
+            export _PARAM1="$(_lookup_default_repo)"
+        fi
+        if test $# -gt 0; then
+            export _PARAM2="$1"
             shift
+        fi
         ;;
-        reset)
-            export _COMMAND=reset
+    ra | repo-add)
+        export _COMMAND=repo-add
+        shift
+        if test $# -gt 0; then
+            export _PARAM1="$1"
             shift
-        ;;
-        v|version)
-            _echo "$MKPM_VERSION"
-            exit
-        ;;
-        pack)
-            export _COMMAND=pack
+        else
+            _error "no repo name specified"
+            exit 1
+        fi
+        if test $# -gt 0; then
+            export _PARAM2="$1"
             shift
+        else
+            _error "no repo uri specified"
+            exit 1
+        fi
         ;;
-        publish)
-            export _COMMAND=publish
+    rr | repo-remove)
+        export _COMMAND=repo-remove
+        shift
+        if test $# -gt 0; then
+            export _PARAM1="$1"
             shift
+        else
+            _error "no repo name specified"
+            exit 1
+        fi
         ;;
-        *)
-            _help
-            exit
+    init)
+        export _COMMAND=init
+        shift
+        ;;
+    reset)
+        export _COMMAND=reset
+        shift
+        ;;
+    v | version)
+        _echo "$MKPM_VERSION"
+        exit
+        ;;
+    pack)
+        export _COMMAND=pack
+        shift
+        ;;
+    publish)
+        export _COMMAND=publish
+        shift
+        ;;
+    *)
+        _help
+        exit
         ;;
     esac
 else
