@@ -189,11 +189,7 @@ main() {
 _run() {
     _TARGET="$1"
     shift
-    if [ "$PLATFORM" = "darwin" ]; then
-        _MAKE="$(which remake >/dev/null 2>&1 && echo remake || echo make)"
-    else
-        _MAKE="$(which gmake >/dev/null 2>&1 && echo gmake || echo make)"
-    fi
+    _MAKE="$(which gmake >/dev/null 2>&1 && echo gmake || echo make)"
     _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
     _MAKEFILE="Mkpmfile"
     if [ ! -f "$_MAKEFILE" ]; then
@@ -497,7 +493,7 @@ _prepare() {
             _require_system_binary tar --version
         fi
         if [ "$PLATFORM" = "darwin" ]; then
-            _require_system_binary remake --version
+            _require_system_binary gmake --version
         else
             _require_system_binary make --version
         fi
@@ -522,6 +518,16 @@ _prepare() {
 _lookup_system_package_name() {
     _BINARY="$1"
     case "$_BINARY" in
+    gmake)
+        case "$PKG_MANAGER" in
+        brew)
+            echo make
+            ;;
+        *)
+            echo "$_BINARY"
+            ;;
+        esac
+        ;;
     gtar)
         case "$PKG_MANAGER" in
         brew)
@@ -743,7 +749,8 @@ _ensure_mkpm_sh() {
         mkdir -p "$MKPM_BIN"
         if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
             _restore_from_cache
-        else
+        fi
+        if [ ! -f "$MKPM_BIN/mkpm" ]; then
             download "$MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
             _debug downloaded mkpm.sh
         fi
@@ -1073,7 +1080,8 @@ if [ "$_SCRIPT_PATH" != "${MKPM_BIN}/mkpm" ]; then
             mkdir -p "$MKPM_BIN"
             if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
                 _restore_from_cache
-            else
+            fi
+            if [ ! -f "$MKPM_BIN/mkpm" ]; then
                 download "$MKPM_BIN/mkpm" "$MKPM_SH_URL" >/dev/null
                 _debug downloaded mkpm.sh
             fi
