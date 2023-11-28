@@ -1,12 +1,8 @@
 # File: /mkpm.mk
 # Project: mkpm
-# File Created: 04-12-2021 02:15:12
+# File Created: 28-11-2023 13:42:39
 # Author: Clay Risser
-# -----
-# Last Modified: 03-08-2023 05:33:04
-# Modified By: Clay Risser
-# -----
-# BitSpur (c) Copyright 2021
+# BitSpur (c) Copyright 2021 - 2023
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,7 +62,7 @@ define MKPM_CLEAN
 $(TOUCH) -m $(MKPM)/.cleaned
 endef
 
-export NIX_ENV := $(call ternary,$(ECHO) '$(PATH)' | grep -q ":/nix/store",1)
+export NIX_ENV := $(call ternary,$(ECHO) "$(PATH)" | grep -q ":/nix/store",1)
 ifneq ($(NIX_ENV),1)
 	ifeq ($(PLATFORM),darwin)
 		export AWK ?= $(call ternary,gawk --version,gawk,awk)

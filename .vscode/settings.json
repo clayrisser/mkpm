@@ -107,10 +107,6 @@
         " Project: <<projectname>>",
         " File Created: <<filecreated('DD-MM-YYYY HH:mm:ss')>>",
         " Author: <<author>>",
-        " -----",
-        " Last Modified: <<dateformat('DD-MM-YYYY HH:mm:ss')>>",
-        " Modified By: <<author>>",
-        " -----",
         " <<copyrightholder>> (c) Copyright <<yeartoyear(<<projectCreationYear>>, now)>>",
         "",
         "<<licensetext>>"
