@@ -1,11 +1,7 @@
 # File: /Makefile
 # Project: mkpm
-# File Created: 30-07-2023 15:22:42
+# File Created: 28-11-2023 13:42:39
 # Author: Clay Risser
-# -----
-# Last Modified: 02-08-2023 06:43:35
-# Modified By: Clay Risser
-# -----
 # BitSpur (c) Copyright 2021 - 2023
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

@@ -1,11 +1,7 @@
 # File: /main.mk
 # Project: mkpm
-# File Created: 01-08-2023 09:35:38
+# File Created: 28-11-2023 13:42:39
 # Author: Clay Risser
-# -----
-# Last Modified: 28-08-2023 23:46:26
-# Modified By: Clay Risser
-# -----
 # BitSpur (c) Copyright 2021 - 2023
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
