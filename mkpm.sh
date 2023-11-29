@@ -189,7 +189,8 @@ main() {
 _run() {
     _TARGET="$1"
     shift
-    _MAKE="$(which gmake >/dev/null 2>&1 && echo gmake || echo make)"
+    _MAKE="$(which remake >/dev/null 2>&1 && echo remake ||
+        (which gmake >/dev/null 2>&1 && echo gmake || echo make))"
     _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
     _MAKEFILE="Mkpmfile"
     if [ ! -f "$_MAKEFILE" ]; then
@@ -493,7 +494,7 @@ _prepare() {
             _require_system_binary tar --version
         fi
         if [ "$PLATFORM" = "darwin" ]; then
-            _require_system_binary gmake --version
+            _require_system_binary remake --version
         else
             _require_system_binary make --version
         fi
