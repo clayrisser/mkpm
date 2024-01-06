@@ -21,6 +21,7 @@
 .SILENT:
 
 export MKPM_VERSION := <% MKPM_VERSION %>
+export MKPM_MAKE := $(MAKE) -sf Mkpmfile
 
 export LC_ALL := C
 export MAKESHELL ?= $(SHELL)

@@ -192,9 +192,9 @@ _run() {
     _MAKE="$(which remake >/dev/null 2>&1 && echo remake ||
         (which gmake >/dev/null 2>&1 && echo gmake || echo make))"
     _ARGS_ENV_NAME="$(echo "$_TARGET" | sed 's|[^A-Za-z0-9_]|_|g' | tr '[:lower:]' '[:upper:]')_ARGS"
-    _MAKEFILE="Mkpmfile"
+    _MAKEFILE="$PROJECT_ROOT/Mkpmfile"
     if [ ! -f "$_MAKEFILE" ]; then
-        _MAKEFILE="Makefile"
+        _MAKEFILE="$PROJECT_ROOT/Makefile"
     fi
     _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
     eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
