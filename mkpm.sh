@@ -196,8 +196,9 @@ _run() {
     if [ ! -f "$_MAKEFILE" ]; then
         _MAKEFILE="Makefile"
     fi
-    _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
-    eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
+    _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
+    eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] && echo '-s' || true) \
+        -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
 }
 
 _INSTALL_REFCOUNT=0
