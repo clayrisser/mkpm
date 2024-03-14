@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 MKPM_VERSION="<% MKPM_VERSION %>"
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
@@ -8,6 +9,7 @@ _SUPPORTS_COLORS=$( (which tput >/dev/null 2>&1 && [ "$(tput colors 2>/dev/null 
 _CWD="$(pwd)"
 if [ "$_SUPPORTS_COLORS" = "1" ]; then
     export C_END='\033[0m'
+    export C_GREEN='\033[32m'
     export C_RED='\033[31m'
     export C_YELLOW='\033[33m'
 fi
@@ -60,6 +62,118 @@ fi
 MKPM_ROOT="$PROJECT_ROOT/.mkpm"
 MKPM="$MKPM_ROOT/mkpm"
 MKPM_BIN="$MKPM/.bin"
+export ARCH=unknown
+export FLAVOR=unknown
+export PKG_MANAGER=unknown
+export PLATFORM=unknown
+PLATFORM=$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+ARCH=$( (dpkg --print-architecture 2>/dev/null || uname -m 2>/dev/null || arch 2>/dev/null || echo unknown) |
+    tr '[:upper:]' '[:lower:]' 2>/dev/null)
+if [ "$ARCH" = "i386" ] || [ "$ARCH" = "i686" ]; then
+    ARCH=386
+elif [ "$ARCH" = "x86_64" ]; then
+    ARCH=amd64
+fi
+if [ "$PLATFORM" = "linux" ]; then
+    if [ -f /system/bin/adb ]; then
+        if [ "$(getprop --help >/dev/null 2>/dev/null && echo 1 || echo 0)" = "1" ]; then
+            PLATFORM=android
+        fi
+    fi
+    if [ "$PLATFORM" = "linux" ]; then
+        FLAVOR=$(lsb_release -si 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+        if [ "$FLAVOR" = "" ]; then
+            FLAVOR=unknown
+            if [ -f /etc/redhat-release ]; then
+                FLAVOR=rhel
+            elif [ -f /etc/SuSE-release ]; then
+                FLAVOR=suse
+            elif [ -f /etc/debian_version ]; then
+                FLAVOR=debian
+            elif (cat /etc/os-release 2>/dev/null | grep -qE '^ID=alpine$'); then
+                FLAVOR=alpine
+            fi
+        fi
+        if [ "$FLAVOR" = "rhel" ]; then
+            PKG_MANAGER=$(which microdnf >/dev/null 2>&1 && echo microdnf ||
+                echo $(which dnf >/dev/null 2>&1 && echo dnf || echo yum))
+        elif [ "$FLAVOR" = "suse" ]; then
+            PKG_MANAGER=zypper
+        elif [ "$FLAVOR" = "debian" ]; then
+            PKG_MANAGER=apt-get
+        elif [ "$FLAVOR" = "ubuntu" ]; then
+            PKG_MANAGER=apt-get
+        elif [ "$FLAVOR" = "alpine" ]; then
+            PKG_MANAGER=apk
+        fi
+    fi
+elif [ "$PLATFORM" = "darwin" ]; then
+    PKG_MANAGER=brew
+else
+    if (echo "$PLATFORM" | grep -q 'MSYS'); then
+        PLATFORM=win32
+        FLAVOR=msys
+        PKG_MANAGER=pacman
+    elif (echo "$PLATFORM" | grep -q 'MINGW'); then
+        PLATFORM=win32
+        FLAVOR=msys
+        PKG_MANAGER=mingw-get
+    elif (echo "$PLATFORM" | grep -q 'CYGWIN'); then
+        PLATFORM=win32
+        FLAVOR=cygwin
+    fi
+fi
+if [ "$FLAVOR" = "unknown" ]; then
+    FLAVOR="$PLATFORM"
+fi
+_PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
+_lookup_system_package_install_command() {
+    _PACKAGE="$1"
+    case "$PKG_MANAGER" in
+    apk)
+        echo "$PKG_MANAGER add --no-cache $_PACKAGE"
+        ;;
+    brew)
+        echo "$PKG_MANAGER install $_PACKAGE"
+        ;;
+    choco)
+        echo "$PKG_MANAGER install /y $_PACKAGE"
+        ;;
+    *)
+        echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
+        ;;
+    esac
+}
+if ! which git-lfs >/dev/null 2>&1; then
+    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command git-lfs)"
+    _error git-lfs is not installed on your system
+    printf "you can install git-lfs on $FLAVOR with the following command
+
+    ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
+
+install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+    read _RES
+    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+        $_SYSTEM_PACKAGE_INSTALL_COMMAND
+    else
+        exit 1
+    fi
+fi
+if [ "$(git config --global --get-regexp 'filter.lfs')" = "" ]; then
+    _error git-lfs is not configured on your system
+    printf "you can configure git-lfs on $FLAVOR with the following command
+
+    ${C_GREEN}git lfs install${C_END}
+
+configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+    read _RES
+    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+        git lfs install
+        git lfs fetch --all
+    else
+        exit 1
+    fi
+fi
 if [ ! -f "$MKPM_BIN/mkpm" ]; then
     mkdir -p "$MKPM_BIN"
     if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
