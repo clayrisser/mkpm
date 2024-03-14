@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 MKPM_VERSION="<% MKPM_VERSION %>"
 DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/bitspur/mkpm/packages.git}"
@@ -483,7 +484,7 @@ _prepare() {
         _reset_cache
         exit $?
     fi
-    if [ ! -f "$MKPM/mkpm" ]; then
+    if [ ! -f "$MKPM/mkpm/.ready" ]; then
         _require_system_binary awk
         _require_system_binary git
         _require_system_binary git-lfs
@@ -504,6 +505,21 @@ _prepare() {
         else
             _require_system_binary sed --version
         fi
+        if [ "$(git config --global --get-regexp 'filter.lfs')" = "" ]; then
+            _error git-lfs is not configured on your system
+            printf "you can configure git-lfs on $FLAVOR with the following command
+
+    ${C_GREEN}git lfs install${C_END}
+
+configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+            read _RES
+            if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+                git lfs install
+                git lfs fetch --all
+            else
+                exit 1
+            fi
+        fi
         _ensure_dirs
         _validate_mkpm_config
         if [ ! -d "$_MKPM_PACKAGES" ]; then
@@ -514,6 +530,7 @@ _prepare() {
             fi
         fi
         _ensure_mkpm_mk
+        touch "$MKPM/mkpm/.ready"
     fi
 }
 
@@ -704,8 +721,8 @@ install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
             $_SYSTEM_PACKAGE_INSTALL_COMMAND
-            _CODE="$?"
-            [ "$_CODE" = "0" ] && true || exit $_CODE
+        else
+            exit 1
         fi
     else
         _debug system binary $_SYSTEM_BINARY found
@@ -765,6 +782,7 @@ _create_cache() {
     cd "$MKPM"
     touch "$MKPM_ROOT/cache.tar.gz"
     $_TAR --format=gnu --sort=name --mtime='1970-01-01 00:00:00 UTC' -czf "$MKPM_ROOT/cache.tar.gz" \
+        --exclude '.ready' \
         --exclude '.tmp' \
         .
     cd "$_CWD"
