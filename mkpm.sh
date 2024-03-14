@@ -510,12 +510,13 @@ _prepare() {
             printf "you can configure git-lfs on $FLAVOR with the following command
 
     ${C_GREEN}git lfs install${C_END}
+    ${C_GREEN}git lfs pull${C_END}
 
 configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
             read _RES
             if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                 git lfs install
-                git lfs fetch --all
+                git lfs pull
             else
                 exit 1
             fi
