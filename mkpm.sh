@@ -125,7 +125,6 @@ _debug MKPM_BIN=\"$MKPM_BIN\"
 _debug MKPM_TMP=\"$MKPM_TMP\"
 export _MKPM_PACKAGES="$MKPM/.pkgs"
 
-_MKPM_PACKAGE=$([ "$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.repo // ""')" = "" ] && true || echo 1)
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 
 main() {
