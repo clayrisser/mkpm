@@ -484,7 +484,7 @@ _prepare() {
         _reset_cache
         exit $?
     fi
-    if [ ! -f "$MKPM/mkpm/.ready" ]; then
+    if [ ! -f "$MKPM/.ready" ]; then
         _require_system_binary awk
         _require_system_binary git
         _require_system_binary git-lfs
@@ -530,7 +530,7 @@ configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
             fi
         fi
         _ensure_mkpm_mk
-        touch "$MKPM/mkpm/.ready"
+        touch "$MKPM/.ready"
     fi
 }
 
