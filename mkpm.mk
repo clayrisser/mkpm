@@ -2,7 +2,7 @@
 # Project: mkpm
 # File Created: 28-11-2023 13:42:39
 # Author: Clay Risser
-# BitSpur (c) Copyright 2021 - 2023
+# BitSpur (c) Copyright 2021 - 2024
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,11 @@ export BANG := \!
 export NULL := /dev/null
 export NOFAIL := 2>$(NULL) || $(TRUE)
 export NOOUT := >$(NULL) 2>&1
+
+define make
+D=$$([ "$1" = "" ] && $(TRUE) || $(ECHO) "$1/")
+[ -f "$$D/Mkpmfile" ] && $(MAKE) -sC "$$D" -f Mkpmfile || $(MAKE) -sC "$$D"
+endef
 
 define ternary
 $(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
@@ -98,9 +103,30 @@ endif
 export NUMPROC ?= $(NPROC)
 export MAKEFLAGS += "-j $(NUMPROC)"
 
+export SHARED_MK := $(wildcard $(PROJECT_ROOT)/shared.mk)
+ifneq (,$(SHARED_MK))
+include $(SHARED_MK)
+endif
+
+NODE ?= node
+HELP_GENERATE_TABLE ?= $(NODE) -e 'var a=console.log;a("|command|description|");a("|-|-|");require("fs").readFileSync(0,"utf-8").replace(/\u001b\[\d*?m/g,"").split("\n").map(e=>e.split(/\s+(.+)/).map(e=>e.trim())).map(e=>{var r=e[0];if(e&&r)a("|","`make "+r+"`","|",e.length>1?e[1]:"","|")})'
+HELP_PREFIX ?=
+HELP_SPACING ?= 32
+HELP ?= _mkpm_help
 ifeq (,$(.DEFAULT_GOAL))
 .DEFAULT_GOAL = $(HELP)
 endif
+_mkpm_help:
+	@$(CAT) $(shell [ -f $(CURDIR)/Mkpmfile ] && $(ECHO) $(CURDIR)/Mkpmfile || $(ECHO) $(CURDIR)/Makefile) | \
+		$(GREP) -E '^[a-zA-Z0-9][^ 	%*]*:.*##' | \
+		$(SORT) | \
+		$(AWK) 'BEGIN {FS = ":[^#]*([ 	]+##[ 	]*)?"}; {printf "\033[36m%-$(HELP_SPACING)s  \033[0m%s\n", "$(HELP_PREFIX)"$$1, $$2}' | \
+		$(UNIQ)
+.PHONY: help-generate-table
+help-generate-table:
+	@$(MKDIR) -p $(MKPM_TMP)
+	@$(MAKE) -s $(HELP) | \
+		$(HELP_GENERATE_TABLE)
 
 export SUDO ?= $(call ternary,$(WHICH) sudo,sudo -E,)
 .PHONY: sudo
@@ -109,18 +135,4 @@ sudo:
 	@$(SUDO) $(TRUE)
 else
 sudo: ;
-endif
-
-export SHARED_MK := $(wildcard $(PROJECT_ROOT)/shared.mk)
-ifneq (,$(SHARED_MK))
-include $(SHARED_MK)
-endif
-
-ifneq ($(patsubst %.exe,%,$(SHELL)),$(SHELL))
-include cmd.exe
-cmd.exe:
-	@$(ECHO) cmd.exe not supported 1>&2
-	@$(ECHO) if you are on Windows, please use WSL (Windows Subsystem for Linux) 1>&2
-	@$(ECHO) https://docs.microsoft.com/windows/wsl 1>&2
-	@$(EXIT) 1
 endif

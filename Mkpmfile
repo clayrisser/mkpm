@@ -70,11 +70,11 @@ clean:
 		$(MKPM_GIT_CLEAN_FLAGS)
 
 .PHONY: purge
-purge: clean
+purge: clean ##
 	@$(GIT) clean -fXd
 
-.PHONY: help
-help:
-	@$(ECHO) help not implemented
+.PHONY: hello
+hello:
+	echo hello
 
 -include $(call chain)
