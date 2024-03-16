@@ -11,6 +11,10 @@ trim_trailing_whitespace = true
 charset = utf-8
 trim_trailing_whitespace = false
 
+[Mkpmfile]
+charset = utf-8
+indent_size = 4
+indent_style = tab
 [{m,M}akefile]
 charset = utf-8
 indent_size = 4

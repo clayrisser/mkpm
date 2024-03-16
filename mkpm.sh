@@ -1,6 +1,24 @@
 #!/bin/sh
 set -e
 
+# File: /mkpm.sh
+# Project: mkpm
+# File Created: 28-11-2023 13:42:39
+# Author: Clay Risser
+# BitSpur (c) Copyright 2021 - 2024
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 MKPM_VERSION="<% MKPM_VERSION %>"
 DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/bitspur/mkpm/packages.git}"
 MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.mk}"
@@ -187,7 +205,9 @@ main() {
 }
 
 _run() {
-    _TARGET="$1"
+    if [ "$1" != "" ]; then
+        _TARGET="\"$1\""
+    fi
     shift
     _MAKE="$(which remake >/dev/null 2>&1 && echo remake ||
         (which gmake >/dev/null 2>&1 && echo gmake || echo make))"
@@ -196,9 +216,9 @@ _run() {
     if [ ! -f "$_MAKEFILE" ]; then
         _MAKEFILE="Makefile"
     fi
-    _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
+    _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS $_TARGET"
     eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
-        -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS \"$_TARGET\""
+        -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS $_TARGET"
 }
 
 _INSTALL_REFCOUNT=0
@@ -530,6 +550,31 @@ configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
             fi
         fi
         _ensure_mkpm_mk
+        jq -r '.binaries | keys[]' "$MKPM_CONFIG" | while IFS= read -r _SYSTEM_BINARY; do
+            if ! which $_SYSTEM_BINARY >/dev/null 2>&1; then
+                _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r --compact-output ".binaries.\"$_SYSTEM_BINARY\" // \"\"" "$MKPM_CONFIG")"
+                if [ "$(echo "$_SYSTEM_PACKAGE_INSTALL_COMMAND" | cut -c 1)" = "{" ]; then
+                    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_SYSTEM_BINARY\".$FLAVOR // \"\"" "$MKPM_CONFIG")"
+                    if [ "$_SYSTEM_PACKAGE_INSTALL_COMMAND" = "" ]; then
+                        _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_binary\".$PLATFORM // \"\"" "$MKPM_CONFIG")"
+                    fi
+                fi
+                if [ "$_SYSTEM_PACKAGE_INSTALL_COMMAND" != "" ]; then
+                    _error $_SYSTEM_BINARY is not installed on your system
+                    printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
+
+    ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
+
+install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+                    read _RES < /dev/tty
+                    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+                        $_SYSTEM_PACKAGE_INSTALL_COMMAND
+                    else
+                        exit 1
+                    fi
+                fi
+            fi
+        done
         touch "$MKPM/.ready"
     fi
 }
@@ -805,6 +850,9 @@ _reset_cache() {
         "$MKPM_ROOT/cache.tar.gz" \
         "$MKPM/.prepared" \
         "$MKPM/mkpm" 2>/dev/null
+    if [ -f "$PROJECT_ROOT/mkpm.mk" ]; then
+        cp "$PROJECT_ROOT/mkpm.mk" "$MKPM/mkpm"
+    fi
     unset _MKPM_RESET_CACHE
     _debug reset cache
     exec "$__0" $__ARGS
@@ -1013,81 +1061,61 @@ export ARCH=unknown
 export FLAVOR=unknown
 export PKG_MANAGER=unknown
 export PLATFORM=unknown
-if [ "$OS" = "Windows_NT" ]; then
-    export HOME="${HOMEDRIVE}${HOMEPATH}"
-    PLATFORM=win32
-    FLAVOR=win64
-    ARCH="$PROCESSOR_ARCHITECTURE"
-    PKG_MANAGER=choco
-    if [ "$ARCH" = "AMD64" ]; then
-        ARCH=amd64
-    elif [ "$ARCH" = "ARM64" ]; then
-        ARCH=arm64
-    fi
-    if [ "$PROCESSOR_ARCHITECTURE" = "x86" ]; then
-        ARCH=amd64
-        if [ "$PROCESSOR_ARCHITEW6432" = "" ]; then
-            ARCH=x86
-            FLAVOR=win32
+PLATFORM=$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+ARCH=$( (dpkg --print-architecture 2>/dev/null || uname -m 2>/dev/null || arch 2>/dev/null || echo unknown) |
+    tr '[:upper:]' '[:lower:]' 2>/dev/null)
+if [ "$ARCH" = "i386" ] || [ "$ARCH" = "i686" ]; then
+    ARCH=386
+elif [ "$ARCH" = "x86_64" ]; then
+    ARCH=amd64
+fi
+if [ "$PLATFORM" = "linux" ]; then
+    if [ -f /system/bin/adb ]; then
+        if [ "$(getprop --help >/dev/null 2>/dev/null && echo 1 || echo 0)" = "1" ]; then
+            PLATFORM=android
         fi
-    fi
-else
-    PLATFORM=$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
-    ARCH=$( (dpkg --print-architecture 2>/dev/null || uname -m 2>/dev/null || arch 2>/dev/null || echo unknown) |
-        tr '[:upper:]' '[:lower:]' 2>/dev/null)
-    if [ "$ARCH" = "i386" ] || [ "$ARCH" = "i686" ]; then
-        ARCH=386
-    elif [ "$ARCH" = "x86_64" ]; then
-        ARCH=amd64
     fi
     if [ "$PLATFORM" = "linux" ]; then
-        if [ -f /system/bin/adb ]; then
-            if [ "$(getprop --help >/dev/null 2>/dev/null && echo 1 || echo 0)" = "1" ]; then
-                PLATFORM=android
+        FLAVOR=$(lsb_release -si 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+        if [ "$FLAVOR" = "" ]; then
+            FLAVOR=unknown
+            if [ -f /etc/redhat-release ]; then
+                FLAVOR=rhel
+            elif [ -f /etc/SuSE-release ]; then
+                FLAVOR=suse
+            elif [ -f /etc/debian_version ]; then
+                FLAVOR=debian
+            elif (cat /etc/os-release 2>/dev/null | grep -qE '^ID=alpine$'); then
+                FLAVOR=alpine
             fi
         fi
-        if [ "$PLATFORM" = "linux" ]; then
-            FLAVOR=$(lsb_release -si 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
-            if [ "$FLAVOR" = "" ]; then
-                FLAVOR=unknown
-                if [ -f /etc/redhat-release ]; then
-                    FLAVOR=rhel
-                elif [ -f /etc/SuSE-release ]; then
-                    FLAVOR=suse
-                elif [ -f /etc/debian_version ]; then
-                    FLAVOR=debian
-                elif (cat /etc/os-release 2>/dev/null | grep -qE '^ID=alpine$'); then
-                    FLAVOR=alpine
-                fi
-            fi
-            if [ "$FLAVOR" = "rhel" ]; then
-                PKG_MANAGER=$(which microdnf >/dev/null 2>&1 && echo microdnf ||
-                    echo $(which dnf >/dev/null 2>&1 && echo dnf || echo yum))
-            elif [ "$FLAVOR" = "suse" ]; then
-                PKG_MANAGER=zypper
-            elif [ "$FLAVOR" = "debian" ]; then
-                PKG_MANAGER=apt-get
-            elif [ "$FLAVOR" = "ubuntu" ]; then
-                PKG_MANAGER=apt-get
-            elif [ "$FLAVOR" = "alpine" ]; then
-                PKG_MANAGER=apk
-            fi
+        if [ "$FLAVOR" = "rhel" ]; then
+            PKG_MANAGER=$(which microdnf >/dev/null 2>&1 && echo microdnf ||
+                echo $(which dnf >/dev/null 2>&1 && echo dnf || echo yum))
+        elif [ "$FLAVOR" = "suse" ]; then
+            PKG_MANAGER=zypper
+        elif [ "$FLAVOR" = "debian" ]; then
+            PKG_MANAGER=apt-get
+        elif [ "$FLAVOR" = "ubuntu" ]; then
+            PKG_MANAGER=apt-get
+        elif [ "$FLAVOR" = "alpine" ]; then
+            PKG_MANAGER=apk
         fi
-    elif [ "$PLATFORM" = "darwin" ]; then
-        PKG_MANAGER=brew
-    else
-        if (echo "$PLATFORM" | grep -q 'MSYS'); then
-            PLATFORM=win32
-            FLAVOR=msys
-            PKG_MANAGER=pacman
-        elif (echo "$PLATFORM" | grep -q 'MINGW'); then
-            PLATFORM=win32
-            FLAVOR=msys
-            PKG_MANAGER=mingw-get
-        elif (echo "$PLATFORM" | grep -q 'CYGWIN'); then
-            PLATFORM=win32
-            FLAVOR=cygwin
-        fi
+    fi
+elif [ "$PLATFORM" = "darwin" ]; then
+    PKG_MANAGER=brew
+else
+    if (echo "$PLATFORM" | grep -q 'MSYS'); then
+        PLATFORM=win32
+        FLAVOR=msys
+        PKG_MANAGER=pacman
+    elif (echo "$PLATFORM" | grep -q 'MINGW'); then
+        PLATFORM=win32
+        FLAVOR=msys
+        PKG_MANAGER=mingw-get
+    elif (echo "$PLATFORM" | grep -q 'CYGWIN'); then
+        PLATFORM=win32
+        FLAVOR=cygwin
     fi
 fi
 if [ "$FLAVOR" = "unknown" ]; then
@@ -1247,9 +1275,7 @@ if [ "$_IS_MKPM_COMMAND" = "1" ]; then
 else
     export _COMMAND=run
     export _TARGET="$1"
-    if [ "$_TARGET" = "" ]; then
-        export _TARGET=help
-    else
+    if [ "$_TARGET" != "" ]; then
         shift
     fi
 fi

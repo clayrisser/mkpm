@@ -1,6 +1,24 @@
 #!/bin/sh
 set -e
 
+# File: /mkpm-proxy.sh
+# Project: mkpm
+# File Created: 28-11-2023 13:42:39
+# Author: Clay Risser
+# BitSpur (c) Copyright 2021 - 2024
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 MKPM_VERSION="<% MKPM_VERSION %>"
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 alias download="$(curl --version >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
