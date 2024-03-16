@@ -122,11 +122,15 @@ ifeq (,$(.DEFAULT_GOAL))
 .DEFAULT_GOAL = $(HELP)
 endif
 _mkpm_help:
-	@$(CAT) $(shell [ -f $(CURDIR)/Mkpmfile ] && $(ECHO) $(CURDIR)/Mkpmfile || $(ECHO) $(CURDIR)/Makefile) | \
+	@$(CAT) $(MAKEFILE) | \
 		$(GREP) -E '^[a-zA-Z0-9][^ 	%*]*:.*##' | \
 		$(SORT) | \
 		$(AWK) 'BEGIN {FS = ":[^#]*([ 	]+##[ 	]*)?"}; {printf "\033[36m%-$(HELP_SPACING)s  \033[0m%s\n", "$(HELP_PREFIX)"$$1, $$2}' | \
 		$(UNIQ)
+	$(eval PHONY_TARGETS := $(shell $(CAT) $(MAKEFILE) | $(GREP) -C2 -E 'C\s.+\$$\*' | $(GREP) -E '^\.PHONY:\s[a-z].+/%' | $(SED) 's|^.PHONY: ||g' | $(SED) 's|/%$$||g'))
+	@$(foreach i,$(PHONY_TARGETS),\
+		$(call make,$i); \
+	)
 .PHONY: help-generate-table
 help-generate-table:
 	@$(MKDIR) -p $(MKPM_TMP)
