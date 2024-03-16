@@ -550,7 +550,7 @@ configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
             fi
         fi
         _ensure_mkpm_mk
-        jq -r '.binaries | keys[]' "$MKPM_CONFIG" | while IFS= read -r _SYSTEM_BINARY; do
+        jq -r '.binaries // {} | keys[]' "$MKPM_CONFIG" | while IFS= read -r _SYSTEM_BINARY; do
             if ! which $_SYSTEM_BINARY >/dev/null 2>&1; then
                 _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r --compact-output ".binaries.\"$_SYSTEM_BINARY\" // \"\"" "$MKPM_CONFIG")"
                 if [ "$(echo "$_SYSTEM_PACKAGE_INSTALL_COMMAND" | cut -c 1)" = "{" ]; then
