@@ -39,6 +39,11 @@ define make
 D=$$([ "$1" = "" ] && $(TRUE) || $(ECHO) "$1/")
 [ -f "$$D/Mkpmfile" ] && $(MAKE) -sC "$$D" -f Mkpmfile || $(MAKE) -sC "$$D"
 endef
+ifeq (,$(wildcard $(CURDIR)/Mkpmfile))
+MAKEFILE := $(CURDIR)/Makefile
+else
+MAKEFILE := $(CURDIR)/Mkpmfile
+endif
 
 define ternary
 $(shell $1 $(NOOUT) && $(ECHO) $2|| $(ECHO) $3)
