@@ -36,8 +36,8 @@ export NOFAIL := 2>$(NULL) || $(TRUE)
 export NOOUT := >$(NULL) 2>&1
 
 define make
-D=$$([ "$1" = "" ] && $(TRUE) || $(ECHO) "$1/")
-[ -f "$$D/Mkpmfile" ] && $(MAKE) -sC "$$D" -f Mkpmfile || $(MAKE) -sC "$$D"
+$(shell C="$$([ "$1" = "" ] && $(TRUE) || $(ECHO) "C \"$1\"")" && \
+	[ -f "$$C/Mkpmfile" ] && $(ECHO) $(MAKE) -s$$C -f Mkpmfile || $(ECHO) $(MAKE) -s$$C)
 endef
 ifeq (,$(wildcard $(CURDIR)/Mkpmfile))
 MAKEFILE := $(CURDIR)/Makefile
