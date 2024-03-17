@@ -509,21 +509,24 @@ _prepare() {
     if [ ! -f "$MKPM/.ready" ]; then
         if [ "$PLATFORM" = "darwin" ]; then
             if ! which brew >/dev/null 2>&1; then
-                _error brew is not installed on your system
-                printf "you can install brew on $FLAVOR with the following command
+                eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null)" >/dev/null 2>&1
+                if ! which brew >/dev/null 2>&1; then
+                    _error brew is not installed on your system
+                    printf "you can install brew on $FLAVOR with the following command
 
     ${C_GREEN}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${C_END}
     ${C_GREEN}(echo; echo 'eval \"\$(/opt/homebrew/bin/brew shellenv)\"') >> /Users/m1/.zprofile${C_END}
     ${C_GREEN}eval \"\$(/opt/homebrew/bin/brew shellenv)\"${C_END}
 
 install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
-                read _RES
-                if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                    (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> /Users/m1/.zprofile
-                    eval "$(/opt/homebrew/bin/brew shellenv)"
-                else
-                    exit 1
+                    read _RES
+                    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+                        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                        (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> /Users/m1/.zprofile
+                        eval "$(/opt/homebrew/bin/brew shellenv)"
+                    else
+                        exit 1
+                    fi
                 fi
             fi
         fi
