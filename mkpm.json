@@ -1,7 +1,7 @@
 {
   "packages": {
     "default": {
-      "chain": "0.2.3",
+      "chain": "0.2.4",
       "gnu": "0.1.0"
     }
   },

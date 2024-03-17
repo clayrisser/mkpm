@@ -504,6 +504,9 @@ _prepare() {
         exit $?
     fi
     if [ ! -f "$MKPM/.ready" ]; then
+        if [ "$PLATFORM" = "darwin" ]; then
+            _require_system_binary brew
+        fi
         _require_system_binary awk
         _require_system_binary git
         _require_system_binary git-lfs
@@ -568,7 +571,7 @@ configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
 install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
                     read _RES < /dev/tty
                     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-                        $_SYSTEM_PACKAGE_INSTALL_COMMAND
+                        eval $_SYSTEM_PACKAGE_INSTALL_COMMAND
                     else
                         exit 1
                     fi
@@ -734,6 +737,10 @@ _PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
 _lookup_system_package_install_command() {
     _BINARY="$1"
     _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || echo "$2")"
+    if [ "$_PACKAGE" = "brew" ]; then
+        echo '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+        return
+    fi
     case "$PKG_MANAGER" in
     apk)
         echo "$PKG_MANAGER add --no-cache $_PACKAGE"
@@ -765,7 +772,7 @@ _require_system_binary() {
 install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-            $_SYSTEM_PACKAGE_INSTALL_COMMAND
+            eval $_SYSTEM_PACKAGE_INSTALL_COMMAND
         else
             exit 1
         fi
