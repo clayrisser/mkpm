@@ -412,8 +412,11 @@ EOF
 .ONESHELL:
 .POSIX:
 .SILENT:
-
+.DEFAULT_GOAL := default
 MKPM := $([ -f "${PROJECT_ROOT}/mkpm" ] && echo ./mkpm || echo mkpm)
+.PHONY: default
+default:
+	@\$(MKPM) \$(ARGS)
 .PHONY: %
 %:
 	@\$(MKPM) "\$@" \$(ARGS)

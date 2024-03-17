@@ -162,6 +162,22 @@ _lookup_system_package_install_command() {
         ;;
     esac
 }
+if [ "$PLATFORM" = "darwin" ]; then
+    if ! which brew >/dev/null 2>&1; then
+        _error brew is not installed on your system
+        printf "you can install brew on $FLAVOR with the following command
+
+    ${C_GREEN}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${C_END}
+
+install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+        read _RES
+        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        else
+            exit 1
+        fi
+    fi
+fi
 if ! which git-lfs >/dev/null 2>&1; then
     _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command git-lfs)"
     _error git-lfs is not installed on your system
