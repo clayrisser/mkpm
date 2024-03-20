@@ -26,7 +26,13 @@ export MKPM_MAKE := $(MAKE) -sf Mkpmfile
 export LC_ALL := C
 export MAKESHELL ?= $(SHELL)
 
+export CUT := cut
 export ECHO := echo
+export EVAL := eval
+export EXIT := exit
+export PRINTF := printf
+export READ := read
+export TR := tr
 export TRUE := true
 export WHICH := command -v
 
@@ -145,3 +151,19 @@ sudo:
 else
 sudo: ;
 endif
+
+define system_package_install
+export _SYSTEM_PACKAGE_INSTALL_COMMAND="$1"; \
+export _SYSTEM_BINARY="$2"; \
+export _SYSTEM_PACKAGE_NAME="$$([ "$3" = "" ] && $(ECHO) "$3" || $(ECHO) "$2")"; \
+$(ECHO) "$(C_RED)MKPM [E]:$(C_END) $$_SYSTEM_BINARY is not installed on your system" 1>&2; \
+$(PRINTF) "you can install $$_SYSTEM_BINARY on $(FLAVOR) with the following command \
+\n\n    $(C_GREEN)$$_SYSTEM_PACKAGE_INSTALL_COMMAND$(C_END) \
+\n\ninstall for me [$(C_GREEN)Y$(C_END)|$(C_RED)n$(C_END)]: "; \
+$(READ) _RES; \
+if [ "$$($(ECHO) "$$_RES" | $(CUT) -c 1 | $(TR) '[:lower:]' '[:upper:]')" != "N" ]; then \
+	$(EVAL) $$_SYSTEM_PACKAGE_INSTALL_COMMAND; \
+else
+	$(EXIT) 1; \
+fi
+endef
