@@ -130,6 +130,39 @@ if [ "$PROJECT_ROOT" = "/" ]; then
         _IS_MKPM_COMMAND=1
     fi
 fi
+_rc_config() {
+    case "${SHELL##*/}" in
+        zsh)
+            RC_CONFIG="${ZDOTDIR:-$HOME}/.zshrc"
+            ;;
+        bash)
+            if [ "$PLATFORM" = "darwin" ]; then
+                RC_CONFIG="${HOME}/.bash_profile"
+            else
+                RC_CONFIG="${HOME}/.bashrc"
+            fi
+            ;;
+        fish)
+            RC_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"
+            ;;
+        *)
+            RC_CONFIG="${HOME}/.profile"
+            ;;
+    esac
+    if [ ! -f "$RC_CONFIG" ]; then
+        for r in "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile"; do
+            if [ -f "$r" ]; then
+                RC_CONFIG="$r"
+                break
+            fi
+        done
+    fi
+    if [ -z "$RC_CONFIG" ]; then
+        RC_CONFIG="$HOME/.bashrc"
+    fi
+    echo "$RC_CONFIG"
+}
+export RC_CONFIG="$(_rc_config)"
 _MKPM_ROOT_NAME=".mkpm"
 export MKPM_ROOT="$PROJECT_ROOT/$_MKPM_ROOT_NAME"
 export MKPM="$MKPM_ROOT/mkpm"
@@ -500,6 +533,149 @@ EOF
     _echo "initialized mkpm project"
 }
 
+_require_brew() {
+    if ! which brew >/dev/null 2>&1; then
+        eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null)" >/dev/null 2>&1
+        if ! which brew >/dev/null 2>&1; then
+            _error brew is not installed on your system
+            printf "you can install brew on $FLAVOR with the following command
+
+    ${C_GREEN}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${C_END}
+    ${C_GREEN}(echo; echo 'eval \"\$(/opt/homebrew/bin/brew shellenv)\"') >> $HOME/.zprofile${C_END}
+    ${C_GREEN}eval \"\$(/opt/homebrew/bin/brew shellenv)\"${C_END}
+
+install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+            read _RES
+            if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> $HOME/.zprofile
+                eval "$(/opt/homebrew/bin/brew shellenv)"
+            else
+                exit 1
+            fi
+        fi
+    fi
+}
+
+_require_asdf() {
+    if ! which asdf >/dev/null 2>&1; then
+        if [ "$PLATFORM" = "darwin" ]; then
+            export ASDF_DIR="$(brew --prefix asdf)/libexec"
+        else
+            export ASDF_DIR="$HOME/.asdf"
+        fi
+        if [ -f "$ASDF_DIR/asdf.sh" ]; then
+            . "$ASDF_DIR/asdf.sh"
+        fi
+        if ! grep -E '^[^#]*asdf.*/asdf.sh' "$RC_CONFIG" >/dev/null 2>&1; then
+            _UPDATE_RC_CONFIG=1
+        fi
+        if ! which asdf >/dev/null 2>&1; then
+            _error asdf is not installed on your system
+            echo "you can install asdf on $FLAVOR with the following command"
+            if [ "$PLATFORM" = "darwin" ]; then
+                echo "
+    ${C_GREEN}brew install asdf${C_END}"
+                if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
+                    echo "    ${C_GREEN}printf '\\\\n. \"$ASDF_DIR/asdf.sh\"\\\\n' >> \"$RC_CONFIG\"${C_END}"
+                fi
+                echo
+            else
+                echo "
+    ${C_GREEN}git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.14.0${C_END}"
+                if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
+                    echo "    ${C_GREEN}printf '\\\\n. \"\$HOME/.asdf/asdf.sh\"\\\\n' >> \"$RC_CONFIG\"${C_END}"
+                fi
+                echo
+            fi
+            printf "install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+            read _RES
+            if [ "$PLATFORM" = "darwin" ]; then
+                if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+                    brew install asdf
+                    if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
+                        printf "\n. \"$ASDF_DIR/asdf.sh\"\n" >> "$RC_CONFIG"
+                    fi
+                else
+                    exit 1
+                fi
+            else
+                if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+                    git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.14.0
+                    if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
+                        printf '\n. "$HOME/.asdf/asdf.sh"\n' >> "$RC_CONFIG"
+                    fi
+                else
+                    exit 1
+                fi
+            fi
+            . "$ASDF_DIR/asdf.sh"
+        fi
+    fi
+    for p in $(echo "$(asdf plugin list | sed 's|\*||g' | uniq) $(cat "$PROJECT_ROOT/.tool-versions" | cut -d' ' -f1 | uniq)" | tr ' ' '\n' | sort | uniq -u); do
+        echo "adding asdf $p plugin"
+        asdf plugin add $p
+    done
+    asdf install
+}
+
+_require_binaries() {
+    jq -r '.binaries // {} | keys[]' "$MKPM_CONFIG" | while IFS= read -r _SYSTEM_BINARY; do
+        if ! which $_SYSTEM_BINARY >/dev/null 2>&1; then
+            _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r --compact-output ".binaries.\"$_SYSTEM_BINARY\" // \"\"" "$MKPM_CONFIG")"
+            if [ "$(echo "$_SYSTEM_PACKAGE_INSTALL_COMMAND" | cut -c 1)" = "{" ]; then
+                _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_SYSTEM_BINARY\".$FLAVOR // \"\"" "$MKPM_CONFIG")"
+                if [ "$_SYSTEM_PACKAGE_INSTALL_COMMAND" = "" ]; then
+                    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_binary\".$PLATFORM // \"\"" "$MKPM_CONFIG")"
+                fi
+            fi
+            if [ "$_SYSTEM_PACKAGE_INSTALL_COMMAND" != "" ]; then
+                _error $_SYSTEM_BINARY is not installed on your system
+                printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
+
+    ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
+
+install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+                read _RES < /dev/tty
+                if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+                    eval $_SYSTEM_PACKAGE_INSTALL_COMMAND
+                else
+                    exit 1
+                fi
+            fi
+        fi
+    done
+}
+
+_require_git_lfs() {
+    _require_system_binary git-lfs
+    if [ "$(git config --global --get-regexp 'filter.lfs')" = "" ]; then
+        _error git-lfs is not configured on your system
+        printf "you can configure git-lfs on $FLAVOR with the following command
+
+    ${C_GREEN}git lfs install${C_END}
+    ${C_GREEN}git lfs pull${C_END}
+
+configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+        read _RES
+        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+            git lfs install
+            git lfs pull
+        else
+            exit 1
+        fi
+    fi
+    _ensure_dirs
+    _validate_mkpm_config
+    if [ ! -d "$_MKPM_PACKAGES" ]; then
+        if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
+            _restore_from_cache
+        else
+            _install
+        fi
+    fi
+}
+
 _prepare() {
     if [ "$_MKPM_RESET_CACHE" = "1" ] ||
         ([ "$_MKPM_TEST" = "1" ] && [ -f "$MKPM/mkpm" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
@@ -508,31 +684,13 @@ _prepare() {
     fi
     if [ ! -f "$MKPM/.ready" ]; then
         if [ "$PLATFORM" = "darwin" ]; then
-            if ! which brew >/dev/null 2>&1; then
-                eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null)" >/dev/null 2>&1
-                if ! which brew >/dev/null 2>&1; then
-                    _error brew is not installed on your system
-                    printf "you can install brew on $FLAVOR with the following command
-
-    ${C_GREEN}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"${C_END}
-    ${C_GREEN}(echo; echo 'eval \"\$(/opt/homebrew/bin/brew shellenv)\"') >> $HOME/.zprofile${C_END}
-    ${C_GREEN}eval \"\$(/opt/homebrew/bin/brew shellenv)\"${C_END}
-
-install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
-                    read _RES
-                    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-                        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                        (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> $HOME/.zprofile
-                        eval "$(/opt/homebrew/bin/brew shellenv)"
-                    else
-                        exit 1
-                    fi
-                fi
-            fi
+            _require_brew
+        fi
+        if [ -f "$PROJECT_ROOT/.tool-versions" ]; then
+            _require_asdf
         fi
         _require_system_binary awk
         _require_system_binary git
-        _require_system_binary git-lfs
         _require_system_binary grep
         _require_system_binary jq
         if [ "$PLATFORM" = "darwin" ]; then
@@ -550,57 +708,9 @@ install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         else
             _require_system_binary sed --version
         fi
-        if [ "$(git config --global --get-regexp 'filter.lfs')" = "" ]; then
-            _error git-lfs is not configured on your system
-            printf "you can configure git-lfs on $FLAVOR with the following command
-
-    ${C_GREEN}git lfs install${C_END}
-    ${C_GREEN}git lfs pull${C_END}
-
-configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
-            read _RES
-            if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-                git lfs install
-                git lfs pull
-            else
-                exit 1
-            fi
-        fi
-        _ensure_dirs
-        _validate_mkpm_config
-        if [ ! -d "$_MKPM_PACKAGES" ]; then
-            if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
-                _restore_from_cache
-            else
-                _install
-            fi
-        fi
+        _require_git_lfs
         _ensure_mkpm_mk
-        jq -r '.binaries // {} | keys[]' "$MKPM_CONFIG" | while IFS= read -r _SYSTEM_BINARY; do
-            if ! which $_SYSTEM_BINARY >/dev/null 2>&1; then
-                _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r --compact-output ".binaries.\"$_SYSTEM_BINARY\" // \"\"" "$MKPM_CONFIG")"
-                if [ "$(echo "$_SYSTEM_PACKAGE_INSTALL_COMMAND" | cut -c 1)" = "{" ]; then
-                    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_SYSTEM_BINARY\".$FLAVOR // \"\"" "$MKPM_CONFIG")"
-                    if [ "$_SYSTEM_PACKAGE_INSTALL_COMMAND" = "" ]; then
-                        _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_binary\".$PLATFORM // \"\"" "$MKPM_CONFIG")"
-                    fi
-                fi
-                if [ "$_SYSTEM_PACKAGE_INSTALL_COMMAND" != "" ]; then
-                    _error $_SYSTEM_BINARY is not installed on your system
-                    printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
-
-    ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
-
-install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
-                    read _RES < /dev/tty
-                    if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-                        eval $_SYSTEM_PACKAGE_INSTALL_COMMAND
-                    else
-                        exit 1
-                    fi
-                fi
-            fi
-        done
+        _require_binaries
         touch "$MKPM/.ready"
     fi
 }
