@@ -711,7 +711,10 @@ _prepare() {
         _require_git_lfs
         _ensure_mkpm_mk
         _require_binaries
-        touch "$MKPM/.ready"
+        touch -m "$MKPM/.ready"
+    elif [ "$PROJECT_ROOT/.tool-versions" -nt "$MKPM/.ready" ]; then
+        _require_asdf
+        touch -m "$MKPM/.ready"
     fi
 }
 
