@@ -25,6 +25,10 @@ MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/48207162/packages
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm-proxy.sh}"
 
+if [ "$VSCODE_CLI" = "1" ] && [ "$VSCODE_PID" != "" ] && [ "$VSCODE_CWD" != "" ]; then
+    exit 0
+fi
+
 __0="$0"
 __ARGS="$@"
 
