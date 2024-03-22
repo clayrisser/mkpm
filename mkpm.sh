@@ -35,6 +35,7 @@ __ARGS="$@"
 alias which="command -v"
 alias download="$(which curl >/dev/null 2>&1 && echo curl -Lo || echo wget -O)"
 alias echo="$([ "$(echo -e)" = "-e" ] && echo "echo" || echo "echo -e")"
+alias awk="$(which gawk >/dev/null 2>&1 && echo gawk || echo awk)"
 alias sed="$(which gsed >/dev/null 2>&1 && echo gsed || echo sed)"
 alias tar="$(which gtar >/dev/null 2>&1 && echo gtar || echo tar)"
 
@@ -136,22 +137,22 @@ if [ "$PROJECT_ROOT" = "/" ]; then
 fi
 _rc_config() {
     case "${SHELL##*/}" in
-        zsh)
-            RC_CONFIG="${ZDOTDIR:-$HOME}/.zshrc"
-            ;;
-        bash)
-            if [ "$PLATFORM" = "darwin" ]; then
-                RC_CONFIG="${HOME}/.bash_profile"
-            else
-                RC_CONFIG="${HOME}/.bashrc"
-            fi
-            ;;
-        fish)
-            RC_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"
-            ;;
-        *)
-            RC_CONFIG="${HOME}/.profile"
-            ;;
+    zsh)
+        RC_CONFIG="${ZDOTDIR:-$HOME}/.zshrc"
+        ;;
+    bash)
+        if [ "$PLATFORM" = "darwin" ]; then
+            RC_CONFIG="${HOME}/.bash_profile"
+        else
+            RC_CONFIG="${HOME}/.bashrc"
+        fi
+        ;;
+    fish)
+        RC_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"
+        ;;
+    *)
+        RC_CONFIG="${HOME}/.profile"
+        ;;
     esac
     if [ ! -f "$RC_CONFIG" ]; then
         for r in "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile"; do
@@ -552,7 +553,10 @@ install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
             read _RES
             if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> $HOME/.zprofile
+                (
+                    echo
+                    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"'
+                ) >>$HOME/.zprofile
                 eval "$(/opt/homebrew/bin/brew shellenv)"
             else
                 exit 1
@@ -598,7 +602,7 @@ _require_asdf() {
                 if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                     brew install asdf
                     if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
-                        printf "\n. \"$ASDF_DIR/asdf.sh\"\n" >> "$RC_CONFIG"
+                        printf "\n. \"$ASDF_DIR/asdf.sh\"\n" >>"$RC_CONFIG"
                     fi
                 else
                     exit 1
@@ -607,7 +611,7 @@ _require_asdf() {
                 if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                     git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.14.0
                     if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
-                        printf '\n. "$HOME/.asdf/asdf.sh"\n' >> "$RC_CONFIG"
+                        printf '\n. "$HOME/.asdf/asdf.sh"\n' >>"$RC_CONFIG"
                     fi
                 else
                     exit 1
@@ -616,7 +620,7 @@ _require_asdf() {
             . "$ASDF_DIR/asdf.sh"
         fi
     fi
-    for p in $(echo "$(asdf plugin list | sed 's|\*||g' | uniq) $(cat "$PROJECT_ROOT/.tool-versions" | cut -d' ' -f1 | uniq)" | tr ' ' '\n' | sort | uniq -u); do
+    for p in $(echo "$(asdf plugin list 2>/dev/null | sed 's|\*||g' | uniq) $(cat "$PROJECT_ROOT/.tool-versions" | cut -d' ' -f1 | uniq)" | tr ' ' '\n' | sort | uniq -u); do
         echo "adding asdf $p plugin"
         asdf plugin add $p
     done
@@ -640,7 +644,7 @@ _require_binaries() {
     ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
 
 install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
-                read _RES < /dev/tty
+                read _RES </dev/tty
                 if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
                     eval $_SYSTEM_PACKAGE_INSTALL_COMMAND
                 else
@@ -693,24 +697,19 @@ _prepare() {
         if [ -f "$PROJECT_ROOT/.tool-versions" ]; then
             _require_asdf
         fi
-        _require_system_binary awk
         _require_system_binary git
         _require_system_binary grep
         _require_system_binary jq
         if [ "$PLATFORM" = "darwin" ]; then
+            _require_system_binary gawk --version
+            _require_system_binary gsed --version
             _require_system_binary gtar --version
-        else
-            _require_system_binary tar --version
-        fi
-        if [ "$PLATFORM" = "darwin" ]; then
             _require_system_binary remake --version
         else
+            _require_system_binary awk --version
             _require_system_binary make --version
-        fi
-        if [ "$PLATFORM" = "darwin" ]; then
-            _require_system_binary gsed --version
-        else
             _require_system_binary sed --version
+            _require_system_binary tar --version
         fi
         _require_git_lfs
         _ensure_mkpm_mk
