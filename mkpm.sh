@@ -616,8 +616,7 @@ _require_asdf() {
             . "$ASDF_DIR/asdf.sh"
         fi
     fi
-    for p in $(echo "$(asdf plugin list | sed 's|\*||g' | uniq) $(cat "$PROJECT_ROOT/.tool-versions" | cut -d' ' -f1 | uniq)" | tr ' ' '\n' | sort | uniq -u); do
-        echo "adding asdf $p plugin"
+    for p in $(echo "$(cat "$PROJECT_ROOT/.tool-versions" | cut -d' ' -f1 | uniq)" | tr ' ' '\n' | sort | uniq -u); do
         asdf plugin add $p
     done
     asdf install
