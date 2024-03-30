@@ -25,7 +25,7 @@ PREFIX ?= /usr/local
 DESTDIR ?=
 
 .PHONY: inspect
-inspect:
+inspect: ##
 	@echo ARCH: $(ARCH)
 	@echo DOWNLOAD: $(DOWNLOAD)
 	@echo FLAVOR: $(FLAVOR)
@@ -43,21 +43,21 @@ inspect:
 	@echo WHICH: $(WHICH)
 
 ACTIONS += build
-$(ACTION)/build: $(call git_deps,.)
+$(ACTION)/build: $(call git_deps,.) ##
 	@$(MKDIR) -p build
 	@$(CAT) mkpm.sh | $(SED) "s|<% MKPM_VERSION %>|$(MKPM_VERSION)|g" | $(TEE) build/mkpm >$(NULL)
 	@$(CHMOD) +x build/mkpm
 	@$(call done,$@)
 
 .PHONY: install
-install: | sudo \
+install: | sudo \ ##
 	$(DESTDIR)$(PREFIX)/bin/mkpm
 $(DESTDIR)$(PREFIX)/bin/mkpm: mkpm.sh
 	@$(CAT) $< | $(SED) "s|<% MKPM_VERSION %>|$(MKPM_VERSION)|g" | $(SUDO) $(TEE) $@ >$(NULL)
 	@$(SUDO) $(CHMOD) +x $@
 
 .PHONY: uninstall
-uninstall: | sudo
+uninstall: | sudo ##
 	@$(SUDO) $(RM) -f \
 		$(DESTDIR)$(PREFIX)/bin/mkpm
 
@@ -65,16 +65,12 @@ uninstall: | sudo
 reinstall: | uninstall install
 
 .PHONY: clean
-clean:
+clean: ##
 	@$(GIT) clean -fXd \
 		$(MKPM_GIT_CLEAN_FLAGS)
 
 .PHONY: purge
 purge: clean ##
 	@$(GIT) clean -fXd
-
-.PHONY: hello
-hello:
-	echo hello
 
 -include $(call chain)
