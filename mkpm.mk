@@ -43,7 +43,8 @@ export NOOUT := >$(NULL) 2>&1
 
 define make
 $(shell C="$$([ "$1" = "" ] && $(TRUE) || $(ECHO) "C \"$1/\"")" && \
-	[ -f "$${C}Mkpmfile" ] && $(ECHO) $(MAKE) -s$$C -f Mkpmfile || $(ECHO) $(MAKE) -s$$C)
+	[ -f "$(CURDIR)/$$($(EVAL) $(ECHO) $$($(ECHO) $$C | $(CUT) -d' ' -f2))Mkpmfile" ] && \
+	$(ECHO) $(MAKE) -s$$C -f Mkpmfile || $(ECHO) $(MAKE) -s$$C)
 endef
 ifeq (,$(wildcard $(CURDIR)/Mkpmfile))
 MAKEFILE := $(CURDIR)/Makefile
