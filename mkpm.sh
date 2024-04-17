@@ -272,7 +272,8 @@ _install() {
             _update_repo "$_REPO_URI" "$_REPO_PATH" "$r"
             _r=$r
             for p in $(_list_packages "$r"); do
-                _install "$_REPO_URI" "$_r" "$p"
+                _v="$(cat mkpm.json | jq -r ".packages.$_r.$p")"
+                _install "$_REPO_URI" "$_r" "$p=$_v"
             done
         done
         _INSTALL_REFCOUNT=$(expr $_INSTALL_REFCOUNT + 1)
@@ -696,16 +697,16 @@ _prepare() {
         if [ -f "$PROJECT_ROOT/.tool-versions" ]; then
             _require_asdf
         fi
+        _require_system_binary curl
         _require_system_binary git
         _require_system_binary grep
         _require_system_binary jq
+        _require_system_binary gawk --version
         if [ "$PLATFORM" = "darwin" ]; then
-            _require_system_binary gawk --version
             _require_system_binary gsed --version
             _require_system_binary gtar --version
             _require_system_binary remake --version
         else
-            _require_system_binary awk --version
             _require_system_binary make --version
             _require_system_binary sed --version
             _require_system_binary tar --version
