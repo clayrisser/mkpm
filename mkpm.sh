@@ -701,12 +701,13 @@ _prepare() {
         _require_system_binary git
         _require_system_binary grep
         _require_system_binary jq
-        _require_system_binary gawk --version
         if [ "$PLATFORM" = "darwin" ]; then
+            _require_system_binary gawk --version
             _require_system_binary gsed --version
             _require_system_binary gtar --version
             _require_system_binary remake --version
         else
+            _require_system_binary awk --version
             _require_system_binary make --version
             _require_system_binary sed --version
             _require_system_binary tar --version
@@ -724,6 +725,16 @@ _prepare() {
 _lookup_system_package_name() {
     _BINARY="$1"
     case "$_BINARY" in
+    awk)
+        case "$PKG_MANAGER" in
+        apt-get)
+            echo gawk
+            ;;
+        *)
+            echo "$_BINARY"
+            ;;
+        esac
+        ;;
     gmake)
         case "$PKG_MANAGER" in
         brew)
