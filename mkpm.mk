@@ -42,8 +42,8 @@ export NOFAIL := 2>$(NULL) || $(TRUE)
 export NOOUT := >$(NULL) 2>&1
 
 define make
-$(shell C="$$([ "$1" = "" ] && $(TRUE) || $(ECHO) "C \"$1/\"")" && \
-	[ -f "$(CURDIR)/$$($(EVAL) $(ECHO) $$($(ECHO) $$C | $(CUT) -d' ' -f2))Mkpmfile" ] && \
+$(shell C="$$([ "$1" = "" ] && $(TRUE) || $(ECHO) "C \"$1\"")" && \
+	[ -f "$(CURDIR)/$$($(EVAL) $(ECHO) $$($(ECHO) $$C | $(CUT) -d' ' -f2))/Mkpmfile" ] && \
 	$(ECHO) $(MAKE) -s$$C -f Mkpmfile || $(ECHO) $(MAKE) -s$$C)
 endef
 ifeq (,$(wildcard $(CURDIR)/Mkpmfile))
