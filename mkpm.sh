@@ -710,7 +710,7 @@ _prepare() {
             _require_system_binary gtar --version
             _require_system_binary remake --version
         else
-            _require_system_binary awk --help
+            _require_system_binary awk -W version
             _require_system_binary make --version
             _require_system_binary sed --version
             _require_system_binary tar --version
