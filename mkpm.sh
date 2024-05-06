@@ -24,7 +24,9 @@ DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/bitspur/mkpm/packages.git}"
 MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.mk}"
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm-proxy.sh}"
-REQUIRE_ASDF="${REQUIRE_ASDF:1}"
+if [ "$REQUIRE_ASDF" = "" ]; then
+    REQUIRE_ASDF="$([ "$CI" = "" ] && echo 1)"
+fi
 
 if [ "$VSCODE_CLI" = "1" ] && [ "$VSCODE_PID" != "" ] && [ "$VSCODE_CWD" != "" ]; then
     exit 0
@@ -695,7 +697,7 @@ _prepare() {
         if [ "$PLATFORM" = "darwin" ]; then
             _require_brew
         fi
-        if [ "REQUIRE_ASDF" = "1" ] && [ "$CI" = "" ] && [ -f "$PROJECT_ROOT/.tool-versions" ]; then
+        if [ "REQUIRE_ASDF" = "1" ] && [ -f "$PROJECT_ROOT/.tool-versions" ]; then
             _require_asdf
         fi
         _require_system_binary curl
@@ -717,7 +719,7 @@ _prepare() {
         _ensure_mkpm_mk
         _require_binaries
         touch -m "$MKPM/.ready"
-    elif [ "REQUIRE_ASDF" = "1" ] && [ "$CI" = "" ] && [ "$PROJECT_ROOT/.tool-versions" -nt "$MKPM/.ready" ]; then
+    elif [ "REQUIRE_ASDF" = "1" ] && [ "$PROJECT_ROOT/.tool-versions" -nt "$MKPM/.ready" ]; then
         _require_asdf
         touch -m "$MKPM/.ready"
     fi
