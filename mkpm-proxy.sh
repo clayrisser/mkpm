@@ -194,7 +194,7 @@ _require_system_binary() {
 
         ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
 
-    install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
         read _RES
         if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
             $_SYSTEM_PACKAGE_INSTALL_COMMAND
