@@ -25,7 +25,7 @@ MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/48207162/packages
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm-proxy.sh}"
 if [ "$REQUIRE_ASDF" = "" ]; then
-    REQUIRE_ASDF="$([ "$CI" = "" ] && echo 1)"
+    REQUIRE_ASDF="$([ "$CI" = "" ] && echo 1 || true)"
 fi
 
 if [ "$VSCODE_CLI" = "1" ] && [ "$VSCODE_PID" != "" ] && [ "$VSCODE_CWD" != "" ]; then
@@ -710,7 +710,9 @@ _prepare() {
             _require_system_binary gtar --version
             _require_system_binary remake --version
         else
-            _require_system_binary awk -Wversion
+            if ! awk 2>&1 | grep -q BusyBox; then
+                _require_system_binary awk -Wversion
+            fi
             _require_system_binary make --version
             _require_system_binary sed --version
             _require_system_binary tar --version
