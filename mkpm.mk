@@ -26,16 +26,109 @@ export MKPM_MAKE := $(MAKE) -sf Mkpmfile
 export LC_ALL := C
 export MAKESHELL ?= $(SHELL)
 
-export CUT := cut
-export ECHO := echo
-export EVAL := eval
-export EXIT := exit
-export PRINTF := printf
-export READ := read
-export TR := tr
-export TRUE := true
-export WHICH := command -v
+ifneq ($(NIX_ENV),true)
+	ifeq ($(PLATFORM),darwin)
+		export FIND ?= $(call ternary,gfind --version,gfind,find)
+		export GREP ?= $(call ternary,ggrep --version,ggrep,grep)
+		export SED ?= $(call ternary,gsed --version,gsed,sed)
+	endif
+endif
 
+export GIT ?= $(call ternary,git --version,git,true)
+export AWK ?= awk
+export GREP ?= grep
+export JQ ?= jq
+export READLINE ?= readline
+export SED ?= sed
+export TAR ?= tar
+export TIME ?= time
+
+# SHELL
+export CD ?= cd
+export DO ?= do
+export DONE ?= done
+export EVAL := eval
+export FI ?= fi
+export EXIT := exit
+export FOR ?= for
+export IF ?= if
+export READ ?= read
+export THEN ?= then
+export WHICH := command -v
+export WHILE ?= while
+
+# COREUTILS
+export BASENAME ?= basename
+export CAT ?= cat
+export CHMOD ?= chmod
+export CHOWN ?= chown
+export CHROOT ?= chroot
+export COMM ?= comm
+export CP ?= cp
+export CUT ?= cut
+export DATE ?= date
+export DD ?= dd
+export DF ?= df
+export DIRNAME ?= dirname
+export DU ?= du
+export ECHO ?= echo
+export ENV ?= env
+export EXPAND ?= expand
+export FALSE ?= false
+export FMT ?= fmt
+export FOLD ?= fold
+export GROUPS ?= groups
+export HEAD ?= head
+export HOSTNAME ?= hostname
+export ID ?= id
+export JOIN ?= join
+export LN ?= ln
+export LS ?= ls
+export MD5SUM ?= md5sum
+export MKDIR ?= mkdir
+export MV ?= mv
+export NICE ?= nice
+export PASTE ?= paste
+export PR ?= pr
+export PRINTF ?= printf
+export PWD ?= pwd
+export RM ?= rm
+export RMDIR ?= rmdir
+export SEQ ?= seq
+export SLEEP ?= sleep
+export SORT ?= sort
+export SPLIT ?= split
+export SU ?= su
+export TAIL ?= tail
+export TEE ?= tee
+export TEST ?= test
+export TOUCH ?= touch
+export TR ?= tr
+export TRUE ?= true
+export UNAME ?= uname
+export UNEXPAND ?= unexpand
+export UNIQ ?= uniq
+export WC ?= wc
+export WHO ?= who
+export WHOAMI ?= whoami
+export YES ?= yes
+
+# FINDUTILS
+export FIND ?= find
+export LOCATE ?= locate
+export UPDATEDB ?= updatedb
+export XARGS ?= xargs
+
+# PROCPS
+export KILL ?= kill
+export PS ?= ps
+export TOP ?= top
+
+# INFOZIP
+export ZIP ?= zip
+export UNZIP ?= unzip
+
+# COMPOSITIONS
 export BANG := \!
 export NULL := /dev/null
 export NOFAIL := 2>$(NULL) || $(TRUE)
