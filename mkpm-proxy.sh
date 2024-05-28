@@ -42,7 +42,7 @@ _project_root() {
         echo "$_ROOT"
         return
     fi
-    _PARENT="$(echo "$_ROOT" | sed 's|\/[^\/]\+$||g')"
+    _PARENT="$(dirname "$_ROOT")"
     if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
         echo "/"
         return
