@@ -38,6 +38,7 @@ _project_root() {
     if [ "$_ROOT" = "" ]; then
         _ROOT="$(pwd)"
     fi
+    _ROOT="$(readlink -f "$_ROOT")"
     if [ -f "$_ROOT/mkpm.json" ]; then
         echo "$_ROOT"
         return
