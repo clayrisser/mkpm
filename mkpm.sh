@@ -1205,6 +1205,7 @@ _help() {
     echo "    -h, --help                            show brief help"
     echo "    -s, --silent                          silent output"
     echo "    -d, --debug                           debug output"
+    echo "    -e, --dotenv                          dotenv file"
     echo
     echo "commands:"
     echo "    u|upgrade                             upgrade all packages from default git repo"
@@ -1328,6 +1329,14 @@ while test $# -gt 0; do
         export MKPM_DEBUG=1
         unset _SILENT
         shift
+        ;;
+    -e | --dotenv)
+        if [ -z "$2" ]; then
+            _error "no dotenv file specified"
+            exit 1
+        fi
+        export DOTENV="$2"
+        shift 2
         ;;
     -*)
         _MAKE_FLAGS=
