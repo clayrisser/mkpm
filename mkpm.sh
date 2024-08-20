@@ -261,16 +261,13 @@ _run() {
     _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS $_TARGET"
     _cleanup_trap() {
         trap - INT TERM QUIT HUP ABRT EXIT
-        "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
-            -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS _mkpm_cleanup" >/dev/null 2>&1
+        _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS _mkpm_cleanup"
+        eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
+            -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS _mkpm_cleanup" || true
     }
     trap '_cleanup_trap' INT TERM QUIT HUP ABRT EXIT
-    "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
+    eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
         -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS $_TARGET"
-    _EXIT_CODE=$?
-    trap - INT TERM QUIT HUP ABRT EXIT
-    _cleanup_trap
-    return $_EXIT_CODE
 }
 
 _INSTALL_REFCOUNT=0
