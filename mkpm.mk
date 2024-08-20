@@ -261,3 +261,7 @@ else
 	$(EXIT) 1; \
 fi
 endef
+
+.PHONY: _mkpm_cleanup
+_mkpm_cleanup:
+	@true $(MKPM_CLEANUP)
