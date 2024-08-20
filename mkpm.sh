@@ -1335,7 +1335,10 @@ while test $# -gt 0; do
             _error "no dotenv file specified"
             exit 1
         fi
-        export DOTENV="$2"
+        case "$2" in
+            *[./]*) export DOTENV="$2" ;;
+            *) export DOTENV=".env.$2" ;;
+        esac
         shift 2
         ;;
     -*)
