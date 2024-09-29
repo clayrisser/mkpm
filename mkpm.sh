@@ -264,6 +264,7 @@ _run() {
         _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS _mkpm_cleanup"
         eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
             -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS _mkpm_cleanup" || true
+        _release_lock
     }
     trap '_cleanup_trap' INT TERM QUIT HUP ABRT EXIT
     eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
