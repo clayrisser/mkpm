@@ -1208,6 +1208,7 @@ _help() {
     echo "    -d, --debug                           debug output"
     echo "    -e, --dotenv                          dotenv file"
     echo "    -p, --priority                        mkpm priority"
+    echo "    --lock-registration-wait              lock registration wait time in seconds"
     echo
     echo "commands:"
     echo "    u|upgrade                             upgrade all packages from default git repo"
@@ -1337,7 +1338,7 @@ while test $# -gt 0; do
             _error "no priority value specified"
             exit 1
         fi
-        MKPM_PRIORITY="$2"
+        _MKPM_PRIORITY="$2"
         shift 2
         ;;
     -e | --dotenv)
@@ -1349,6 +1350,14 @@ while test $# -gt 0; do
             *[./]*) export DOTENV="$2" ;;
             *) export DOTENV=".env.$2" ;;
         esac
+        shift 2
+        ;;
+    --lock-registration-wait)
+        if [ -z "$2" ]; then
+            _error "no lock registration wait value specified"
+            exit 1
+        fi
+        _MKPM_LOCK_REGISTRATION_WAIT="$2"
         shift 2
         ;;
     -*)
@@ -1470,7 +1479,8 @@ fi
 
 LOCK_FILE="$MKPM_TMP/mkpm.lock"
 PID_FILE="$MKPM_TMP/mkpm.pids"
-MKPM_PRIORITY="${MKPM_PRIORITY:-0}"
+_MKPM_PRIORITY="${_MKPM_PRIORITY:-0}"
+_MKPM_LOCK_REGISTRATION_WAIT="${_MKPM_LOCK_REGISTRATION_WAIT:-0}"
 
 _release_lock() {
     rm -f "$LOCK_FILE"
@@ -1478,12 +1488,26 @@ _release_lock() {
 }
 
 _acquire_lock() {
-    echo "$$ $MKPM_PRIORITY" >> "$PID_FILE"
+    if [ "$_MKPM_PRIORITY" -gt 999999999 ]; then
+        _error "priority is too big (max value is 999999999)"
+        exit 1
+    fi
+    _ADJUSTED_PRIORITY="$((999999999 - _MKPM_PRIORITY))"
+    echo "$$ $_ADJUSTED_PRIORITY" >> "$PID_FILE"
+    if [ "$_MKPM_LOCK_REGISTRATION_WAIT" -gt 0 ]; then
+        sleep "$_MKPM_LOCK_REGISTRATION_WAIT"
+    fi
     while true; do
+        sed -i "/^$$ /d" "$PID_FILE"
+        for pid in $(awk '{print $1}' "$PID_FILE"); do
+            if ! kill -0 "$pid" 2>/dev/null; then
+                sed -i "/^$pid /d" "$PID_FILE"
+            fi
+        done
         SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PID_FILE" | head -n1)"
         SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
         SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
-        if [ "$SMALLEST_PID" -eq "$$" ] && [ "$SMALLEST_PRIORITY" -eq "$MKPM_PRIORITY" ]; then
+        if [ "$SMALLEST_PID" -eq "$$" ] && [ "$SMALLEST_PRIORITY" -eq "$_ADJUSTED_PRIORITY" ]; then
             echo "$$" > "$LOCK_FILE"
             break
         else
