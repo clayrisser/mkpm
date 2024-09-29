@@ -1506,13 +1506,14 @@ _acquire_lock() {
         SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PID_FILE" | head -n1)"
         SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
         SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
-        if [ ! -f "$LOCK_FILE" ] && [ "$SMALLEST_PID" = "$$" ] && [ "$SMALLEST_PRIORITY" = "$_ADJUSTED_PRIORITY" ]; then
+        if ([ ! -f "$LOCK_FILE" ] || ! kill -0 "$(cat "$LOCK_FILE")" 2>/dev/null) && \
+            [ "$SMALLEST_PID" = "$$" ] && [ "$SMALLEST_PRIORITY" = "$_ADJUSTED_PRIORITY" ]; then
             sed -i "/^$$ /d" "$PID_FILE"
             echo "$$" > "$LOCK_FILE"
             break
         else
             _echo "waiting for another mkpm instance to finish..."
-            sleep 1
+            sleep 3
         fi
     done
 }
