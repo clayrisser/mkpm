@@ -187,6 +187,17 @@ export _MKPM_PACKAGES="$MKPM/.pkgs"
 
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 
+LOCK_FILE="$MKPM_TMP/mkpm.lock"
+_release_lock() {
+    rm -f "$LOCK_FILE"
+}
+while [ -f "$LOCK_FILE" ]; do
+    _echo "waiting for another mkpm instance to finish..."
+    sleep 1
+done
+echo $$ > "$LOCK_FILE"
+trap _release_lock INT TERM QUIT HUP ABRT EXIT
+
 main() {
     if [ "$_COMMAND" = "install" ]; then
         _prepare
@@ -645,7 +656,7 @@ _require_binaries() {
             if [ "$(echo "$_SYSTEM_PACKAGE_INSTALL_COMMAND" | cut -c 1)" = "{" ]; then
                 _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_SYSTEM_BINARY\".$FLAVOR // \"\"" "$MKPM_CONFIG")"
                 if [ "$_SYSTEM_PACKAGE_INSTALL_COMMAND" = "" ]; then
-                    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_binary\".$PLATFORM // \"\"" "$MKPM_CONFIG")"
+                    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(jq -r ".binaries.\"$_SYSTEM_BINARY\".$PLATFORM // \"\"" "$MKPM_CONFIG")"
                 fi
             fi
             if [ "$_SYSTEM_PACKAGE_INSTALL_COMMAND" != "" ]; then
