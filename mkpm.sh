@@ -1498,16 +1498,16 @@ _acquire_lock() {
         sleep "$_MKPM_LOCK_REGISTRATION_WAIT"
     fi
     while true; do
-        sed -i "/^$$ /d" "$PID_FILE"
         for pid in $(awk '{print $1}' "$PID_FILE"); do
-            if ! kill -0 "$pid" 2>/dev/null; then
+            if [ "$pid" != "$$" ] && ! kill -0 "$pid" 2>/dev/null; then
                 sed -i "/^$pid /d" "$PID_FILE"
             fi
         done
         SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PID_FILE" | head -n1)"
         SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
         SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
-        if [ "$SMALLEST_PID" -eq "$$" ] && [ "$SMALLEST_PRIORITY" -eq "$_ADJUSTED_PRIORITY" ]; then
+        if [ ! -f "$LOCK_FILE" ] && [ "$SMALLEST_PID" = "$$" ] && [ "$SMALLEST_PRIORITY" = "$_ADJUSTED_PRIORITY" ]; then
+            sed -i "/^$$ /d" "$PID_FILE"
             echo "$$" > "$LOCK_FILE"
             break
         else
