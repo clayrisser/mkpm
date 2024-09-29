@@ -187,17 +187,6 @@ export _MKPM_PACKAGES="$MKPM/.pkgs"
 
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 
-LOCK_FILE="$MKPM_TMP/mkpm.lock"
-_release_lock() {
-    rm -f "$LOCK_FILE"
-}
-while [ -f "$LOCK_FILE" ]; do
-    _echo "waiting for another mkpm instance to finish..."
-    sleep 1
-done
-echo $$ > "$LOCK_FILE"
-trap _release_lock INT TERM QUIT HUP ABRT EXIT
-
 main() {
     if [ "$_COMMAND" = "install" ]; then
         _prepare
@@ -1468,5 +1457,15 @@ else
         shift
     fi
 fi
+
+LOCK_FILE="$MKPM_TMP/mkpm.lock"
+_release_lock() {
+    rm -f "$LOCK_FILE"
+}
+while [ -f "$LOCK_FILE" ]; do
+    _echo "waiting for another mkpm instance to finish..."
+    sleep 1
+done
+echo $$ > "$LOCK_FILE"
 
 main "$@"
