@@ -1207,6 +1207,7 @@ _help() {
     echo "    -s, --silent                          silent output"
     echo "    -d, --debug                           debug output"
     echo "    -e, --dotenv                          dotenv file"
+    echo "    -p, --priority                        mkpm priority"
     echo
     echo "commands:"
     echo "    u|upgrade                             upgrade all packages from default git repo"
@@ -1330,6 +1331,14 @@ while test $# -gt 0; do
         export MKPM_DEBUG=1
         unset _SILENT
         shift
+        ;;
+    -p | --priority)
+        if [ -z "$2" ]; then
+            _error "no priority value specified"
+            exit 1
+        fi
+        MKPM_PRIORITY="$2"
+        shift 2
         ;;
     -e | --dotenv)
         if [ -z "$2" ]; then
@@ -1460,13 +1469,29 @@ else
 fi
 
 LOCK_FILE="$MKPM_TMP/mkpm.lock"
+PID_FILE="$MKPM_TMP/mkpm.pids"
+MKPM_PRIORITY="${MKPM_PRIORITY:-0}"
+
 _release_lock() {
     rm -f "$LOCK_FILE"
+    sed "/^$$ /d" "$PID_FILE" | _sponge "$PID_FILE"
 }
-while [ -f "$LOCK_FILE" ]; do
-    _echo "waiting for another mkpm instance to finish..."
-    sleep 1
-done
-echo $$ > "$LOCK_FILE"
 
+_acquire_lock() {
+    echo "$$ $MKPM_PRIORITY" >> "$PID_FILE"
+    while true; do
+        SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PID_FILE" | head -n1)"
+        SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
+        SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
+        if [ "$SMALLEST_PID" -eq "$$" ] && [ "$SMALLEST_PRIORITY" -eq "$MKPM_PRIORITY" ]; then
+            echo "$$" > "$LOCK_FILE"
+            break
+        else
+            _echo "waiting for another mkpm instance to finish..."
+            sleep 1
+        fi
+    done
+}
+
+_acquire_lock
 main "$@"
