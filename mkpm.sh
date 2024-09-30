@@ -1338,7 +1338,7 @@ while test $# -gt 0; do
             _error "no priority value specified"
             exit 1
         fi
-        _MKPM_PRIORITY="$2"
+        MKPM_PRIORITY="$2"
         shift 2
         ;;
     -e | --dotenv)
@@ -1357,7 +1357,7 @@ while test $# -gt 0; do
             _error "no lock registration wait value specified"
             exit 1
         fi
-        _MKPM_LOCK_REGISTRATION_WAIT="$2"
+        MKPM_LOCK_REGISTRATION_WAIT="$2"
         shift 2
         ;;
     -*)
@@ -1479,8 +1479,8 @@ fi
 
 LOCK_FILE="$MKPM_TMP/mkpm.lock"
 PID_FILE="$MKPM_TMP/mkpm.pids"
-_MKPM_PRIORITY="${_MKPM_PRIORITY:-0}"
-_MKPM_LOCK_REGISTRATION_WAIT="${_MKPM_LOCK_REGISTRATION_WAIT:-0}"
+MKPM_PRIORITY="${MKPM_PRIORITY:-0}"
+MKPM_LOCK_REGISTRATION_WAIT="${MKPM_LOCK_REGISTRATION_WAIT:-0}"
 
 _release_lock() {
     rm -f "$LOCK_FILE"
@@ -1488,14 +1488,14 @@ _release_lock() {
 }
 
 _acquire_lock() {
-    if [ "$_MKPM_PRIORITY" -gt 999999999 ]; then
+    if [ "$MKPM_PRIORITY" -gt 999999999 ]; then
         _error "priority is too big (max value is 999999999)"
         exit 1
     fi
-    _ADJUSTED_PRIORITY="$((999999999 - _MKPM_PRIORITY))"
+    _ADJUSTED_PRIORITY="$((999999999 - MKPM_PRIORITY))"
     echo "$$ $_ADJUSTED_PRIORITY" >> "$PID_FILE"
-    if [ "$_MKPM_LOCK_REGISTRATION_WAIT" -gt 0 ]; then
-        sleep "$_MKPM_LOCK_REGISTRATION_WAIT"
+    if [ "$MKPM_LOCK_REGISTRATION_WAIT" -gt 0 ]; then
+        sleep "$MKPM_LOCK_REGISTRATION_WAIT"
     fi
     while true; do
         for pid in $(awk '{print $1}' "$PID_FILE"); do
