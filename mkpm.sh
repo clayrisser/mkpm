@@ -1478,13 +1478,13 @@ else
 fi
 
 LOCK_FILE="$MKPM_TMP/mkpm.lock"
-PID_FILE="$MKPM_TMP/mkpm.pids"
+PIDS_FILE="$MKPM_TMP/mkpm.pids"
 MKPM_PRIORITY="${MKPM_PRIORITY:-0}"
 MKPM_LOCK_REGISTRATION_WAIT="${MKPM_LOCK_REGISTRATION_WAIT:-0}"
 
 _release_lock() {
     rm -f "$LOCK_FILE"
-    sed "/^$$ /d" "$PID_FILE" | _sponge "$PID_FILE"
+    sed "/^$$ /d" "$PIDS_FILE" | _sponge "$PIDS_FILE"
 }
 
 _acquire_lock() {
@@ -1493,22 +1493,23 @@ _acquire_lock() {
         exit 1
     fi
     _ADJUSTED_PRIORITY="$((999999999 - MKPM_PRIORITY))"
-    echo "$$ $_ADJUSTED_PRIORITY" >> "$PID_FILE"
+    mkdir -p "$MKPM_TMP"
+    echo "$$ $_ADJUSTED_PRIORITY" >> "$PIDS_FILE"
     if [ "$MKPM_LOCK_REGISTRATION_WAIT" -gt 0 ]; then
         sleep "$MKPM_LOCK_REGISTRATION_WAIT"
     fi
     while true; do
-        for pid in $(awk '{print $1}' "$PID_FILE"); do
+        for pid in $(awk '{print $1}' "$PIDS_FILE"); do
             if [ "$pid" != "$$" ] && ! kill -0 "$pid" 2>/dev/null; then
-                sed -i "/^$pid /d" "$PID_FILE"
+                sed -i "/^$pid /d" "$PIDS_FILE"
             fi
         done
-        SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PID_FILE" | head -n1)"
+        SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PIDS_FILE" | head -n1)"
         SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
         SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
         if ([ ! -f "$LOCK_FILE" ] || ! kill -0 "$(cat "$LOCK_FILE")" 2>/dev/null) && \
             [ "$SMALLEST_PID" = "$$" ] && [ "$SMALLEST_PRIORITY" = "$_ADJUSTED_PRIORITY" ]; then
-            sed -i "/^$$ /d" "$PID_FILE"
+            sed -i "/^$$ /d" "$PIDS_FILE"
             echo "$$" > "$LOCK_FILE"
             break
         else
