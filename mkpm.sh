@@ -1507,8 +1507,16 @@ _acquire_lock() {
         SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PIDS_FILE" | head -n1)"
         SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
         SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
-        if ([ ! -f "$LOCK_FILE" ] || ! kill -0 "$(cat "$LOCK_FILE")" 2>/dev/null) && \
-            [ "$SMALLEST_PID" = "$$" ] && [ "$SMALLEST_PRIORITY" = "$_ADJUSTED_PRIORITY" ]; then
+        if [ -f "$LOCK_FILE" ]; then
+            LOCK_PID="$(cat "$LOCK_FILE")"
+            if ! kill -0 "$LOCK_PID" >/dev/null 2>&1 || \
+                [ "$(ps -o stat= -p "$LOCK_PID" 2>/dev/null)" = "Z" ]; then
+                rm -f "$LOCK_FILE"
+            fi
+        fi
+        if [ ! -f "$LOCK_FILE" ] && \
+            [ "$SMALLEST_PID" = "$$" ] && \
+            [ "$SMALLEST_PRIORITY" = "$_ADJUSTED_PRIORITY" ]; then
             sed -i "/^$$ /d" "$PIDS_FILE"
             echo "$$" > "$LOCK_FILE"
             break
