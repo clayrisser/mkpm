@@ -1192,8 +1192,9 @@ _sponge() {
             cat >"$_TMP_FILE"
             cat "$_TMP_FILE" >"$1"
             rm -f "$_TMP_FILE"
+        else
+            cat "$1"
         fi
-        cat "$1"
     fi
 }
 
