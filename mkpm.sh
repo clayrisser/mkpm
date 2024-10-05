@@ -188,6 +188,7 @@ export _MKPM_PACKAGES="$MKPM/.pkgs"
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 
 main() {
+    _acquire_lock
     if [ "$_COMMAND" = "install" ]; then
         _prepare
         _REPO_NAME="$_PARAM1"
@@ -260,6 +261,7 @@ _run() {
     fi
     _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS $_TARGET"
     _cleanup_trap() {
+        _acquire_lock
         trap - INT TERM QUIT HUP ABRT EXIT
         _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS _mkpm_cleanup"
         eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
@@ -1529,5 +1531,4 @@ _acquire_lock() {
     done
 }
 
-_acquire_lock
 main "$@"
