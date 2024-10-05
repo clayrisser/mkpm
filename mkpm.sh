@@ -1506,7 +1506,7 @@ _acquire_lock() {
                 sed -i "/^$pid /d" "$PIDS_FILE"
             fi
         done
-        SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PIDS_FILE" | head -n1)"
+        SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PIDS_FILE" 2>/dev/null | head -n1)"
         SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
         SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
         if [ -f "$LOCK_FILE" ]; then
