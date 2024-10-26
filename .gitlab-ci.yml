@@ -17,7 +17,8 @@ build:
     - git lfs install
   script:
     - make build-deb
-    - mv ../*.deb .
+    - export DEB="$(cd .. && ls *.deb | head -n1 | sed 's|\([^_]*\)_\([^_]*\)_.*\.deb$|\1_\2_all.deb|g')"
+    - mv "../$(cd .. && ls *.deb | head -n1)" "$DEB"
   artifacts:
     paths:
       - "*.deb"
@@ -32,7 +33,7 @@ upload:
   needs:
     - build
   script:
-    - export DEB=$(ls | grep -E '\.deb$')
+    - export DEB="$(ls | head -n1 | grep -E '\.deb$')"
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/mkpm \
         ${PACKAGE_REGISTRY_URL}/mkpm.sh
@@ -62,7 +63,7 @@ release:
   needs:
     - upload
   script:
-    - export DEB=$(ls | grep -E '\.deb$')
+    - export DEB="$(ls | head -n1 | grep -E '\.deb$')"
     - |
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
         --assets-link "{\"name\":\"mkpm-proxy.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm-proxy.sh\"}" \
