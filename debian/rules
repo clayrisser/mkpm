@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	git lfs install
+	make build
+
+override_dh_auto_clean:
+	git clean -fdx -e debian
+
+override_dh_auto_install: ;

@@ -1,0 +1,5 @@
+mkpm (1.0.0-1) UNRELEASED; urgency=medium
+
+  * Initial release. (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Local Administrator <admin@unknown>  Sat, 26 Oct 2024 10:14:03 +0200
