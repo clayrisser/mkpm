@@ -23,6 +23,7 @@ include $(MKPM)/chain
 MKPM_VERSION=1.0.0
 PREFIX ?= /usr/local
 DESTDIR ?=
+DPKG_BUILDPACKAGE ?= dpkg-buildpackage
 
 .PHONY: inspect
 inspect: ##
@@ -45,6 +46,9 @@ inspect: ##
 ACTIONS += build
 $(ACTION)/build: $(call git_deps,.) ##
 	@$(MKDIR) -p build
+	@$(CAT) install.sh | $(SED) "s|<% MKPM_VERSION %>|$(MKPM_VERSION)|g" | $(TEE) build/install.sh >$(NULL)
+	@$(CAT) mkpm-proxy.sh | $(SED) "s|<% MKPM_VERSION %>|$(MKPM_VERSION)|g" | $(TEE) build/mkpm-proxy.sh >$(NULL)
+	@$(CAT) mkpm.mk | $(SED) "s|<% MKPM_VERSION %>|$(MKPM_VERSION)|g" | $(TEE) build/mkpm.mk >$(NULL)
 	@$(CAT) mkpm.sh | $(SED) "s|<% MKPM_VERSION %>|$(MKPM_VERSION)|g" | $(TEE) build/mkpm >$(NULL)
 	@$(CHMOD) +x build/mkpm
 	@$(call done,$@)
@@ -63,6 +67,10 @@ uninstall: | sudo ##
 
 .PHONY: reinstall
 reinstall: | uninstall install
+
+.PHONY: build-deb
+build-deb:
+	@$(DPKG_BUILDPACKAGE) -b -us -uc
 
 .PHONY: clean
 clean: ##

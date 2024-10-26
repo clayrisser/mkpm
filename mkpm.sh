@@ -375,9 +375,11 @@ _upgrade() {
 }
 
 _reset() {
-    rm -rf "$MKPM_ROOT" "${PROJECT_ROOT}/mkpm" 2>/dev/null
-    download "${PROJECT_ROOT}/mkpm" "$MKPM_PROXY_SH_URL" >/dev/null
-    chmod +x "${PROJECT_ROOT}/mkpm"
+    if [ "$_MKPM_TEST" != "1" ]; then
+        rm -rf "$MKPM_ROOT" "${PROJECT_ROOT}/mkpm" 2>/dev/null
+        download "${PROJECT_ROOT}/mkpm" "$MKPM_PROXY_SH_URL" >/dev/null
+        chmod +x "${PROJECT_ROOT}/mkpm"
+    fi
     _ensure_mkpm_sh
     _prepare
     if [ "$_INSTALL_REFCOUNT" = "" ] || [ "$_INSTALL_REFCOUNT" = "0" ]; then
@@ -703,7 +705,6 @@ _prepare() {
     if [ "$_MKPM_RESET_CACHE" = "1" ] ||
         ([ "$_MKPM_TEST" = "1" ] && [ -f "$MKPM/mkpm" ] && [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]); then
         _reset_cache
-        exit $?
     fi
     if [ ! -f "$MKPM/.ready" ]; then
         if [ "$PLATFORM" = "darwin" ]; then
@@ -958,8 +959,8 @@ _ensure_mkpm_mk() {
         if [ ! -f "$MKPM/mkpm" ] || [ "$PROJECT_ROOT/mkpm.mk" -nt "$MKPM/mkpm" ]; then
             cp "$PROJECT_ROOT/mkpm.mk" "$MKPM/mkpm"
             _debug downloaded mkpm.mk
-            _create_cache
         fi
+        _create_cache
     elif [ ! -f "$MKPM/mkpm" ]; then
         download "$MKPM/mkpm" "$MKPM_MK_URL" >/dev/null
         _debug downloaded mkpm.mk
@@ -1017,9 +1018,11 @@ _restore_from_cache() {
 
 _reset_cache() {
     rm -rf \
-        "$MKPM_ROOT/cache.tar.gz" \
         "$MKPM/.prepared" \
-        "$MKPM/mkpm" 2>/dev/null
+        "$MKPM/.ready" \
+        "$MKPM/.tmp" \
+        "$MKPM/mkpm" \
+        "$MKPM_ROOT/cache.tar.gz" 2>/dev/null
     if [ -f "$PROJECT_ROOT/mkpm.mk" ]; then
         cp "$PROJECT_ROOT/mkpm.mk" "$MKPM/mkpm"
     fi
