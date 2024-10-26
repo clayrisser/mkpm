@@ -15,3 +15,10 @@
 # mkpm
 .mkpm/mkpm
 /mkpm.tar.gz
+
+# debian
+/debian/.debhelper/
+/debian/debhelper-build-stamp
+/debian/files
+/debian/mkpm.substvars
+/debian/mkpm/

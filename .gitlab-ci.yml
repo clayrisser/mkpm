@@ -8,47 +8,49 @@ variables:
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}/${CI_COMMIT_TAG}"
   MKPM_VERSION: "${CI_COMMIT_TAG}"
 
-# build:
-#   stage: build
-#   image: registry.gitlab.com/risserlabs/community/images/debian:0.0.1
-#   rules:
-#     - if: $CI_COMMIT_TAG
-#   script:
-#     - make pkg-deb
-#   artifacts:
-#     paths:
-#       - "*.deb"
-#     expire_in: 1 hour
+build:
+  stage: build
+  image: registry.gitlab.com/risserlabs/community/images/debian:0.0.1
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - make build-deb
+    - mv ../*.deb .
+  artifacts:
+    paths:
+      - "*.deb"
+      - "build/*"
+    expire_in: 1 hour
 
 upload:
   stage: upload
   image: curlimages/curl:latest
   rules:
     - if: $CI_COMMIT_TAG
-  # needs:
-  #   - build
+  needs:
+    - build
   script:
-    # - export DEB=$(ls | grep -E '\.deb$')
-    - cat install.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _install.sh
-    - cat mkpm.mk | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm.mk
-    - cat mkpm.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm.sh
-    - cat mkpm-proxy.sh | sed "s|<% MKPM_VERSION %>|$MKPM_VERSION|g" > _mkpm-proxy.sh
+    - export DEB=$(ls | grep -E '\.deb$')
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _mkpm.sh \
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/mkpm \
         ${PACKAGE_REGISTRY_URL}/mkpm.sh
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _mkpm.mk \
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/mkpm.mk \
         ${PACKAGE_REGISTRY_URL}/mkpm.mk
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _install.sh \
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/install.sh \
         ${PACKAGE_REGISTRY_URL}/install.sh
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file _mkpm-proxy.sh \
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/mkpm-proxy.sh \
         ${PACKAGE_REGISTRY_URL}/mkpm-proxy.sh
-  # artifacts:
-  #   paths:
-  #     - "*.deb"
-  #   expire_in: 1 hour
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file $DEB \
+        ${PACKAGE_REGISTRY_URL}/${DEB}
+  artifacts:
+    paths:
+      - "*.deb"
+      - "build/*"
+    expire_in: 1 hour
 
 release:
   stage: publish
@@ -58,10 +60,11 @@ release:
   needs:
     - upload
   script:
-    # - export DEB=$(ls | grep -E '\.deb$')
+    - export DEB=$(ls | grep -E '\.deb$')
     - |
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
         --assets-link "{\"name\":\"mkpm-proxy.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm-proxy.sh\"}" \
         --assets-link "{\"name\":\"mkpm.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.sh\"}" \
         --assets-link "{\"name\":\"mkpm.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.mk\"}" \
-        --assets-link "{\"name\":\"install.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/install.sh\"}"
+        --assets-link "{\"name\":\"install.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/install.sh\"}" \
+        --assets-link "{\"name\":\"*.deb\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DEB}\"}"
