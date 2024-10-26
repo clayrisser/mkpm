@@ -1,0 +1,22 @@
+Source: mkpm
+Section: utils
+Priority: optional
+Maintainer: Clay Risser <clayrisser@gmail.com>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ git,
+ git-lfs,
+ make,
+Standards-Version: 4.6.2
+Homepage: https://github.com/bitspur/mkpm/mkpm
+Vcs-Browser: https://github.com/bitspur/mkpm/mkpm
+Vcs-Git: https://github.com/bitspur/mkpm/mkpm.git
+
+Package: mkpm
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: makefile package manager
+ a package manager for makefiles
