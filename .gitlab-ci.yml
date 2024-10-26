@@ -69,4 +69,4 @@ release:
         --assets-link "{\"name\":\"mkpm.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.sh\"}" \
         --assets-link "{\"name\":\"mkpm.mk\",\"url\":\"${PACKAGE_REGISTRY_URL}/mkpm.mk\"}" \
         --assets-link "{\"name\":\"install.sh\",\"url\":\"${PACKAGE_REGISTRY_URL}/install.sh\"}" \
-        --assets-link "{\"name\":\"*.deb\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DEB}\"}"
+        --assets-link "{\"name\":\"${DEB}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${DEB}\"}"
