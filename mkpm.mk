@@ -35,7 +35,6 @@ ifneq ($(NIX_ENV),true)
 endif
 
 export GIT ?= $(call ternary,git --version,git,true)
-$(info GIT READY)
 export AWK ?= awk
 export GREP ?= grep
 export JQ ?= jq
