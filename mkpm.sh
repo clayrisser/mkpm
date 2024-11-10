@@ -27,6 +27,9 @@ MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/48207
 if [ "$REQUIRE_ASDF" = "" ]; then
     REQUIRE_ASDF="$([ "$CI" = "" ] && echo 1 || true)"
 fi
+if [ "$REQUIRE_BINARIES" = "" ]; then
+    REQUIRE_BINARIES="$([ "$CI" = "" ] && echo 1 || true)"
+fi
 
 if [ "$VSCODE_CLI" = "1" ] && [ "$VSCODE_PID" != "" ] && [ "$VSCODE_CWD" != "" ]; then
     exit 0
@@ -710,7 +713,7 @@ _prepare() {
         if [ "$PLATFORM" = "darwin" ]; then
             _require_brew
         fi
-        if [ "REQUIRE_ASDF" = "1" ] && [ -f "$PROJECT_ROOT/.tool-versions" ]; then
+        if [ "$REQUIRE_ASDF" = "1" ] && [ -f "$PROJECT_ROOT/.tool-versions" ]; then
             _require_asdf
         fi
         _require_system_binary curl
@@ -732,9 +735,11 @@ _prepare() {
         fi
         _require_git_lfs
         _ensure_mkpm_mk
-        _require_binaries
+        if [ "$REQUIRE_BINARIES" = "1" ]; then
+            _require_binaries
+        fi
         touch -m "$MKPM/.ready"
-    elif [ "REQUIRE_ASDF" = "1" ] && [ "$PROJECT_ROOT/.tool-versions" -nt "$MKPM/.ready" ]; then
+    elif [ "$REQUIRE_ASDF" = "1" ] && [ "$PROJECT_ROOT/.tool-versions" -nt "$MKPM/.ready" ]; then
         _require_asdf
         touch -m "$MKPM/.ready"
     fi
