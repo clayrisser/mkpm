@@ -2,7 +2,6 @@
   "packages": {
     "default": {
       "chain": "0.2.4",
-      "docker": "0.3.9",
       "gnu": "0.1.0"
     }
   },
