@@ -43,10 +43,10 @@ _is_ci() {
     _CI_ENVS="JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"
     for v in $_CI_ENVS; do
         if [ "$v" != "" ] && [ "$v" != "0" ] && [ "$(echo $v | tr '[:upper:]' '[:lower:]')" != "false" ]; then
-            return 1
+            echo "1"
+            break
         fi
     done
-    return
 }
 _CI="$(_is_ci)"
 if [ "$CI" = "" ]; then
