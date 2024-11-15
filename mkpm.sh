@@ -48,9 +48,13 @@ _is_ci() {
     done
     return
 }
-export CI="$(_is_ci)"
+_CI="$(_is_ci)"
 if [ "$CI" = "" ]; then
-    unset CI
+    if [ "$_CI" = "" ]; then
+        unset CI
+    else
+        export CI="$_CI"
+    fi
 fi
 if [ "$REQUIRE_ASDF" = "" ]; then
     REQUIRE_ASDF="$([ "$CI" = "0" ] && echo 1 || true)"
