@@ -24,12 +24,6 @@ DEFAULT_REPO="${DEFAULT_REPO:-https://gitlab.com/bitspur/mkpm/packages.git}"
 MKPM_MK_URL="${MKPM_MK_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.mk}"
 MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm.sh}"
 MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm-proxy.sh}"
-if [ "$REQUIRE_ASDF" = "" ]; then
-    REQUIRE_ASDF="$([ "$CI" = "" ] && echo 1 || true)"
-fi
-if [ "$REQUIRE_BINARIES" = "" ]; then
-    REQUIRE_BINARIES="$([ "$CI" = "" ] && echo 1 || true)"
-fi
 
 if [ "$VSCODE_CLI" = "1" ] && [ "$VSCODE_PID" != "" ] && [ "$VSCODE_CWD" != "" ]; then
     exit 0
@@ -54,6 +48,16 @@ _is_ci() {
     done
     return
 }
+export CI="$(_is_ci)"
+if [ "$CI" = "" ]; then
+    unset CI
+fi
+if [ "$REQUIRE_ASDF" = "" ]; then
+    REQUIRE_ASDF="$([ "$CI" = "0" ] && echo 1 || true)"
+fi
+if [ "$REQUIRE_BINARIES" = "" ]; then
+    REQUIRE_BINARIES="$([ "$CI" = "" ] && echo 1 || true)"
+fi
 
 _CWD="$(pwd)"
 _USER_ID=$(id -u $USER)
