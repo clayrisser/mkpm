@@ -41,7 +41,8 @@ alias tar="$(which gtar >/dev/null 2>&1 && echo gtar || echo tar)"
 
 _is_ci() {
     _CI_ENVS="JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"
-    for v in $_CI_ENVS; do
+    for k in $_CI_ENVS; do
+        eval v=\$$k
         if [ "$v" != "" ] && [ "$v" != "0" ] && [ "$(echo $v | tr '[:upper:]' '[:lower:]')" != "false" ]; then
             echo "1"
             break
