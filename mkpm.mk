@@ -265,3 +265,7 @@ endef
 .PHONY: _mkpm_cleanup
 _mkpm_cleanup:
 	@true $(MKPM_CLEANUP)
+
+.PHONY: force __force
+force: __force
+__force: ;
