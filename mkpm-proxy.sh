@@ -31,6 +31,17 @@ if [ "$_SUPPORTS_COLORS" = "1" ]; then
     export C_RED='\033[31m'
     export C_YELLOW='\033[33m'
 fi
+_is_ci() {
+    _CI_ENVS="JENKINS_URL TRAVIS CIRCLECI GITHUB_ACTIONS GITLAB_CI TF_BUILD BITBUCKET_PIPELINE_UUID TEAMCITY_VERSION"
+    for k in $_CI_ENVS; do
+        eval v=\$$k
+        if [ "$v" != "" ] && [ "$v" != "0" ] && [ "$(echo $v | tr '[:upper:]' '[:lower:]')" != "false" ]; then
+            echo "1"
+            break
+        fi
+    done
+}
+_CI="$(_is_ci)"
 _error() { echo "${C_RED}MKPM [E]:${C_END} $@" 1>&2; }
 _debug() { [ "$MKPM_DEBUG" = "1" ] && echo "${C_YELLOW}MKPM [D]:${C_END} $@" || true; }
 _project_root() {
@@ -206,7 +217,7 @@ install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
 }
 _require_system_binary git
 _require_system_binary git-lfs
-if [ "$(git config --global --get-regexp 'filter.lfs')" = "" ]; then
+if [ "$_CI" != "1" ] && [ "$(git config --global --get-regexp 'filter.lfs')" = "" ]; then
     _error git-lfs is not configured on your system
     printf "you can configure git-lfs on $FLAVOR with the following command
 
