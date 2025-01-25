@@ -686,7 +686,7 @@ install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
 
 _require_git_lfs() {
     _require_system_binary git-lfs
-    if [ "$(git config --global --get-regexp 'filter.lfs')" = "" ]; then
+    if [ "$_CI" != "1" ] && [ "$(git config --global --get-regexp 'filter.lfs')" = "" ]; then
         _error git-lfs is not configured on your system
         printf "you can configure git-lfs on $FLAVOR with the following command
 
