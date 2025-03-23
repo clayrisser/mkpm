@@ -26,7 +26,7 @@ MKPM_SH_URL="${MKPM_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages
 MKPM_PROXY_SH_URL="${MKPM_PROXY_SH_URL:-https://gitlab.com/api/v4/projects/48207162/packages/generic/mkpm/${MKPM_VERSION}/mkpm-proxy.sh}"
 
 if [ "$VSCODE_CLI" = "1" ] && [ "$VSCODE_PID" != "" ] && [ "$VSCODE_CWD" != "" ]; then
-    exit 0
+    exit
 fi
 
 __0="$0"
@@ -288,7 +288,7 @@ if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
     export ROOTDIR="$(git rev-parse --show-toplevel 2>/dev/null)"
     export PROJECT_ROOT="$ROOTDIR"
 fi
-if [ "$PROJECT_ROOT" = "/" ]; then
+if [ -z "$PROJECT_ROOT" ] || [ ! -f "$PROJECT_ROOT/mkpm.json" ]; then
     if [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
         _error "not an mkpm project" && exit 1
     else
@@ -345,7 +345,9 @@ export _MKPM_PACKAGES="$MKPM/.pkgs"
 _MKPM_TEST=$([ -f "$PROJECT_ROOT/mkpm.sh" ] && [ -f "$PROJECT_ROOT/mkpm.mk" ] && [ -f "$PROJECT_ROOT/mkpm-proxy.sh" ] && echo 1 || true)
 
 main() {
-    _acquire_lock
+    if [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
+        _acquire_lock
+    fi
     if [ "$_COMMAND" = "install" ]; then
         _prepare
         _REPO_NAME="$_PARAM1"
@@ -381,7 +383,7 @@ main() {
     elif [ "$_COMMAND" = "reset" ]; then
         _reset
     elif [ "$_COMMAND" = "init" ]; then
-        if [ "$_COMMAND" = "init" ] && [ -f "$MKPM_CONFIG" ]; then
+        if [ -f "$MKPM_CONFIG" ]; then
             _error "mkpm already initialized"
             exit 1
         fi
@@ -1462,7 +1464,7 @@ _acquire_lock() {
         fi
         if ln -s "$_TEMP_FILE" "$LOCK_FILE" 2>/dev/null; then
             _debug "acquired lock for pid $$"
-            return 0
+            return
         fi
         _echo "waiting for another mkpm instance to finish..."
         sleep 3
