@@ -17,6 +17,8 @@ pandoc
 pids
 pkgs
 readlines
+rootdir
 shellenv
+toplevel
 writelines
 wversion

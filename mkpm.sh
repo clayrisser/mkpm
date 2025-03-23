@@ -122,26 +122,10 @@ _echo() { [ "$_SILENT" = "1" ] && true || echo "${C_LIGHT_CYAN}MKPM [I]:${C_END}
 
 _error() { echo "${C_RED}MKPM [E]:${C_END} $@" 1>&2; }
 
-_project_root() {
-    _ROOT="$1"
-    if [ "$_ROOT" = "" ]; then
-        _ROOT="$(pwd)"
-    fi
-    _ROOT="$(readlink -f "$_ROOT")"
-    if [ -f "$_ROOT/mkpm.json" ]; then
-        echo "$_ROOT"
-        return
-    fi
-    _PARENT="$(dirname "$_ROOT")"
-    if ([ "$_PARENT" = "" ] || [ "$_PARENT" = "/" ]); then
-        echo "/"
-        return
-    fi
-    echo "$(_project_root "$_PARENT")"
-    return
-}
+_require_system_binary git
 if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
-    export PROJECT_ROOT="$(_project_root)"
+    export ROOTDIR="$(git rev-parse --show-toplevel 2>/dev/null)"
+    export PROJECT_ROOT="$ROOTDIR"
 fi
 if [ "$PROJECT_ROOT" = "/" ]; then
     if [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
@@ -289,7 +273,9 @@ _run() {
 _INSTALL_REFCOUNT=0
 _install() {
     _require_git_lfs
-    _validate_mkpm_config
+    if [ -n "$PROJECT_ROOT" ]; then
+        _validate_mkpm_config
+    fi
     if [ "$1" = "" ]; then
         for r in $(_list_repos); do
             _REPO_URI="$(_lookup_repo_uri $r)"
@@ -652,15 +638,6 @@ configure for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
             exit 1
         fi
     fi
-    _ensure_dirs
-    _validate_mkpm_config
-    if [ ! -d "$_MKPM_PACKAGES" ]; then
-        if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
-            _restore_from_cache
-        else
-            _install
-        fi
-    fi
 }
 
 _prepare() {
@@ -676,7 +653,6 @@ _prepare() {
             _require_asdf
         fi
         _require_system_binary curl
-        _require_system_binary git
         _require_system_binary grep
         _require_system_binary jq
         if [ "$PLATFORM" = "darwin" ]; then
@@ -691,6 +667,15 @@ _prepare() {
             _require_system_binary make --version
             _require_system_binary sed --version
             _require_system_binary tar --version
+        fi
+        _ensure_dirs
+        _validate_mkpm_config
+        if [ ! -d "$_MKPM_PACKAGES" ]; then
+            if [ -f "$MKPM_ROOT/cache.tar.gz" ]; then
+                _restore_from_cache
+            else
+                _install
+            fi
         fi
         _ensure_mkpm_mk
         if [ "$REQUIRE_BINARIES" = "1" ]; then
