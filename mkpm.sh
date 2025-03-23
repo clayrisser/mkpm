@@ -288,6 +288,7 @@ _run() {
 
 _INSTALL_REFCOUNT=0
 _install() {
+    _require_git_lfs
     _validate_mkpm_config
     if [ "$1" = "" ]; then
         for r in $(_list_repos); do
@@ -440,6 +441,7 @@ _repo_remove() {
 }
 
 _init() {
+    _require_git_lfs
     _SED="$(which gsed >/dev/null 2>&1 && echo gsed || echo sed)"
     rm -rf "$MKPM_ROOT"
     printf "add vscode settings [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
@@ -495,18 +497,7 @@ EOF
     printf "store mkpm cache on git [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
     read _RES
     if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-        if [ ! -f "${PROJECT_ROOT}/.gitattributes" ] || ! (cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'); then
-            printf "use git lfs when storing mkpm cache [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
-            read _RES
-            if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-                git lfs track '.mkpm/cache.tar.gz' >/dev/null
-            fi
-        fi
-        if cat "${PROJECT_ROOT}/.gitattributes" | grep -qE '^\.mkpm/cache\.tar\.gz filter=lfs diff=lfs merge=lfs -text'; then
-            _echo storing mkpm cache on git using lfs
-        else
-            _echo storing mkpm cache on git
-        fi
+        _echo storing mkpm cache on git
     else
         _GITIGNORE_CACHE=1
     fi
@@ -597,63 +588,22 @@ install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
 
 _require_asdf() {
     if ! which asdf >/dev/null 2>&1; then
-        if [ "$PLATFORM" = "darwin" ]; then
-            export ASDF_DIR="$(brew --prefix asdf)/libexec"
+        if [ -f "$HOME/.asdf/asdf.sh" ]; then
+            . "$HOME/.asdf/asdf.sh"
+        elif [ "$PLATFORM" = "darwin" ] && [ -f "$(brew --prefix asdf 2>/dev/null)/libexec/asdf.sh" ]; then
+            . "$(brew --prefix asdf)/libexec/asdf.sh"
         else
-            export ASDF_DIR="$HOME/.asdf"
-        fi
-        if [ -f "$ASDF_DIR/asdf.sh" ]; then
-            . "$ASDF_DIR/asdf.sh"
-        fi
-        if ! grep -E '^[^#]*asdf.*/asdf.sh' "$RC_CONFIG" >/dev/null 2>&1; then
-            _UPDATE_RC_CONFIG=1
-        fi
-        if ! which asdf >/dev/null 2>&1; then
-            _error asdf is not installed on your system
-            echo "you can install asdf on $FLAVOR with the following command"
-            if [ "$PLATFORM" = "darwin" ]; then
-                echo "
-    ${C_GREEN}brew install asdf${C_END}"
-                if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
-                    echo "    ${C_GREEN}printf '\\\\n. \"$ASDF_DIR/asdf.sh\"\\\\n' >> \"$RC_CONFIG\"${C_END}"
-                fi
-                echo
-            else
-                echo "
-    ${C_GREEN}git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.14.0${C_END}"
-                if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
-                    echo "    ${C_GREEN}printf '\\\\n. \"\$HOME/.asdf/asdf.sh\"\\\\n' >> \"$RC_CONFIG\"${C_END}"
-                fi
-                echo
-            fi
-            printf "install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
-            read _RES
-            if [ "$PLATFORM" = "darwin" ]; then
-                if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-                    brew install asdf
-                    if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
-                        printf "\n. \"$ASDF_DIR/asdf.sh\"\n" >>"$RC_CONFIG"
-                    fi
-                else
-                    exit 1
-                fi
-            else
-                if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-                    git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.14.0
-                    if [ "$_UPDATE_RC_CONFIG" = "1" ]; then
-                        printf '\n. "$HOME/.asdf/asdf.sh"\n' >>"$RC_CONFIG"
-                    fi
-                else
-                    exit 1
-                fi
-            fi
-            . "$ASDF_DIR/asdf.sh"
+            return
         fi
     fi
-    for p in $(echo "$(cat "$PROJECT_ROOT/.tool-versions" | cut -d' ' -f1 | uniq)" | tr ' ' '\n' | sort | uniq -u); do
-        asdf plugin add $p
-    done
-    asdf install
+    if which asdf >/dev/null 2>&1 && [ -f "$PROJECT_ROOT/.tool-versions" ]; then
+        for _P in $(cat "$PROJECT_ROOT/.tool-versions" | cut -d' ' -f1 | uniq); do
+            if ! asdf plugin list | grep -q "^$_P$"; then
+                asdf plugin add "$_P" 2>/dev/null || true
+            fi
+        done
+        asdf install
+    fi
 }
 
 _require_binaries() {
@@ -742,7 +692,6 @@ _prepare() {
             _require_system_binary sed --version
             _require_system_binary tar --version
         fi
-        _require_git_lfs
         _ensure_mkpm_mk
         if [ "$REQUIRE_BINARIES" = "1" ]; then
             _require_binaries
@@ -1504,47 +1453,34 @@ MKPM_PRIORITY="${MKPM_PRIORITY:-0}"
 MKPM_LOCK_REGISTRATION_WAIT="${MKPM_LOCK_REGISTRATION_WAIT:-0}"
 
 _release_lock() {
-    rm -f "$LOCK_FILE"
-    sed "/^$$ /d" "$PIDS_FILE" | _sponge "$PIDS_FILE"
+    if [ -f "$LOCK_FILE" ] || [ -L "$LOCK_FILE" ]; then
+        LOCK_PID="$(cat "$LOCK_FILE" 2>/dev/null)"
+        if [ "$LOCK_PID" = "$$" ]; then
+            rm -f "$LOCK_FILE.$$" 2>/dev/null
+            rm -f "$LOCK_FILE" 2>/dev/null
+            _debug "released lock for pid $$"
+        fi
+    fi
 }
 
 _acquire_lock() {
-    if [ "$MKPM_PRIORITY" -gt 999999999 ]; then
-        _error "priority is too big (max value is 999999999)"
-        exit 1
-    fi
-    _ADJUSTED_PRIORITY="$((999999999 - MKPM_PRIORITY))"
     mkdir -p "$MKPM_TMP"
-    echo "$$ $_ADJUSTED_PRIORITY" >> "$PIDS_FILE"
-    if [ "$MKPM_LOCK_REGISTRATION_WAIT" -gt 0 ]; then
-        sleep "$MKPM_LOCK_REGISTRATION_WAIT"
-    fi
+    _TEMP_FILE="$LOCK_FILE.$$"
+    echo "$$" > "$_TEMP_FILE"
     while true; do
-        for pid in $(awk '{print $1}' "$PIDS_FILE"); do
-            if [ "$pid" != "$$" ] && ! kill -0 "$pid" 2>/dev/null; then
-                sed -i "/^$pid /d" "$PIDS_FILE"
-            fi
-        done
-        SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PIDS_FILE" 2>/dev/null | head -n1)"
-        SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
-        SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
         if [ -f "$LOCK_FILE" ]; then
-            LOCK_PID="$(cat "$LOCK_FILE")"
-            if ! kill -0 "$LOCK_PID" >/dev/null 2>&1 || \
-                [ "$(ps -o stat= -p "$LOCK_PID" 2>/dev/null)" = "Z" ]; then
-                rm -f "$LOCK_FILE"
+            LOCK_PID="$(cat "$LOCK_FILE" 2>/dev/null)"
+            if [ -z "$LOCK_PID" ] || ! kill -0 "$LOCK_PID" 2>/dev/null || [ "$(ps -o stat= -p "$LOCK_PID" 2>/dev/null)" = "Z" ]; then
+                rm -f "$LOCK_FILE" 2>/dev/null
+                _debug "removed stale lock file from pid $LOCK_PID"
             fi
         fi
-        if [ ! -f "$LOCK_FILE" ] && \
-            [ "$SMALLEST_PID" = "$$" ] && \
-            [ "$SMALLEST_PRIORITY" = "$_ADJUSTED_PRIORITY" ]; then
-            sed -i "/^$$ /d" "$PIDS_FILE"
-            echo "$$" > "$LOCK_FILE"
-            break
-        else
-            _echo "waiting for another mkpm instance to finish..."
-            sleep 3
+        if ln -s "$_TEMP_FILE" "$LOCK_FILE" 2>/dev/null; then
+            _debug "acquired lock for pid $$"
+            return 0
         fi
+        _echo "waiting for another mkpm instance to finish..."
+        sleep 3
     done
 }
 

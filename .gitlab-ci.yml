@@ -13,8 +13,6 @@ build:
   image: registry.gitlab.com/bitspur/rock8s/images/debian-build:bookworm
   rules:
     - if: $CI_COMMIT_TAG
-  before_script:
-    - git lfs install
   script:
     - make build-deb
     - export DEB="$(cd .. && ls *.deb | head -n1 | sed 's|\([^_]*\)_\([^_]*\)_.*\.deb$|\1_\2_all.deb|g')"
