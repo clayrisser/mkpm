@@ -20,7 +20,7 @@ include $(MKPM)/mkpm
 include $(MKPM)/gnu
 include $(MKPM)/chain
 
-MKPM_VERSION=1.0.0
+MKPM_VERSION=1.1.0
 PREFIX ?= /usr/local
 DESTDIR ?=
 DPKG_BUILDPACKAGE ?= dpkg-buildpackage
