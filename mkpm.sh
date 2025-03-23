@@ -122,6 +122,167 @@ _echo() { [ "$_SILENT" = "1" ] && true || echo "${C_LIGHT_CYAN}MKPM [I]:${C_END}
 
 _error() { echo "${C_RED}MKPM [E]:${C_END} $@" 1>&2; }
 
+export ARCH=unknown
+export FLAVOR=unknown
+export PKG_MANAGER=unknown
+export PLATFORM=unknown
+PLATFORM=$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+ARCH=$( (dpkg --print-architecture 2>/dev/null || uname -m 2>/dev/null || arch 2>/dev/null || echo unknown) |
+    tr '[:upper:]' '[:lower:]' 2>/dev/null)
+if [ "$ARCH" = "i386" ] || [ "$ARCH" = "i686" ]; then
+    ARCH=386
+elif [ "$ARCH" = "x86_64" ]; then
+    ARCH=amd64
+fi
+if [ "$PLATFORM" = "linux" ]; then
+    if [ -f /system/bin/adb ]; then
+        if [ "$(getprop --help >/dev/null 2>/dev/null && echo 1 || echo 0)" = "1" ]; then
+            PLATFORM=android
+        fi
+    fi
+    if [ "$PLATFORM" = "linux" ]; then
+        FLAVOR=$(lsb_release -si 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
+        if [ "$FLAVOR" = "" ]; then
+            FLAVOR=unknown
+            if [ -f /etc/redhat-release ]; then
+                FLAVOR=rhel
+            elif [ -f /etc/SuSE-release ]; then
+                FLAVOR=suse
+            elif [ -f /etc/debian_version ]; then
+                FLAVOR=debian
+            elif (cat /etc/os-release 2>/dev/null | grep -qE '^ID=alpine$'); then
+                FLAVOR=alpine
+            fi
+        fi
+        if [ "$FLAVOR" = "rhel" ]; then
+            PKG_MANAGER=$(which microdnf >/dev/null 2>&1 && echo microdnf ||
+                echo $(which dnf >/dev/null 2>&1 && echo dnf || echo yum))
+        elif [ "$FLAVOR" = "suse" ]; then
+            PKG_MANAGER=zypper
+        elif [ "$FLAVOR" = "debian" ]; then
+            PKG_MANAGER=apt-get
+        elif [ "$FLAVOR" = "ubuntu" ]; then
+            PKG_MANAGER=apt-get
+        elif [ "$FLAVOR" = "alpine" ]; then
+            PKG_MANAGER=apk
+        fi
+    fi
+elif [ "$PLATFORM" = "darwin" ]; then
+    PKG_MANAGER=brew
+else
+    if (echo "$PLATFORM" | grep -q 'MSYS'); then
+        PLATFORM=win32
+        FLAVOR=msys
+        PKG_MANAGER=pacman
+    elif (echo "$PLATFORM" | grep -q 'MINGW'); then
+        PLATFORM=win32
+        FLAVOR=msys
+        PKG_MANAGER=mingw-get
+    elif (echo "$PLATFORM" | grep -q 'CYGWIN'); then
+        PLATFORM=win32
+        FLAVOR=cygwin
+    fi
+fi
+if [ "$FLAVOR" = "unknown" ]; then
+    FLAVOR="$PLATFORM"
+fi
+
+_lookup_system_package_name() {
+    _BINARY="$1"
+    case "$_BINARY" in
+    awk)
+        case "$PKG_MANAGER" in
+        apt-get)
+            echo gawk
+            ;;
+        *)
+            echo "$_BINARY"
+            ;;
+        esac
+        ;;
+    gmake)
+        case "$PKG_MANAGER" in
+        brew)
+            echo make
+            ;;
+        *)
+            echo "$_BINARY"
+            ;;
+        esac
+        ;;
+    gtar)
+        case "$PKG_MANAGER" in
+        brew)
+            echo gnu-tar
+            ;;
+        *)
+            echo "$_BINARY"
+            ;;
+        esac
+        ;;
+    python3)
+        case "$PKG_MANAGER" in
+        brew)
+            echo python
+            ;;
+        apt-get)
+            echo python3-minimal
+            ;;
+        *)
+            echo "$_BINARY"
+            ;;
+        esac
+        ;;
+    *)
+        echo "$_BINARY"
+        ;;
+    esac
+}
+
+_PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
+_lookup_system_package_install_command() {
+    _BINARY="$1"
+    _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || echo "$2")"
+    case "$PKG_MANAGER" in
+    apk)
+        echo "$PKG_MANAGER add --no-cache $_PACKAGE"
+        ;;
+    brew)
+        echo "$PKG_MANAGER install $_PACKAGE"
+        ;;
+    choco)
+        echo "$PKG_MANAGER install /y $_PACKAGE"
+        ;;
+    *)
+        echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
+        ;;
+    esac
+}
+
+_require_system_binary() {
+    _SYSTEM_BINARY="$1"
+    shift
+    _ARGS="$@"
+    _SYSTEM_PACKAGE_NAME="$(_lookup_system_package_name "$_SYSTEM_BINARY")"
+    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_BINARY" "$_SYSTEM_PACKAGE_NAME")"
+    if ! ([ "$_ARGS" = "" ] && which "$_SYSTEM_BINARY" || "$_SYSTEM_BINARY" "$_ARGS") >/dev/null 2>&1; then
+        _error $_SYSTEM_BINARY is not installed on your system
+        printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
+
+    ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
+
+install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
+        read _RES
+        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
+            eval $_SYSTEM_PACKAGE_INSTALL_COMMAND
+        else
+            exit 1
+        fi
+    else
+        _debug system binary $_SYSTEM_BINARY found
+    fi
+}
+
 _require_system_binary git
 if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
     export ROOTDIR="$(git rev-parse --show-toplevel 2>/dev/null)"
@@ -688,58 +849,6 @@ _prepare() {
     fi
 }
 
-_lookup_system_package_name() {
-    _BINARY="$1"
-    case "$_BINARY" in
-    awk)
-        case "$PKG_MANAGER" in
-        apt-get)
-            echo gawk
-            ;;
-        *)
-            echo "$_BINARY"
-            ;;
-        esac
-        ;;
-    gmake)
-        case "$PKG_MANAGER" in
-        brew)
-            echo make
-            ;;
-        *)
-            echo "$_BINARY"
-            ;;
-        esac
-        ;;
-    gtar)
-        case "$PKG_MANAGER" in
-        brew)
-            echo gnu-tar
-            ;;
-        *)
-            echo "$_BINARY"
-            ;;
-        esac
-        ;;
-    python3)
-        case "$PKG_MANAGER" in
-        brew)
-            echo python
-            ;;
-        apt-get)
-            echo python3-minimal
-            ;;
-        *)
-            echo "$_BINARY"
-            ;;
-        esac
-        ;;
-    *)
-        echo "$_BINARY"
-        ;;
-    esac
-}
-
 _pack() {
     _PACKAGE_NAME=$(cat "$MKPM_CONFIG" 2>/dev/null | jq -r '.name // ""')
     if [ "$_PACKAGE_NAME" = "" ]; then
@@ -847,50 +956,6 @@ _publish() {
     git push || _exit 1
     git push --tags || _exit 1
     _exit
-}
-
-_PKG_MANAGER_SUDO="$(which sudo >/dev/null 2>&1 && echo sudo || true) "
-_lookup_system_package_install_command() {
-    _BINARY="$1"
-    _PACKAGE="$([ "$2" = "" ] && echo "$_BINARY" || echo "$2")"
-    case "$PKG_MANAGER" in
-    apk)
-        echo "$PKG_MANAGER add --no-cache $_PACKAGE"
-        ;;
-    brew)
-        echo "$PKG_MANAGER install $_PACKAGE"
-        ;;
-    choco)
-        echo "$PKG_MANAGER install /y $_PACKAGE"
-        ;;
-    *)
-        echo "${_PKG_MANAGER_SUDO}$PKG_MANAGER install -y $_PACKAGE"
-        ;;
-    esac
-}
-
-_require_system_binary() {
-    _SYSTEM_BINARY="$1"
-    shift
-    _ARGS="$@"
-    _SYSTEM_PACKAGE_NAME="$(_lookup_system_package_name "$_SYSTEM_BINARY")"
-    _SYSTEM_PACKAGE_INSTALL_COMMAND="$(_lookup_system_package_install_command "$_SYSTEM_BINARY" "$_SYSTEM_PACKAGE_NAME")"
-    if ! ([ "$_ARGS" = "" ] && which "$_SYSTEM_BINARY" || "$_SYSTEM_BINARY" "$_ARGS") >/dev/null 2>&1; then
-        _error $_SYSTEM_BINARY is not installed on your system
-        printf "you can install $_SYSTEM_BINARY on $FLAVOR with the following command
-
-    ${C_GREEN}$_SYSTEM_PACKAGE_INSTALL_COMMAND${C_END}
-
-install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
-        read _RES
-        if [ "$(echo "$_RES" | cut -c 1 | tr '[:lower:]' '[:upper:]')" != "N" ]; then
-            eval $_SYSTEM_PACKAGE_INSTALL_COMMAND
-        else
-            exit 1
-        fi
-    else
-        _debug system binary $_SYSTEM_BINARY found
-    fi
 }
 
 _ensure_dirs() {
@@ -1181,71 +1246,6 @@ _help() {
     echo "    pack                                  pack mkpm module"
     echo "    publish                               pack and publish mkpm module"
 }
-
-export ARCH=unknown
-export FLAVOR=unknown
-export PKG_MANAGER=unknown
-export PLATFORM=unknown
-PLATFORM=$(uname 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
-ARCH=$( (dpkg --print-architecture 2>/dev/null || uname -m 2>/dev/null || arch 2>/dev/null || echo unknown) |
-    tr '[:upper:]' '[:lower:]' 2>/dev/null)
-if [ "$ARCH" = "i386" ] || [ "$ARCH" = "i686" ]; then
-    ARCH=386
-elif [ "$ARCH" = "x86_64" ]; then
-    ARCH=amd64
-fi
-if [ "$PLATFORM" = "linux" ]; then
-    if [ -f /system/bin/adb ]; then
-        if [ "$(getprop --help >/dev/null 2>/dev/null && echo 1 || echo 0)" = "1" ]; then
-            PLATFORM=android
-        fi
-    fi
-    if [ "$PLATFORM" = "linux" ]; then
-        FLAVOR=$(lsb_release -si 2>/dev/null | tr '[:upper:]' '[:lower:]' 2>/dev/null)
-        if [ "$FLAVOR" = "" ]; then
-            FLAVOR=unknown
-            if [ -f /etc/redhat-release ]; then
-                FLAVOR=rhel
-            elif [ -f /etc/SuSE-release ]; then
-                FLAVOR=suse
-            elif [ -f /etc/debian_version ]; then
-                FLAVOR=debian
-            elif (cat /etc/os-release 2>/dev/null | grep -qE '^ID=alpine$'); then
-                FLAVOR=alpine
-            fi
-        fi
-        if [ "$FLAVOR" = "rhel" ]; then
-            PKG_MANAGER=$(which microdnf >/dev/null 2>&1 && echo microdnf ||
-                echo $(which dnf >/dev/null 2>&1 && echo dnf || echo yum))
-        elif [ "$FLAVOR" = "suse" ]; then
-            PKG_MANAGER=zypper
-        elif [ "$FLAVOR" = "debian" ]; then
-            PKG_MANAGER=apt-get
-        elif [ "$FLAVOR" = "ubuntu" ]; then
-            PKG_MANAGER=apt-get
-        elif [ "$FLAVOR" = "alpine" ]; then
-            PKG_MANAGER=apk
-        fi
-    fi
-elif [ "$PLATFORM" = "darwin" ]; then
-    PKG_MANAGER=brew
-else
-    if (echo "$PLATFORM" | grep -q 'MSYS'); then
-        PLATFORM=win32
-        FLAVOR=msys
-        PKG_MANAGER=pacman
-    elif (echo "$PLATFORM" | grep -q 'MINGW'); then
-        PLATFORM=win32
-        FLAVOR=msys
-        PKG_MANAGER=mingw-get
-    elif (echo "$PLATFORM" | grep -q 'CYGWIN'); then
-        PLATFORM=win32
-        FLAVOR=cygwin
-    fi
-fi
-if [ "$FLAVOR" = "unknown" ]; then
-    FLAVOR="$PLATFORM"
-fi
 
 if [ "$_SCRIPT_PATH" != "${MKPM_BIN}/mkpm" ]; then
     if [ -f "${MKPM_BIN}/mkpm" ] || [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
