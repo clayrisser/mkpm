@@ -815,7 +815,9 @@ _prepare() {
         if [ "$REQUIRE_ASDF" = "1" ] && [ -f "$PROJECT_ROOT/.tool-versions" ]; then
             _require_asdf
         fi
-        _require_system_binary curl
+        if ! which curl >/dev/null 2>&1 && ! which wget >/dev/null 2>&1; then
+            _require_system_binary curl
+        fi
         _require_system_binary grep
         _require_system_binary jq
         if [ "$PLATFORM" = "darwin" ]; then
