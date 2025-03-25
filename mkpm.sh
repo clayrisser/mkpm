@@ -1453,6 +1453,9 @@ _release_lock() {
 }
 
 _acquire_lock() {
+    if ! which ps >/dev/null 2>&1; then
+        return
+    fi
     mkdir -p "$MKPM_TMP"
     _TEMP_FILE="$LOCK_FILE.$$"
     echo "$$" > "$_TEMP_FILE"
