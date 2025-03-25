@@ -1442,47 +1442,34 @@ MKPM_PRIORITY="${MKPM_PRIORITY:-0}"
 MKPM_LOCK_REGISTRATION_WAIT="${MKPM_LOCK_REGISTRATION_WAIT:-0}"
 
 _release_lock() {
-    rm -f "$LOCK_FILE"
-    sed "/^$$ /d" "$PIDS_FILE" | _sponge "$PIDS_FILE"
+    if [ -f "$LOCK_FILE" ] || [ -L "$LOCK_FILE" ]; then
+        LOCK_PID="$(cat "$LOCK_FILE" 2>/dev/null)"
+        if [ "$LOCK_PID" = "$$" ]; then
+            rm -f "$LOCK_FILE.$$" 2>/dev/null
+            rm -f "$LOCK_FILE" 2>/dev/null
+            _debug "released lock for pid $$"
+        fi
+    fi
 }
 
 _acquire_lock() {
-    if [ "$MKPM_PRIORITY" -gt 999999999 ]; then
-        _error "priority is too big (max value is 999999999)"
-        exit 1
-    fi
-    _ADJUSTED_PRIORITY="$((999999999 - MKPM_PRIORITY))"
     mkdir -p "$MKPM_TMP"
-    echo "$$ $_ADJUSTED_PRIORITY" >> "$PIDS_FILE"
-    if [ "$MKPM_LOCK_REGISTRATION_WAIT" -gt 0 ]; then
-        sleep "$MKPM_LOCK_REGISTRATION_WAIT"
-    fi
+    _TEMP_FILE="$LOCK_FILE.$$"
+    echo "$$" > "$_TEMP_FILE"
     while true; do
-        for pid in $(awk '{print $1}' "$PIDS_FILE"); do
-            if [ "$pid" != "$$" ] && ! kill -0 "$pid" 2>/dev/null; then
-                sed -i "/^$pid /d" "$PIDS_FILE"
-            fi
-        done
-        SMALLEST_PRIORITY_PID="$(sort -k2 -n "$PIDS_FILE" 2>/dev/null | head -n1)"
-        SMALLEST_PID="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $1}')"
-        SMALLEST_PRIORITY="$(echo "$SMALLEST_PRIORITY_PID" | awk '{print $2}')"
         if [ -f "$LOCK_FILE" ]; then
-            LOCK_PID="$(cat "$LOCK_FILE")"
-            if ! kill -0 "$LOCK_PID" >/dev/null 2>&1 || \
-                [ "$(ps -o stat= -p "$LOCK_PID" 2>/dev/null)" = "Z" ]; then
-                rm -f "$LOCK_FILE"
+            LOCK_PID="$(cat "$LOCK_FILE" 2>/dev/null)"
+            if [ -z "$LOCK_PID" ] || ! kill -0 "$LOCK_PID" 2>/dev/null || [ "$(ps -o stat= -p "$LOCK_PID" 2>/dev/null)" = "Z" ]; then
+                rm -f "$LOCK_FILE" 2>/dev/null
+                _debug "removed stale lock file from pid $LOCK_PID"
             fi
         fi
-        if [ ! -f "$LOCK_FILE" ] && \
-            [ "$SMALLEST_PID" = "$$" ] && \
-            [ "$SMALLEST_PRIORITY" = "$_ADJUSTED_PRIORITY" ]; then
-            sed -i "/^$$ /d" "$PIDS_FILE"
-            echo "$$" > "$LOCK_FILE"
-            break
-        else
-            _echo "waiting for another mkpm instance to finish..."
-            sleep 3
+        if ln -s "$_TEMP_FILE" "$LOCK_FILE" 2>/dev/null; then
+            _debug "acquired lock for pid $$"
+            return
         fi
+        _echo "waiting for another mkpm instance to finish..."
+        sleep 3
     done
 }
 
