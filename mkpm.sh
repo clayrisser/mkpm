@@ -1442,10 +1442,9 @@ MKPM_PRIORITY="${MKPM_PRIORITY:-0}"
 MKPM_LOCK_REGISTRATION_WAIT="${MKPM_LOCK_REGISTRATION_WAIT:-0}"
 
 _release_lock() {
-    if [ -f "$LOCK_FILE" ] || [ -L "$LOCK_FILE" ]; then
+    if [ -f "$LOCK_FILE" ]; then
         LOCK_PID="$(cat "$LOCK_FILE" 2>/dev/null)"
         if [ "$LOCK_PID" = "$$" ]; then
-            rm -f "$LOCK_FILE.$$" 2>/dev/null
             rm -f "$LOCK_FILE" 2>/dev/null
             _debug "released lock for pid $$"
         fi
@@ -1457,19 +1456,30 @@ _acquire_lock() {
         return
     fi
     mkdir -p "$MKPM_TMP"
-    _TEMP_FILE="$LOCK_FILE.$$"
-    echo "$$" > "$_TEMP_FILE"
     while true; do
+        _STALE_LOCK=0
         if [ -f "$LOCK_FILE" ]; then
             LOCK_PID="$(cat "$LOCK_FILE" 2>/dev/null)"
-            if [ -z "$LOCK_PID" ] || ! kill -0 "$LOCK_PID" 2>/dev/null || [ "$(ps -o stat= -p "$LOCK_PID" 2>/dev/null)" = "Z" ]; then
+            if [ -z "$LOCK_PID" ]; then
+                _STALE_LOCK=1
+                _debug "stale lock: empty pid"
+            elif ! ps -p "$LOCK_PID" >/dev/null 2>&1; then
+                _STALE_LOCK=1
+                _debug "stale lock: process doesn't exist"
+            elif [ "$(ps -o stat= -p "$LOCK_PID" 2>/dev/null)" = "Z" ]; then
+                _STALE_LOCK=1
+                _debug "stale lock: zombie process"
+            fi
+            if [ "$_STALE_LOCK" = "1" ]; then
                 rm -f "$LOCK_FILE" 2>/dev/null
-                _debug "removed stale lock file from pid $LOCK_PID"
             fi
         fi
-        if ln -s "$_TEMP_FILE" "$LOCK_FILE" 2>/dev/null; then
-            _debug "acquired lock for pid $$"
-            return
+        if [ ! -f "$LOCK_FILE" ]; then
+            echo "$$" > "$LOCK_FILE" 2>/dev/null
+            if [ -f "$LOCK_FILE" ] && [ "$(cat "$LOCK_FILE" 2>/dev/null)" = "$$" ]; then
+                _debug "acquired lock for pid $$"
+                return
+            fi
         fi
         _echo "waiting for another mkpm instance to finish..."
         sleep 3
