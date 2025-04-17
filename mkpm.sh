@@ -284,18 +284,18 @@ install for me [${C_GREEN}Y${C_END}|${C_RED}n${C_END}]: "
 }
 
 _require_system_binary git
-if [ "$PROJECT_ROOT" = "" ] || [ "$PROJECT_ROOT" = "/" ]; then
+if [ -z "$ROOTDIR" ] || [ "$ROOTDIR" = "/" ]; then
     export ROOTDIR="$(git rev-parse --show-toplevel 2>/dev/null)"
-    export PROJECT_ROOT="$ROOTDIR"
 fi
-if [ -z "$PROJECT_ROOT" ] || [ ! -f "$PROJECT_ROOT/mkpm.json" ]; then
+if [ -z "$ROOTDIR" ] || [ ! -f "$ROOTDIR/mkpm.json" ]; then
     if [ "$_MKPM_PROXY_REQUIRED" = "1" ]; then
         _error "not an mkpm project" && exit 1
     else
-        PROJECT_ROOT="$_CWD"
+        export ROOTDIR="$_CWD"
         _IS_MKPM_COMMAND=1
     fi
 fi
+export PROJECT_ROOT="$ROOTDIR"
 _rc_config() {
     case "${SHELL##*/}" in
     zsh)
