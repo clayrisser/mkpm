@@ -58,10 +58,10 @@ if [ "$CI" = "" ]; then
     fi
 fi
 if [ "$REQUIRE_ASDF" = "" ]; then
-    REQUIRE_ASDF="$([ "$CI" = "0" ] && echo 1 || true)"
+    REQUIRE_ASDF="$([ -z "$CI" ] && echo 1 || true)"
 fi
 if [ "$REQUIRE_BINARIES" = "" ]; then
-    REQUIRE_BINARIES="$([ "$CI" = "" ] && echo 1 || true)"
+    REQUIRE_BINARIES="$([ -z "$CI" ] && echo 1 || true)"
 fi
 
 _CWD="$(pwd)"
