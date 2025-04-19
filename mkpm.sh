@@ -421,13 +421,13 @@ _run() {
     _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS $_TARGET"
     _cleanup_trap() {
         _acquire_lock
-        trap - INT TERM QUIT HUP ABRT EXIT
+        trap - INT TERM QUIT HUP ABRT PIPE EXIT
         _debug "$_ARGS_ENV_NAME=\"$@\" $_MAKE -s -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS _mkpm_cleanup"
         eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
             -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS _mkpm_cleanup" || true
         _release_lock
     }
-    trap '_cleanup_trap' INT TERM QUIT HUP ABRT EXIT
+    trap '_cleanup_trap' INT TERM QUIT HUP ABRT PIPE EXIT
     _release_lock
     eval "$_ARGS_ENV_NAME=\"$@\" $_MAKE $([ "$MKPM_DEBUG" = "1" ] || echo '-s') \
         -C "$PROJECT_ROOT" -f "$_MAKEFILE" $_MAKE_FLAGS $_TARGET"
@@ -1436,50 +1436,38 @@ else
     fi
 fi
 
-LOCK_FILE="$MKPM_TMP/mkpm.lock"
-PIDS_FILE="$MKPM_TMP/mkpm.pids"
-MKPM_PRIORITY="${MKPM_PRIORITY:-0}"
-MKPM_LOCK_REGISTRATION_WAIT="${MKPM_LOCK_REGISTRATION_WAIT:-0}"
-
 _release_lock() {
-    if [ -f "$LOCK_FILE" ]; then
-        LOCK_PID="$(cat "$LOCK_FILE" 2>/dev/null)"
-        if [ "$LOCK_PID" = "$$" ]; then
-            rm -f "$LOCK_FILE" 2>/dev/null
-            _debug "released lock for pid $$"
+    rm -f "$MKPM_TMP/lock" 2>/dev/null
+}
+
+_is_pid_running() {
+    _PID="$1"
+    if ps -p "$_PID" -o stat= 2>/dev/null | grep -qvE '^[ZTX]'; then
+        return
+    fi
+    if kill -0 "$_PID" 2>/dev/null; then
+        if [ -d "/proc/$_PID" ]; then
+            if ! grep -q '^State.*[ZTX]' "/proc/$_PID/status" 2>/dev/null; then
+                return
+            fi
+        else
+            return
         fi
     fi
+    return 1
 }
 
 _acquire_lock() {
-    if ! which ps >/dev/null 2>&1; then
-        return
-    fi
+    trap '_release_lock' INT TERM QUIT HUP ABRT PIPE EXIT
     mkdir -p "$MKPM_TMP"
     while true; do
-        _STALE_LOCK=0
-        if [ -f "$LOCK_FILE" ]; then
-            LOCK_PID="$(cat "$LOCK_FILE" 2>/dev/null)"
-            if [ -z "$LOCK_PID" ]; then
-                _STALE_LOCK=1
-                _debug "stale lock: empty pid"
-            elif ! ps -p "$LOCK_PID" >/dev/null 2>&1; then
-                _STALE_LOCK=1
-                _debug "stale lock: process doesn't exist"
-            elif [ "$(ps -o stat= -p "$LOCK_PID" 2>/dev/null)" = "Z" ]; then
-                _STALE_LOCK=1
-                _debug "stale lock: zombie process"
-            fi
-            if [ "$_STALE_LOCK" = "1" ]; then
-                rm -f "$LOCK_FILE" 2>/dev/null
-            fi
+        if ln -s "$$" "$MKPM_TMP/lock" 2>/dev/null; then
+            break
         fi
-        if [ ! -f "$LOCK_FILE" ]; then
-            echo "$$" > "$LOCK_FILE" 2>/dev/null
-            if [ -f "$LOCK_FILE" ] && [ "$(cat "$LOCK_FILE" 2>/dev/null)" = "$$" ]; then
-                _debug "acquired lock for pid $$"
-                return
-            fi
+        _PID="$(readlink "$MKPM_TMP/lock" 2>/dev/null || true)"
+        if [ -z "$_PID" ] || ! _is_pid_running "$_PID"; then
+            rm -f "$MKPM_TMP/lock"
+            continue
         fi
         _echo "waiting for another mkpm instance to finish..."
         sleep 3
