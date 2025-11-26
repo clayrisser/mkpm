@@ -750,7 +750,7 @@ _require_asdf() {
                 asdf plugin add "$_P" 2>/dev/null || true
             fi
         done
-        asdf install
+        asdf install || true
     fi
 }
 
